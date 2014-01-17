@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<DDKLaunchParams xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <DebugConnectionString>vm://windows 7 x64</DebugConnectionString>
+  <RemoteMachineHostname>192.168.3.103</RemoteMachineHostname>
+  <PathOnTarget>%SystemRoot%\System32\Drivers\testDriver.sys</PathOnTarget>
+  <StartMode>LegacyStartStop</StartMode>
+  <StartModeArg>testDriver</StartModeArg>
+  <StartModeIntArg>0</StartModeIntArg>
+  <StopMode>LegacyStartStop</StopMode>
+  <StopModeArg>testDriver</StopModeArg>
+  <StopModeIntArg>0</StopModeIntArg>
+  <KeepSessionWhenDriverUnloads>false</KeepSessionWhenDriverUnloads>
+  <AutoInstallPolicy>AutoInstallInteractive</AutoInstallPolicy>
+</DDKLaunchParams>
