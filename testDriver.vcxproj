@@ -198,13 +198,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="hooklib.h" />
+    <ClInclude Include="hooks.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="stringTools.h" />
+    <ClInclude Include="undocumented.h" />
     <ClInclude Include="VisualDDKHelpers.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="hooklib.cpp" />
+    <ClCompile Include="hooks.cpp" />
     <ClCompile Include="misc.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -214,6 +217,7 @@
     </ClCompile>
     <ClCompile Include="stringTools.cpp" />
     <ClCompile Include="testDriver.cpp" />
+    <ClCompile Include="undocumented.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

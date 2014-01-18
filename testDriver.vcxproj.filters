@@ -30,6 +30,12 @@
     <ClInclude Include="hooklib.h">
       <Filter>Header files</Filter>
     </ClInclude>
+    <ClInclude Include="hooks.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="undocumented.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testDriver.cpp">
@@ -45,6 +51,12 @@
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="hooklib.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="hooks.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="undocumented.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>

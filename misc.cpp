@@ -1,4 +1,5 @@
 #include "misc.h"
+#include "stdafx.h"
 
 void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize)
 {

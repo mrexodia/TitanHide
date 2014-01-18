@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "stringTools.h"
+#include "hooks.h"
+
 
 #ifdef __cplusplus
 extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING  RegistryPath);
@@ -12,6 +14,7 @@ void testDriverUnload(IN PDRIVER_OBJECT DriverObject)
 	RtlInitUnicodeString(&Win32Device,L"\\DosDevices\\testDriver0");
 	IoDeleteSymbolicLink(&Win32Device);
 	IoDeleteDevice(DriverObject->DeviceObject);
+	HooksFree();
 }
 
 NTSTATUS testDriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
@@ -117,8 +120,8 @@ NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING  Registr
 	}
 
 	DbgPrint("[TESTDRIVER] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
-	//DbgPrint("[TESTDRIVER] init_hook() returned %u\n", init_hook());
-	//hook(L"NtQueryInformationProcess", 0);
+	DbgPrint("[TESTDRIVER] HooksInit() returned %d\n", HooksInit());
+	
 
 	return STATUS_SUCCESS;
 }

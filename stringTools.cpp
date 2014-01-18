@@ -1,3 +1,4 @@
+#include "stringTools.h"
 #include "stdafx.h"
 
 int forceNullTermination(char* string, unsigned int len) 
