@@ -3,6 +3,7 @@
 #include "undocumented.h"
 
 static HOOK hNtQueryInformationProcess;
+static HOOK hNtQueryObject;
 
 ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
 {
@@ -43,39 +44,59 @@ NTSTATUS HookNtQueryInformationProcess(
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(ProcessInformation && ProcessInformationLength)
     {
+        ULONG hide=18784+1;
         ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
         if(ProcessInformationClass==ProcessDebugFlags)
         {
             DbgPrint("[TESTDRIVER] ProcessDebugFlags by %d\n", pid);
-            if(6276==pid)
-                *(unsigned int*)ProcessInformation=FALSE;
+            if(pid==hide)
+                *(unsigned int*)ProcessInformation=TRUE;
         }
         else if(ProcessInformationClass==ProcessDebugPort)
         {
             DbgPrint("[TESTDRIVER] ProcessDebugPort by %d\n", pid);
-            if(6276==pid)
-                *(unsigned int*)ProcessInformation=-1;
+            if(hide==hide)
+                *(unsigned int*)ProcessInformation=0;
         }
         else if(ProcessInformationClass==ProcessDebugObjectHandle)
         {
             DbgPrint("[TESTDRIVER] ProcessDebugObjectHandle by %d\n", pid);
-            if(6276==pid)
-                *(unsigned int*)ProcessInformation=1;
+            if(pid==hide)
+                *(unsigned int*)ProcessInformation=0;
         }
     }
     hook(hNtQueryInformationProcess);
     return ret;
 }
 
+NTSTATUS HookNtQueryObject(
+    IN HANDLE Handle OPTIONAL,
+    IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    OUT PVOID ObjectInformation OPTIONAL,
+    IN ULONG ObjectInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+)
+{
+    unhook(hNtQueryObject);
+    DbgPrint("[TESTDRIVER] NtQueryObject\n");
+    NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    hook(hNtQueryObject);
+    return ret;
+}
+
 bool HooksInit()
 {
     hNtQueryInformationProcess=hook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
-    if(hNtQueryInformationProcess)
-        return true;
-    return false;
+    if(!hNtQueryInformationProcess)
+        return false;
+    /*hNtQueryObject=hook(L"NtQueryObject", (void*)HookNtQueryObject);
+    if(!hNtQueryObject)
+        return false;*/
+    return true;
 }
 
 void HooksFree()
 {
     unhook(hNtQueryInformationProcess, true);
+    unhook(hNtQueryObject, true);
 }

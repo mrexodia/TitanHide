@@ -11,5 +11,5 @@ void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize)
 
 void RtlFreeMemory(void* InPointer)
 {
-	ExFreePool(InPointer);
+    ExFreePool(InPointer);
 }

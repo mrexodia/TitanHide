@@ -1,4 +1,4 @@
-#ifndef _HOOKLIB_H_ 
+#ifndef _HOOKLIB_H_
 #define _HOOKLIB_H_
 
 #include <ntddk.h>
@@ -17,7 +17,7 @@ struct opcode
 #ifdef _WIN64
     unsigned short int mov;
 #else
-	unsigned char mov;
+    unsigned char mov;
 #endif
     duint addr;
     unsigned char push;
@@ -27,12 +27,12 @@ struct opcode
 
 struct hookstruct
 {
-	duint addr;
-	opcode hook;
-	unsigned char orig[sizeof(opcode)];
+    duint addr;
+    opcode hook;
+    unsigned char orig[sizeof(opcode)];
 };
 
-typedef hookstruct* HOOK; 
+typedef hookstruct* HOOK;
 
 int init_hook();
 VOID uninit_hook();
