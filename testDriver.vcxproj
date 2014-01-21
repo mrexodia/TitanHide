@@ -197,6 +197,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="hider.h" />
     <ClInclude Include="hooklib.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="misc.h" />
@@ -207,6 +208,7 @@
     <ClInclude Include="VisualDDKHelpers.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="hider.cpp" />
     <ClCompile Include="hooklib.cpp" />
     <ClCompile Include="hooks.cpp" />
     <ClCompile Include="misc.cpp" />

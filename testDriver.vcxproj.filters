@@ -39,6 +39,9 @@
     <ClInclude Include="ssdt.h">
       <Filter>Header files</Filter>
     </ClInclude>
+    <ClInclude Include="hider.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="testDriver.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="ssdt.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="hider.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>
