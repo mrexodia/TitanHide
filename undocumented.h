@@ -56,6 +56,5 @@ NTSTATUS NtQueryObject(
     OUT PULONG ReturnLength OPTIONAL);
 
 PVOID KernelGetModuleBase(PCHAR pModuleName);
-PVOID FindSSDT();
 
 #endif

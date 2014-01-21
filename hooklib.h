@@ -36,6 +36,7 @@ typedef hookstruct* HOOK;
 
 int init_hook();
 VOID uninit_hook();
+HOOK hook(PVOID api, void* newfunc);
 HOOK hook(wchar_t* api, void* newfunc);
 bool unhook(HOOK hook, bool free);
 bool unhook(HOOK hook);

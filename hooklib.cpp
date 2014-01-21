@@ -35,9 +35,9 @@ static void* gpa(wchar_t* proc)
     return MmGetSystemRoutineAddress(&usfn);
 }
 
-HOOK hook(wchar_t* api, void* newfunc)
+HOOK hook(PVOID api, void* newfunc)
 {
-    duint addr=(duint)gpa(api);
+    duint addr=(duint)api;
     if(!addr)
         return 0;
     DbgPrint("[TESTDRIVER] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);
@@ -62,6 +62,11 @@ HOOK hook(wchar_t* api, void* newfunc)
         return 0;
     }
     return hook;
+}
+
+HOOK hook(wchar_t* api, void* newfunc)
+{
+    return hook(gpa(api), newfunc);
 }
 
 bool unhook(HOOK hook, bool free)

@@ -200,6 +200,7 @@
     <ClInclude Include="hooklib.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="ssdt.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="stringTools.h" />
     <ClInclude Include="undocumented.h" />
@@ -209,6 +210,7 @@
     <ClCompile Include="hooklib.cpp" />
     <ClCompile Include="hooks.cpp" />
     <ClCompile Include="misc.cpp" />
+    <ClCompile Include="ssdt.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

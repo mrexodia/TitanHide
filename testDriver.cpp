@@ -3,6 +3,7 @@
 #include "hooks.h"
 #include <windef.h>
 #include "undocumented.h"
+#include "ssdt.h"
 
 void testDriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
@@ -68,7 +69,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     PDEVICE_OBJECT DeviceObject = NULL;
     NTSTATUS status;
 
-//set callback functions
+    //set callback functions
     DriverObject->DriverUnload = testDriverUnload;
 
     for (unsigned int i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
@@ -78,7 +79,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     DriverObject->MajorFunction[IRP_MJ_CLOSE] = testDriverCreateClose;
     DriverObject->MajorFunction[IRP_MJ_WRITE] = testDriverWrite;
 
-//create io device
+    //create io device
     RtlInitUnicodeString(&DeviceName, L"\\Device\\testDriver0");
     RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\testDriver0");
 
@@ -104,7 +105,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 
     DbgPrint("[TESTDRIVER] Device %ws created successfully!\n", DeviceName.Buffer);
 
-//create symbolic link
+    //create symbolic link
     DeviceObject->Flags |= DO_BUFFERED_IO;
     DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
 
@@ -119,13 +120,30 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     DbgPrint("[TESTDRIVER] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
     DbgPrint("[TESTDRIVER] HooksInit() returned %d\n", HooksInit());
 
-
-
     UNICODE_STRING routineName;
     RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
     DbgPrint("[TESTDRIVER] KeAddSystemServiceTable->0x%llX\n", MmGetSystemRoutineAddress(&routineName));
 
-    DbgPrint("[TESTDRIVER] FindSSDT->0x%llX\n", FindSSDT());
+    SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
+    DbgPrint("[TESTDRIVER] FindSSDT: 0x%llX\n", SSDT);
+    if(SSDT)
+    {
+        DbgPrint("[TESTDRIVER] SSDT->pServiceTable: 0x%llX\n", SSDT->pServiceTable);
+        DbgPrint("[TESTDRIVER] SSDT->pCounterTable: 0x%llX\n", SSDT->pCounterTable);
+        DbgPrint("[TESTDRIVER] SSDT->NumberOfServices: 0x%llX\n", SSDT->NumberOfServices);
+        DbgPrint("[TESTDRIVER] SSDT->pArgumentTable: 0x%llX\n", SSDT->pArgumentTable);
+#ifdef _WIN64
+        unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
+#else
+        unsigned long SSDTbase=0;
+#endif
+        LONG* pServiceTable=(LONG*)SSDT->pServiceTable;
+        LONG offsetNtQueryObject=pServiceTable[0x000d]>>4;
+        DbgPrint("[TESTDRIVER] NtQueryObject offset: 0x%X\n", offsetNtQueryObject);
+        DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", offsetNtQueryObject+SSDTbase);
+    }
+    SSDTinit();
+    DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", SSDTgpa("NtQueryObject"));
 
     return STATUS_SUCCESS;
 }
