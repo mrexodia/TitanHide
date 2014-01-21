@@ -84,7 +84,11 @@ PVOID SSDTgpa(const char* apiname)
     if(ma==5 && mi==1 && pt==VER_NT_WORKSTATION) //Windows XP
     {
         DbgPrint("[TESTDRIVER] Windows XP ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000d;
+#else
+        offsetNtQueryObject=0x00a3;
+#endif
         switch(osServicePack)
         {
         case 0:
@@ -102,13 +106,22 @@ PVOID SSDTgpa(const char* apiname)
             DbgPrint("SP2 ");
         }
         break;
+        case 3:
+        {
+            DbgPrint("SP3 ");
+        }
+        break;
         }
         DbgPrint("detected!\n");
     }
     else if(ma==5 && mi==1) //Windows Server 2003
     {
         DbgPrint("[TESTDRIVER] Windows Server 2003 ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000d;
+#else
+        offsetNtQueryObject=0x00aa;
+#endif
         switch(osServicePack)
         {
         case 0:
@@ -132,7 +145,11 @@ PVOID SSDTgpa(const char* apiname)
     else if(ma==6 && mi==0 && pt==VER_NT_WORKSTATION) //Windows Vista
     {
         DbgPrint("[TESTDRIVER] Windows Vista ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000d;
+#else
+        offsetNtQueryObject=0x00ed;
+#endif
         switch(osServicePack)
         {
         case 0:
@@ -156,7 +173,11 @@ PVOID SSDTgpa(const char* apiname)
     else if(ma==6 && mi==0 && pt!=VER_NT_WORKSTATION) //Windows Server 2008
     {
         DbgPrint("[TESTDRIVER] Windows Server 2008 ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000d;
+#else
+        offsetNtQueryObject=0x00ed;
+#endif
         switch(osServicePack)
         {
         case 0:
@@ -180,7 +201,11 @@ PVOID SSDTgpa(const char* apiname)
     else if(ma==6 && mi==1 && pt==VER_NT_WORKSTATION) //Windows 7
     {
         DbgPrint("[TESTDRIVER] Windows 7 ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000d;
+#else
+        offsetNtQueryObject=0x00f8;
+#endif
         switch(osServicePack)
         {
         case 0:
@@ -213,7 +238,11 @@ PVOID SSDTgpa(const char* apiname)
     else if(ma==6 && mi==2 && pt==VER_NT_WORKSTATION) //Windows 8
     {
         DbgPrint("[TESTDRIVER] Windows 8 ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000e;
+#else
+        offsetNtQueryObject=0x00a2;
+#endif
         switch(osServicePack)
         {
         case 0:
@@ -227,7 +256,11 @@ PVOID SSDTgpa(const char* apiname)
     else if(ma==6 && mi==3 && pt==VER_NT_WORKSTATION) //Windows 8.1
     {
         DbgPrint("[TESTDRIVER] Windows 8.1 ");
+#ifdef _WIN64
         offsetNtQueryObject=0x000f;
+#else
+        offsetNtQueryObject=0x00a5;
+#endif
         switch(osServicePack)
         {
         case 0:
