@@ -118,9 +118,11 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     }
 
     DbgPrint("[TESTDRIVER] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
+    
+    DbgPrint("[TESTDRIVER] SSDTinit() returned %d\n", SSDTinit());
     DbgPrint("[TESTDRIVER] HooksInit() returned %d\n", HooksInit());
 
-    UNICODE_STRING routineName;
+    /*UNICODE_STRING routineName;
     RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
     DbgPrint("[TESTDRIVER] KeAddSystemServiceTable->0x%llX\n", MmGetSystemRoutineAddress(&routineName));
 
@@ -142,8 +144,8 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         DbgPrint("[TESTDRIVER] NtQueryObject offset: 0x%X\n", offsetNtQueryObject);
         DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", offsetNtQueryObject+SSDTbase);
     }
-    SSDTinit();
-    DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", SSDTgpa("NtQueryObject"));
+    
+    DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", SSDTgpa("NtQueryObject"));*/
 
     return STATUS_SUCCESS;
 }

@@ -1,4 +1,5 @@
 #include "undocumented.h"
+#include "ssdt.h"
 
 NTSTATUS ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
@@ -69,9 +70,7 @@ NTSTATUS NtQueryObject(
     static QUERY_OBJECT NtQO=0;
     if(!NtQO)
     {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtQueryObject");
-        NtQO=(QUERY_OBJECT)MmGetSystemRoutineAddress(&routineName);
+        NtQO=(QUERY_OBJECT)SSDTgpa("NtQueryObject");
         if(!NtQO)
             return STATUS_UNSUCCESSFUL;
     }

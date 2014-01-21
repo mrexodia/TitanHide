@@ -40,7 +40,7 @@ HOOK hook(PVOID api, void* newfunc)
     duint addr=(duint)api;
     if(!addr)
         return 0;
-    DbgPrint("[TESTDRIVER] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);
+    DbgPrint("[TESTDRIVER] hook(0x%p, 0x%p)\n", addr, newfunc);
     //allocate structure
     HOOK hook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
     //set hooking address

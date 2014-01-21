@@ -1,6 +1,7 @@
 #include "hooks.h"
 #include "hooklib.h"
 #include "undocumented.h"
+#include "ssdt.h"
 
 static HOOK hNtQueryInformationProcess;
 static HOOK hNtQueryObject;
@@ -42,9 +43,9 @@ NTSTATUS HookNtQueryInformationProcess(
 {
     unhook(hNtQueryInformationProcess);
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
-    if(ProcessInformation && ProcessInformationLength)
+    if(NT_SUCCESS(ret) && ProcessInformation)
     {
-        ULONG hide=18784+1;
+        ULONG hide=884;
         ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
         if(ProcessInformationClass==ProcessDebugFlags)
         {
@@ -78,8 +79,46 @@ NTSTATUS HookNtQueryObject(
 )
 {
     unhook(hNtQueryObject);
-    DbgPrint("[TESTDRIVER] NtQueryObject\n");
     NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    if(NT_SUCCESS(ret) && ObjectInformation)
+    {
+        ULONG pid=(ULONG)PsGetCurrentProcessId();
+        ULONG hide=884;
+        UNICODE_STRING DebugObject;
+        RtlInitUnicodeString(&DebugObject, L"DebugObject");
+        if(ObjectInformationClass==ObjectTypeInformation)
+        {
+            OBJECT_TYPE_INFORMATION* type=(OBJECT_TYPE_INFORMATION*)ObjectInformation;
+            if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
+            {
+                DbgPrint("[TESTDRIVER] DebugObject by %d\n", pid);
+                if(pid==hide)
+                    type->TotalNumberOfObjects=0;
+            }
+        }
+        else if(ObjectInformationClass==ObjectAllInformation)
+        {
+            OBJECT_ALL_INFORMATION* pObjectAllInfo=(OBJECT_ALL_INFORMATION*)ObjectInformation;
+            unsigned char* pObjInfoLocation=(unsigned char*)pObjectAllInfo->ObjectTypeInformation;
+            unsigned int TotalObjects=pObjectAllInfo->NumberOfObjects;
+            for(unsigned int i=0; i<TotalObjects; i++)
+            {
+                OBJECT_TYPE_INFORMATION* pObjectTypeInfo=(OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
+                if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
+                {
+                    DbgPrint("[TESTDRIVER] DebugObject by %d\n", pid);
+                    if(pid==hide)
+                        pObjectTypeInfo->TotalNumberOfObjects=0;
+                }
+                pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
+                pObjInfoLocation+=pObjectTypeInfo->TypeName.MaximumLength;
+                duint tmp=((duint)pObjInfoLocation)&-sizeof(void*);
+                if((duint)tmp!=(duint)pObjInfoLocation)
+                    tmp+=sizeof(void*);
+                pObjInfoLocation=((unsigned char*)tmp);
+            }
+        }
+    }
     hook(hNtQueryObject);
     return ret;
 }
@@ -89,9 +128,9 @@ bool HooksInit()
     hNtQueryInformationProcess=hook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(!hNtQueryInformationProcess)
         return false;
-    /*hNtQueryObject=hook(L"NtQueryObject", (void*)HookNtQueryObject);
+    hNtQueryObject=hook(SSDTgpa("NtQueryObject"), (void*)HookNtQueryObject);
     if(!hNtQueryObject)
-        return false;*/
+        return false;
     return true;
 }
 
