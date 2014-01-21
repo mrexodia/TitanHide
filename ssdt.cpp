@@ -61,14 +61,14 @@ PVOID SSDTfind()
     PVOID base=KernelGetModuleBase("ntoskrnl");
     if(!base)
         return 0;
-    DbgPrint("[TESTDRIVER] KernelGetModuleBase(ntoskrnl)->0x%llX\n", base);
+    DbgPrint("[TITANHIDE] KernelGetModuleBase(ntoskrnl)->0x%llX\n", base);
     return (PVOID)((unsigned char*)base+rvaSSDT);
 }
 
 PVOID SSDTgpa(const char* apiname)
 {
 #ifndef _WIN64
-    DbgPrint("[TESTDRIVER] x86 Unsupported...\n");
+    DbgPrint("[TITANHIDE] x86 Unsupported...\n");
     return 0;
 #endif
 
@@ -83,7 +83,7 @@ PVOID SSDTgpa(const char* apiname)
     //Offset list from: http://j00ru.vexillium.org/ntapi_64/
     if(ma==5 && mi==1 && pt==VER_NT_WORKSTATION) //Windows XP
     {
-        DbgPrint("[TESTDRIVER] Windows XP ");
+        DbgPrint("[TITANHIDE] Windows XP ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000d;
 #else
@@ -116,7 +116,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==5 && mi==1) //Windows Server 2003
     {
-        DbgPrint("[TESTDRIVER] Windows Server 2003 ");
+        DbgPrint("[TITANHIDE] Windows Server 2003 ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000d;
 #else
@@ -144,7 +144,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==6 && mi==0 && pt==VER_NT_WORKSTATION) //Windows Vista
     {
-        DbgPrint("[TESTDRIVER] Windows Vista ");
+        DbgPrint("[TITANHIDE] Windows Vista ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000d;
 #else
@@ -172,7 +172,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==6 && mi==0 && pt!=VER_NT_WORKSTATION) //Windows Server 2008
     {
-        DbgPrint("[TESTDRIVER] Windows Server 2008 ");
+        DbgPrint("[TITANHIDE] Windows Server 2008 ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000d;
 #else
@@ -200,7 +200,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==6 && mi==1 && pt==VER_NT_WORKSTATION) //Windows 7
     {
-        DbgPrint("[TESTDRIVER] Windows 7 ");
+        DbgPrint("[TITANHIDE] Windows 7 ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000d;
 #else
@@ -223,7 +223,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==6 && mi==2 && pt!=VER_NT_WORKSTATION) //Windows Server 2012
     {
-        DbgPrint("[TESTDRIVER] Windows Server 2012 ");
+        DbgPrint("[TITANHIDE] Windows Server 2012 ");
         offsetNtQueryObject=0x000e;
         switch(osServicePack)
         {
@@ -237,7 +237,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==6 && mi==2 && pt==VER_NT_WORKSTATION) //Windows 8
     {
-        DbgPrint("[TESTDRIVER] Windows 8 ");
+        DbgPrint("[TITANHIDE] Windows 8 ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000e;
 #else
@@ -255,7 +255,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else if(ma==6 && mi==3 && pt==VER_NT_WORKSTATION) //Windows 8.1
     {
-        DbgPrint("[TESTDRIVER] Windows 8.1 ");
+        DbgPrint("[TITANHIDE] Windows 8.1 ");
 #ifdef _WIN64
         offsetNtQueryObject=0x000f;
 #else
@@ -273,7 +273,7 @@ PVOID SSDTgpa(const char* apiname)
     }
     else
     {
-        DbgPrint("[TESTDRIVER] OS Unsupported...\n");
+        DbgPrint("[TITANHIDE] OS Unsupported...\n");
         return 0;
     }
 
@@ -286,7 +286,7 @@ PVOID SSDTgpa(const char* apiname)
 
     if(readOffset==-1)
     {
-        DbgPrint("[TESTDRIVER] Unknown function...\n");
+        DbgPrint("[TITANHIDE] Unknown function...\n");
         return 0;
     }
 
@@ -294,18 +294,18 @@ PVOID SSDTgpa(const char* apiname)
     static SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
     {
-        DbgPrint("[TESTDRIVER] SSDT not found...\n");
+        DbgPrint("[TITANHIDE] SSDT not found...\n");
         return 0;
     }
     unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
     if(!SSDTbase)
     {
-        DbgPrint("[TESTDRIVER] ServiceTable not found...\n");
+        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
     if(readOffset>=SSDT->NumberOfServices)
     {
-        DbgPrint("[TESTDRIVER] Invalid read offset...\n");
+        DbgPrint("[TITANHIDE] Invalid read offset...\n");
         return 0;
     }
     return (PVOID)((((LONG*)SSDT->pServiceTable)[readOffset]>>4)+SSDTbase);

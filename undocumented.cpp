@@ -141,7 +141,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
 
         if (!SystemInfoBufferSize)
         {
-            DbgPrint("[TESTDRIVER] ZwQuerySystemInformation (1) failed...\n");
+            DbgPrint("[TITANHIDE] ZwQuerySystemInformation (1) failed...\n");
             return NULL;
         }
 
@@ -149,7 +149,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
 
         if (!pSystemInfoBuffer)
         {
-            DbgPrint("[TESTDRIVER] ExAllocatePool failed...\n");
+            DbgPrint("[TITANHIDE] ExAllocatePool failed...\n");
             return NULL;
         }
 
@@ -168,7 +168,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
             int len=strlen(pModuleName);
             for (i = 0; i <((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Count; i++)
             {
-                //DbgPrint("[TESTDRIVER] %s\n", pSysModuleEntry[i].ImageName+pSysModuleEntry[i].ModuleNameOffset);
+                //DbgPrint("[TITANHIDE] %s\n", pSysModuleEntry[i].ImageName+pSysModuleEntry[i].ModuleNameOffset);
                 if (_strnicmp(pSysModuleEntry[i].ImageName + pSysModuleEntry[i].ModuleNameOffset, pModuleName, len) == 0)
                 {
                     pModuleBase = pSysModuleEntry[i].Base;
@@ -177,7 +177,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
             }
         }
         else
-            DbgPrint("[TESTDRIVER] ZwQuerySystemInformation (2) failed...\n");
+            DbgPrint("[TITANHIDE] ZwQuerySystemInformation (2) failed...\n");
 
     }
     __except(EXCEPTION_EXECUTE_HANDLER)

@@ -5,41 +5,36 @@
 #include "undocumented.h"
 #include "ssdt.h"
 
-void testDriverUnload(IN PDRIVER_OBJECT DriverObject)
+void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNICODE_STRING Win32Device;
-    DbgPrint("[TESTDRIVER] testDriverUnload\n");
     RtlInitUnicodeString(&Win32Device,L"\\DosDevices\\testDriver0");
     IoDeleteSymbolicLink(&Win32Device);
     IoDeleteDevice(DriverObject->DeviceObject);
     HooksFree();
 }
 
-NTSTATUS testDriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[TESTDRIVER] testDriverCreateClose\n");
     Irp->IoStatus.Status = STATUS_SUCCESS;
     Irp->IoStatus.Information = 0;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
     return STATUS_SUCCESS;
 }
 
-NTSTATUS testDriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
-    DbgPrint("[TESTDRIVER] testDriverDefaultHandler\n");
     Irp->IoStatus.Status = STATUS_NOT_SUPPORTED;
     Irp->IoStatus.Information = 0;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
     return Irp->IoStatus.Status;
 }
 
-NTSTATUS testDriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     NTSTATUS NtStatus = STATUS_SUCCESS;
     PIO_STACK_LOCATION pIoStackIrp = NULL;
     PCHAR pInBuffer = NULL;
-
-    DbgPrint("[TESTDRIVER] testDriverWrite\n");
 
     pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
 
@@ -49,12 +44,12 @@ NTSTATUS testDriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
         if(pInBuffer)
         {
             forceNullTermination(pInBuffer, pIoStackIrp->Parameters.Write.Length);
-            DbgPrint("[TESTDRIVER] Command: \"%s\"[%u]\n", pInBuffer, pIoStackIrp->Parameters.Write.Length);
+            DbgPrint("[TITANHIDE] Command: \"%s\"[%u]\n", pInBuffer, pIoStackIrp->Parameters.Write.Length);
         }
     }
     else
     {
-        DbgPrint("[TESTDRIVER] Invalid IRP stack pointer...\n");
+        DbgPrint("[TITANHIDE] Invalid IRP stack pointer...\n");
     }
 
     Irp->IoStatus.Status = STATUS_SUCCESS;
@@ -70,18 +65,18 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     NTSTATUS status;
 
     //set callback functions
-    DriverObject->DriverUnload = testDriverUnload;
+    DriverObject->DriverUnload = DriverUnload;
 
     for (unsigned int i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
-        DriverObject->MajorFunction[i] = testDriverDefaultHandler;
+        DriverObject->MajorFunction[i] = DriverDefaultHandler;
 
-    DriverObject->MajorFunction[IRP_MJ_CREATE] = testDriverCreateClose;
-    DriverObject->MajorFunction[IRP_MJ_CLOSE] = testDriverCreateClose;
-    DriverObject->MajorFunction[IRP_MJ_WRITE] = testDriverWrite;
+    DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateClose;
+    DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateClose;
+    DriverObject->MajorFunction[IRP_MJ_WRITE] = DriverWrite;
 
     //create io device
-    RtlInitUnicodeString(&DeviceName, L"\\Device\\testDriver0");
-    RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\testDriver0");
+    RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");
+    RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\TitanHide");
 
     status=IoCreateDevice(DriverObject,
                           0,
@@ -93,17 +88,17 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 
     if(!NT_SUCCESS(status))
     {
-        DbgPrint("[TESTDRIVER] IoCreateDevice Error...\n");
+        DbgPrint("[TITANHIDE] IoCreateDevice Error...\n");
         return status;
     }
 
     if(!DeviceObject)
     {
-        DbgPrint("[TESTDRIVER] Unexpected I/O Error...\n");
+        DbgPrint("[TITANHIDE] Unexpected I/O Error...\n");
         return STATUS_UNEXPECTED_IO_ERROR;
     }
 
-    DbgPrint("[TESTDRIVER] Device %ws created successfully!\n", DeviceName.Buffer);
+    DbgPrint("[TITANHIDE] Device %ws created successfully!\n", DeviceName.Buffer);
 
     //create symbolic link
     DeviceObject->Flags |= DO_BUFFERED_IO;
@@ -113,27 +108,27 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 
     if(!NT_SUCCESS(status))
     {
-        DbgPrint("[TESTDRIVER] IoCreateSymbolicLink Error...\n");
+        DbgPrint("[TITANHIDE] IoCreateSymbolicLink Error...\n");
         return status;
     }
 
-    DbgPrint("[TESTDRIVER] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
+    DbgPrint("[TITANHIDE] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
     
-    DbgPrint("[TESTDRIVER] SSDTinit() returned %d\n", SSDTinit());
-    DbgPrint("[TESTDRIVER] HooksInit() returned %d\n", HooksInit());
+    DbgPrint("[TITANHIDE] SSDTinit() returned %d\n", SSDTinit());
+    DbgPrint("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
 
     /*UNICODE_STRING routineName;
     RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
-    DbgPrint("[TESTDRIVER] KeAddSystemServiceTable->0x%llX\n", MmGetSystemRoutineAddress(&routineName));
+    DbgPrint("[TITANHIDE] KeAddSystemServiceTable->0x%llX\n", MmGetSystemRoutineAddress(&routineName));
 
     SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
-    DbgPrint("[TESTDRIVER] FindSSDT: 0x%llX\n", SSDT);
+    DbgPrint("[TITANHIDE] FindSSDT: 0x%llX\n", SSDT);
     if(SSDT)
     {
-        DbgPrint("[TESTDRIVER] SSDT->pServiceTable: 0x%llX\n", SSDT->pServiceTable);
-        DbgPrint("[TESTDRIVER] SSDT->pCounterTable: 0x%llX\n", SSDT->pCounterTable);
-        DbgPrint("[TESTDRIVER] SSDT->NumberOfServices: 0x%llX\n", SSDT->NumberOfServices);
-        DbgPrint("[TESTDRIVER] SSDT->pArgumentTable: 0x%llX\n", SSDT->pArgumentTable);
+        DbgPrint("[TITANHIDE] SSDT->pServiceTable: 0x%llX\n", SSDT->pServiceTable);
+        DbgPrint("[TITANHIDE] SSDT->pCounterTable: 0x%llX\n", SSDT->pCounterTable);
+        DbgPrint("[TITANHIDE] SSDT->NumberOfServices: 0x%llX\n", SSDT->NumberOfServices);
+        DbgPrint("[TITANHIDE] SSDT->pArgumentTable: 0x%llX\n", SSDT->pArgumentTable);
 #ifdef _WIN64
         unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
 #else
@@ -141,11 +136,11 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 #endif
         LONG* pServiceTable=(LONG*)SSDT->pServiceTable;
         LONG offsetNtQueryObject=pServiceTable[0x000d]>>4;
-        DbgPrint("[TESTDRIVER] NtQueryObject offset: 0x%X\n", offsetNtQueryObject);
-        DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", offsetNtQueryObject+SSDTbase);
+        DbgPrint("[TITANHIDE] NtQueryObject offset: 0x%X\n", offsetNtQueryObject);
+        DbgPrint("[TITANHIDE] NtQueryObject: 0x%llX\n", offsetNtQueryObject+SSDTbase);
     }
     
-    DbgPrint("[TESTDRIVER] NtQueryObject: 0x%llX\n", SSDTgpa("NtQueryObject"));*/
+    DbgPrint("[TITANHIDE] NtQueryObject: 0x%llX\n", SSDTgpa("NtQueryObject"));*/
 
     return STATUS_SUCCESS;
 }

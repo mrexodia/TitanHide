@@ -49,19 +49,19 @@ NTSTATUS HookNtQueryInformationProcess(
         ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
         if(ProcessInformationClass==ProcessDebugFlags)
         {
-            DbgPrint("[TESTDRIVER] ProcessDebugFlags by %d\n", pid);
+            DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
             if(pid==hide)
                 *(unsigned int*)ProcessInformation=TRUE;
         }
         else if(ProcessInformationClass==ProcessDebugPort)
         {
-            DbgPrint("[TESTDRIVER] ProcessDebugPort by %d\n", pid);
+            DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
             if(hide==hide)
                 *(unsigned int*)ProcessInformation=0;
         }
         else if(ProcessInformationClass==ProcessDebugObjectHandle)
         {
-            DbgPrint("[TESTDRIVER] ProcessDebugObjectHandle by %d\n", pid);
+            DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
             if(pid==hide)
                 *(unsigned int*)ProcessInformation=0;
         }
@@ -91,7 +91,7 @@ NTSTATUS HookNtQueryObject(
             OBJECT_TYPE_INFORMATION* type=(OBJECT_TYPE_INFORMATION*)ObjectInformation;
             if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
             {
-                DbgPrint("[TESTDRIVER] DebugObject by %d\n", pid);
+                DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
                 if(pid==hide)
                     type->TotalNumberOfObjects=0;
             }
@@ -106,7 +106,7 @@ NTSTATUS HookNtQueryObject(
                 OBJECT_TYPE_INFORMATION* pObjectTypeInfo=(OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
                 if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
                 {
-                    DbgPrint("[TESTDRIVER] DebugObject by %d\n", pid);
+                    DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
                     if(pid==hide)
                         pObjectTypeInfo->TotalNumberOfObjects=0;
                 }
