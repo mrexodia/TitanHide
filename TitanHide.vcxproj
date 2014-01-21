@@ -220,7 +220,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="stringTools.cpp" />
-    <ClCompile Include="testDriver.cpp" />
+    <ClCompile Include="TitanHide.cpp" />
     <ClCompile Include="undocumented.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

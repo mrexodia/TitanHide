@@ -44,7 +44,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="testDriver.cpp">
+    <ClCompile Include="TitanHide.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="stringTools.cpp">
