@@ -47,23 +47,23 @@ NTSTATUS HookNtQueryInformationProcess(
     {
         ULONG hide=884;
         ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
-        if(ProcessInformationClass==ProcessDebugFlags)
+        if(pid==hide)
         {
-            DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
-            if(pid==hide)
+            if(ProcessInformationClass==ProcessDebugFlags)
+            {
+                DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
                 *(unsigned int*)ProcessInformation=TRUE;
-        }
-        else if(ProcessInformationClass==ProcessDebugPort)
-        {
-            DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
-            if(hide==hide)
+            }
+            else if(ProcessInformationClass==ProcessDebugPort)
+            {
+                DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
                 *(unsigned int*)ProcessInformation=0;
-        }
-        else if(ProcessInformationClass==ProcessDebugObjectHandle)
-        {
-            DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
-            if(pid==hide)
+            }
+            else if(ProcessInformationClass==ProcessDebugObjectHandle)
+            {
+                DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
                 *(unsigned int*)ProcessInformation=0;
+            }
         }
     }
     hook(hNtQueryInformationProcess);
@@ -84,38 +84,41 @@ NTSTATUS HookNtQueryObject(
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
         ULONG hide=884;
-        UNICODE_STRING DebugObject;
-        RtlInitUnicodeString(&DebugObject, L"DebugObject");
-        if(ObjectInformationClass==ObjectTypeInformation)
+        if(pid==hide)
         {
-            OBJECT_TYPE_INFORMATION* type=(OBJECT_TYPE_INFORMATION*)ObjectInformation;
-            if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
+            UNICODE_STRING DebugObject;
+            RtlInitUnicodeString(&DebugObject, L"DebugObject");
+            if(ObjectInformationClass==ObjectTypeInformation)
             {
-                DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
-                if(pid==hide)
-                    type->TotalNumberOfObjects=0;
-            }
-        }
-        else if(ObjectInformationClass==ObjectAllInformation)
-        {
-            OBJECT_ALL_INFORMATION* pObjectAllInfo=(OBJECT_ALL_INFORMATION*)ObjectInformation;
-            unsigned char* pObjInfoLocation=(unsigned char*)pObjectAllInfo->ObjectTypeInformation;
-            unsigned int TotalObjects=pObjectAllInfo->NumberOfObjects;
-            for(unsigned int i=0; i<TotalObjects; i++)
-            {
-                OBJECT_TYPE_INFORMATION* pObjectTypeInfo=(OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
-                if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
+                OBJECT_TYPE_INFORMATION* type=(OBJECT_TYPE_INFORMATION*)ObjectInformation;
+                if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
                 {
                     DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
                     if(pid==hide)
-                        pObjectTypeInfo->TotalNumberOfObjects=0;
+                        type->TotalNumberOfObjects=0;
                 }
-                pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
-                pObjInfoLocation+=pObjectTypeInfo->TypeName.MaximumLength;
-                duint tmp=((duint)pObjInfoLocation)&-sizeof(void*);
-                if((duint)tmp!=(duint)pObjInfoLocation)
-                    tmp+=sizeof(void*);
-                pObjInfoLocation=((unsigned char*)tmp);
+            }
+            else if(ObjectInformationClass==ObjectAllInformation)
+            {
+                OBJECT_ALL_INFORMATION* pObjectAllInfo=(OBJECT_ALL_INFORMATION*)ObjectInformation;
+                unsigned char* pObjInfoLocation=(unsigned char*)pObjectAllInfo->ObjectTypeInformation;
+                unsigned int TotalObjects=pObjectAllInfo->NumberOfObjects;
+                for(unsigned int i=0; i<TotalObjects; i++)
+                {
+                    OBJECT_TYPE_INFORMATION* pObjectTypeInfo=(OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
+                    if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
+                    {
+                        DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
+                        if(pid==hide)
+                            pObjectTypeInfo->TotalNumberOfObjects=0;
+                    }
+                    pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
+                    pObjInfoLocation+=pObjectTypeInfo->TypeName.MaximumLength;
+                    duint tmp=((duint)pObjInfoLocation)&-sizeof(void*);
+                    if((duint)tmp!=(duint)pObjInfoLocation)
+                        tmp+=sizeof(void*);
+                    pObjInfoLocation=((unsigned char*)tmp);
+                }
             }
         }
     }
