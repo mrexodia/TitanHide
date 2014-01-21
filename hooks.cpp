@@ -6,7 +6,7 @@
 static HOOK hNtQueryInformationProcess;
 static HOOK hNtQueryObject;
 
-ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
+static ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
 {
     PROCESS_BASIC_INFORMATION PBI;
     if(NT_SUCCESS(ZwQueryInformationProcess(ProcessHandle, ProcessBasicInformation, &PBI, sizeof(PBI), NULL)))
@@ -15,7 +15,7 @@ ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
         return 0;
 }
 
-ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle)
+static ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle)
 {
     typedef struct _THREAD_BASIC_INFORMATION
     {
@@ -33,7 +33,7 @@ ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle)
         return 0;
 }
 
-NTSTATUS HookNtQueryInformationProcess(
+static NTSTATUS HookNtQueryInformationProcess(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
     OUT PVOID ProcessInformation,
@@ -45,7 +45,7 @@ NTSTATUS HookNtQueryInformationProcess(
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ProcessInformation)
     {
-        ULONG hide=884;
+        ULONG hide=5404;
         ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
         if(pid==hide)
         {
@@ -70,7 +70,7 @@ NTSTATUS HookNtQueryInformationProcess(
     return ret;
 }
 
-NTSTATUS HookNtQueryObject(
+static NTSTATUS HookNtQueryObject(
     IN HANDLE Handle OPTIONAL,
     IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
     OUT PVOID ObjectInformation OPTIONAL,
@@ -83,7 +83,7 @@ NTSTATUS HookNtQueryObject(
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
-        ULONG hide=884;
+        ULONG hide=5404;
         if(pid==hide)
         {
             UNICODE_STRING DebugObject;

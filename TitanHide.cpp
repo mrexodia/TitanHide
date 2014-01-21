@@ -113,34 +113,8 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     }
 
     DbgPrint("[TITANHIDE] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
-    
     DbgPrint("[TITANHIDE] SSDTinit() returned %d\n", SSDTinit());
     DbgPrint("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
-
-    /*UNICODE_STRING routineName;
-    RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
-    DbgPrint("[TITANHIDE] KeAddSystemServiceTable->0x%llX\n", MmGetSystemRoutineAddress(&routineName));
-
-    SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
-    DbgPrint("[TITANHIDE] FindSSDT: 0x%llX\n", SSDT);
-    if(SSDT)
-    {
-        DbgPrint("[TITANHIDE] SSDT->pServiceTable: 0x%llX\n", SSDT->pServiceTable);
-        DbgPrint("[TITANHIDE] SSDT->pCounterTable: 0x%llX\n", SSDT->pCounterTable);
-        DbgPrint("[TITANHIDE] SSDT->NumberOfServices: 0x%llX\n", SSDT->NumberOfServices);
-        DbgPrint("[TITANHIDE] SSDT->pArgumentTable: 0x%llX\n", SSDT->pArgumentTable);
-#ifdef _WIN64
-        unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
-#else
-        unsigned long SSDTbase=0;
-#endif
-        LONG* pServiceTable=(LONG*)SSDT->pServiceTable;
-        LONG offsetNtQueryObject=pServiceTable[0x000d]>>4;
-        DbgPrint("[TITANHIDE] NtQueryObject offset: 0x%X\n", offsetNtQueryObject);
-        DbgPrint("[TITANHIDE] NtQueryObject: 0x%llX\n", offsetNtQueryObject+SSDTbase);
-    }
-    
-    DbgPrint("[TITANHIDE] NtQueryObject: 0x%llX\n", SSDTgpa("NtQueryObject"));*/
 
     return STATUS_SUCCESS;
 }

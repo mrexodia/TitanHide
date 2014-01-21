@@ -1,6 +1,0 @@
-REGEDIT4
-
-[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\TitanHide]
-"ErrorControl"=dword:00000001
-"Start"=dword:00000001
-"Type"=dword:00000001
