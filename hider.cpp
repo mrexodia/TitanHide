@@ -5,17 +5,18 @@ static HIDE_ENTRY* HideEntries=0;
 static int TotalHideEntries=0;
 
 //simple locking library
-static bool locked=false;
+static FAST_MUTEX* FastMutex=0;
 
 static void lock()
 {
-    while(locked);
-    locked=true;
+    if(!FastMutex)
+        ExInitializeFastMutex(FastMutex);
+    ExAcquireFastMutex(FastMutex);
 }
 
 static void unlock()
 {
-    locked=false;
+    ExReleaseFastMutex(FastMutex);
 }
 
 //entry management
