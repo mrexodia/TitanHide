@@ -9,14 +9,14 @@ static FAST_MUTEX* FastMutex=0;
 
 static void lock()
 {
-    if(!FastMutex)
+    /*if(!FastMutex)
         ExInitializeFastMutex(FastMutex);
-    ExAcquireFastMutex(FastMutex);
+    ExAcquireFastMutex(FastMutex);*/
 }
 
 static void unlock()
 {
-    ExReleaseFastMutex(FastMutex);
+    //ExReleaseFastMutex(FastMutex);
 }
 
 //entry management
