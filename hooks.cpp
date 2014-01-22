@@ -2,6 +2,7 @@
 #include "hooklib.h"
 #include "undocumented.h"
 #include "ssdt.h"
+#include "hider.h"
 
 static HOOK hNtQueryInformationProcess;
 static HOOK hNtQueryObject;
@@ -45,25 +46,26 @@ static NTSTATUS HookNtQueryInformationProcess(
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ProcessInformation)
     {
-        ULONG hide=5404;
-        ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
-        if(pid==hide)
+        ULONG pid1=GetProcessIDFromProcessHandle(ProcessHandle);
+        ULONG pid2=(ULONG)PsGetCurrentProcessId();
+
+        if(ProcessInformationClass==ProcessDebugFlags)
         {
-            if(ProcessInformationClass==ProcessDebugFlags)
-            {
-                DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
+            DbgPrint("[TITANHIDE] ProcessDebugFlags by %d,%d\n", pid1, pid2);
+            if(HiderIsHidden(pid1, HideProcessDebugFlags) || HiderIsHidden(pid2, HideProcessDebugFlags))
                 *(unsigned int*)ProcessInformation=TRUE;
-            }
-            else if(ProcessInformationClass==ProcessDebugPort)
-            {
-                DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
+        }
+        else if(ProcessInformationClass==ProcessDebugPort)
+        {
+            DbgPrint("[TITANHIDE] ProcessDebugPort by %d,%d\n", pid1, pid2);
+            if(HiderIsHidden(pid1, HideProcessDebugPort) || HiderIsHidden(pid2, HideProcessDebugPort))
                 *(unsigned int*)ProcessInformation=0;
-            }
-            else if(ProcessInformationClass==ProcessDebugObjectHandle)
-            {
-                DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
+        }
+        else if(ProcessInformationClass==ProcessDebugObjectHandle)
+        {
+            DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d,%d\n", pid1, pid2);
+            if(HiderIsHidden(pid1, HideProcessDebugObjectHandle) || HiderIsHidden(pid2, HideProcessDebugObjectHandle))
                 *(unsigned int*)ProcessInformation=0;
-            }
         }
     }
     hook(hNtQueryInformationProcess);
@@ -83,8 +85,7 @@ static NTSTATUS HookNtQueryObject(
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
-        ULONG hide=5404;
-        if(pid==hide)
+        if(HiderIsHidden(pid, HideDebugObject))
         {
             UNICODE_STRING DebugObject;
             RtlInitUnicodeString(&DebugObject, L"DebugObject");
@@ -94,8 +95,7 @@ static NTSTATUS HookNtQueryObject(
                 if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
                 {
                     DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
-                    if(pid==hide)
-                        type->TotalNumberOfObjects=0;
+                    type->TotalNumberOfObjects=0;
                 }
             }
             else if(ObjectInformationClass==ObjectAllInformation)
@@ -109,8 +109,7 @@ static NTSTATUS HookNtQueryObject(
                     if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
                     {
                         DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
-                        if(pid==hide)
-                            pObjectTypeInfo->TotalNumberOfObjects=0;
+                        pObjectTypeInfo->TotalNumberOfObjects=0;
                     }
                     pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
                     pObjInfoLocation+=pObjectTypeInfo->TypeName.MaximumLength;

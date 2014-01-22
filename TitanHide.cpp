@@ -1,14 +1,14 @@
 #include "stdafx.h"
-#include "stringTools.h"
 #include "hooks.h"
 #include <windef.h>
 #include "undocumented.h"
 #include "ssdt.h"
+#include "hider.h"
 
 void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     UNICODE_STRING Win32Device;
-    RtlInitUnicodeString(&Win32Device,L"\\DosDevices\\testDriver0");
+    RtlInitUnicodeString(&Win32Device,L"\\DosDevices\\TitanHide");
     IoDeleteSymbolicLink(&Win32Device);
     IoDeleteDevice(DriverObject->DeviceObject);
     HooksFree();
@@ -34,17 +34,19 @@ NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     NTSTATUS NtStatus = STATUS_SUCCESS;
     PIO_STACK_LOCATION pIoStackIrp = NULL;
-    PCHAR pInBuffer = NULL;
+    PVOID pInBuffer = NULL;
 
     pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
 
     if(pIoStackIrp)
     {
-        pInBuffer = (PCHAR)Irp->AssociatedIrp.SystemBuffer;
+        pInBuffer = (PVOID)Irp->AssociatedIrp.SystemBuffer;
         if(pInBuffer)
         {
-            forceNullTermination(pInBuffer, pIoStackIrp->Parameters.Write.Length);
-            DbgPrint("[TITANHIDE] Command: \"%s\"[%u]\n", pInBuffer, pIoStackIrp->Parameters.Write.Length);
+            if(HiderProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
+                DbgPrint("[TITANHIDE] HiderProcessData OK!\n");
+            else
+                DbgPrint("[TITANHIDE] HiderProcessData failed...\n");
         }
     }
     else

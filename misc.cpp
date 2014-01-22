@@ -3,7 +3,7 @@
 
 void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize)
 {
-    void* Result=ExAllocatePoolWithTag(NonPagedPool, InSize, 'HOOK');
+    void* Result=ExAllocatePoolWithTag(NonPagedPool, InSize, 'HIDE');
     if(InZeroMemory && (Result!=NULL))
         RtlZeroMemory(Result, InSize);
     return Result;

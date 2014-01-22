@@ -21,9 +21,6 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header files</Filter>
     </ClInclude>
-    <ClInclude Include="stringTools.h">
-      <Filter>Header files</Filter>
-    </ClInclude>
     <ClInclude Include="misc.h">
       <Filter>Header files</Filter>
     </ClInclude>
@@ -45,9 +42,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TitanHide.cpp">
-      <Filter>Source files</Filter>
-    </ClCompile>
-    <ClCompile Include="stringTools.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
