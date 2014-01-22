@@ -24,6 +24,11 @@ static void EntryAdd(HIDE_ENTRY* NewEntry)
     lock();
     int NewTotalHideEntries=TotalHideEntries+1;
     HIDE_ENTRY* NewHideEntries=(HIDE_ENTRY*)RtlAllocateMemory(true, NewTotalHideEntries*sizeof(HIDE_ENTRY));
+    if(!NewHideEntries)
+    {
+        unlock();
+        return;
+    }
     RtlCopyMemory(&NewHideEntries[0], &HideEntries[0], TotalHideEntries*sizeof(HIDE_ENTRY));
     RtlCopyMemory(&NewHideEntries[TotalHideEntries], &NewEntry[0], sizeof(HIDE_ENTRY));
     if(HideEntries)
@@ -36,48 +41,47 @@ static void EntryAdd(HIDE_ENTRY* NewEntry)
 static void EntryDel(int EntryIndex)
 {
     lock();
-    if(!(TotalHideEntries<EntryIndex) || !HideEntries)
+    if(EntryIndex<TotalHideEntries && HideEntries)
     {
-        unlock();
-        return;
+        int NewTotalHideEntries=TotalHideEntries-1;
+        HIDE_ENTRY* NewHideEntries=(HIDE_ENTRY*)RtlAllocateMemory(true, NewTotalHideEntries*sizeof(HIDE_ENTRY));
+        if(!NewHideEntries)
+        {
+            unlock();
+            return;
+        }
+        if(!EntryIndex)
+            RtlCopyMemory(&NewHideEntries[0], &HideEntries[1], NewTotalHideEntries*sizeof(HIDE_ENTRY));
+        else
+        {
+            RtlCopyMemory(&NewHideEntries[0], &HideEntries[0], EntryIndex*sizeof(HIDE_ENTRY));
+            RtlCopyMemory(&NewHideEntries[EntryIndex], &HideEntries[EntryIndex+1], (NewTotalHideEntries-EntryIndex)*sizeof(HIDE_ENTRY));
+        }
+        RtlCopyMemory(NewHideEntries, HideEntries, TotalHideEntries*sizeof(HIDE_ENTRY));
+        RtlFreeMemory(HideEntries);
+        HideEntries=NewHideEntries;
+        TotalHideEntries=NewTotalHideEntries;
     }
-    int NewTotalHideEntries=TotalHideEntries-1;
-    HIDE_ENTRY* NewHideEntries=(HIDE_ENTRY*)RtlAllocateMemory(true, NewTotalHideEntries*sizeof(HIDE_ENTRY));
-    if(!EntryIndex)
-        RtlCopyMemory(&NewHideEntries[0], &HideEntries[1], NewTotalHideEntries*sizeof(HIDE_ENTRY));
-    else
-    {
-        RtlCopyMemory(&NewHideEntries[0], &HideEntries[0], EntryIndex*sizeof(HIDE_ENTRY));
-        RtlCopyMemory(&NewHideEntries[EntryIndex], &HideEntries[EntryIndex+1], (NewTotalHideEntries-EntryIndex)*sizeof(HIDE_ENTRY));
-    }
-    RtlCopyMemory(NewHideEntries, HideEntries, TotalHideEntries*sizeof(HIDE_ENTRY));
-    RtlFreeMemory(HideEntries);
-    HideEntries=NewHideEntries;
-    TotalHideEntries=NewTotalHideEntries;
     unlock();
 }
 
 static void EntrySet(int EntryIndex, ULONG Type)
 {
     lock();
-    if(!(TotalHideEntries<EntryIndex) || !HideEntries)
+    if(EntryIndex<TotalHideEntries && HideEntries)
     {
-        unlock();
-        return;
+        HideEntries[EntryIndex].Type|=Type;
     }
-    HideEntries[EntryIndex].Type|=Type;
     unlock();
 }
 
 static void EntryUnset(int EntryIndex, ULONG Type)
 {
     lock();
-    if(!(TotalHideEntries<EntryIndex) || !HideEntries)
+    if(EntryIndex<TotalHideEntries && HideEntries)
     {
-        unlock();
-        return;
+        HideEntries[EntryIndex].Type&=~Type;
     }
-    HideEntries[EntryIndex].Type&=~Type;
     unlock();
 }
 
@@ -112,13 +116,12 @@ static void EntryClear()
 
 static ULONG EntryGet(int EntryIndex)
 {
+    ULONG Type=0;
     lock();
-    if(!(TotalHideEntries<EntryIndex) || !HideEntries)
+    if(EntryIndex<TotalHideEntries && HideEntries)
     {
-        unlock();
-        return 0;
+        Type=HideEntries[EntryIndex].Type;
     }
-    ULONG Type=HideEntries[EntryIndex].Type;
     unlock();
     return Type;
 }
@@ -158,6 +161,8 @@ bool HiderProcessData(PVOID Buffer, ULONG Size)
             if(FoundEntry!=-1)
             {
                 EntryUnset(FoundEntry, HideInfo[i].Type);
+                if(!EntryGet(FoundEntry)) //nothing left to hide for PID
+                    EntryDel(FoundEntry);
             }
         }
         break;

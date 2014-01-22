@@ -22,7 +22,6 @@ enum HIDE_COMMAND
 };
 
 //structures
-#pragma pack(1)
 struct HIDE_INFO
 {
     HIDE_COMMAND Command;
