@@ -4,30 +4,13 @@
 static HIDE_ENTRY* HideEntries=0;
 static int TotalHideEntries=0;
 
-//simple locking library
-static FAST_MUTEX* FastMutex=0;
-
-static void lock()
-{
-    /*if(!FastMutex)
-        ExInitializeFastMutex(FastMutex);
-    ExAcquireFastMutex(FastMutex);*/
-}
-
-static void unlock()
-{
-    //ExReleaseFastMutex(FastMutex);
-}
-
 //entry management
 static void EntryAdd(HIDE_ENTRY* NewEntry)
 {
-    lock();
     int NewTotalHideEntries=TotalHideEntries+1;
     HIDE_ENTRY* NewHideEntries=(HIDE_ENTRY*)RtlAllocateMemory(true, NewTotalHideEntries*sizeof(HIDE_ENTRY));
     if(!NewHideEntries)
     {
-        unlock();
         return;
     }
     RtlCopyMemory(&NewHideEntries[0], &HideEntries[0], TotalHideEntries*sizeof(HIDE_ENTRY));
@@ -36,19 +19,16 @@ static void EntryAdd(HIDE_ENTRY* NewEntry)
         RtlFreeMemory(HideEntries);
     HideEntries=NewHideEntries;
     TotalHideEntries=NewTotalHideEntries;
-    unlock();
 }
 
 static void EntryDel(int EntryIndex)
 {
-    lock();
     if(EntryIndex<TotalHideEntries && HideEntries)
     {
         int NewTotalHideEntries=TotalHideEntries-1;
         HIDE_ENTRY* NewHideEntries=(HIDE_ENTRY*)RtlAllocateMemory(true, NewTotalHideEntries*sizeof(HIDE_ENTRY));
         if(!NewHideEntries)
         {
-            unlock();
             return;
         }
         if(!EntryIndex)
@@ -63,17 +43,14 @@ static void EntryDel(int EntryIndex)
         HideEntries=NewHideEntries;
         TotalHideEntries=NewTotalHideEntries;
     }
-    unlock();
 }
 
 static void EntrySet(int EntryIndex, ULONG Type)
 {
-    lock();
     if(EntryIndex<TotalHideEntries && HideEntries)
     {
         HideEntries[EntryIndex].Type|=Type;
     }
-    unlock();
 }
 
 static void EntryUnset(int EntryIndex, ULONG Type)
@@ -83,47 +60,38 @@ static void EntryUnset(int EntryIndex, ULONG Type)
     {
         HideEntries[EntryIndex].Type&=~Type;
     }
-    unlock();
 }
 
 static int EntryFind(ULONG Pid)
 {
-    lock();
     if(!HideEntries)
     {
-        unlock();
         return -1;
     }
     for(int i=0; i<TotalHideEntries; i++)
     {
         if(HideEntries[i].Pid==Pid)
         {
-            unlock();
             return i;
         }
     }
-    unlock();
     return -1;
 }
 
 static void EntryClear()
 {
-    lock();
     TotalHideEntries=0;
     if(HideEntries)
         RtlFreeMemory(HideEntries);
-    unlock();
 }
 
 static ULONG EntryGet(int EntryIndex)
 {
     ULONG Type=0;
-    lock();
     if(EntryIndex<TotalHideEntries && HideEntries)
     {
         Type=HideEntries[EntryIndex].Type;
     }
-    unlock();
     return Type;
 }
 
