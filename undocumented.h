@@ -1,8 +1,7 @@
 #ifndef _UNDOCUMENTED_H
 #define _UNDOCUMENTED_H
 
-#include <ntddk.h>
-#include <windef.h>
+#include "_global.h"
 
 //structures
 typedef struct _OBJECT_TYPE_INFORMATION

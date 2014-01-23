@@ -1,9 +1,7 @@
 #ifndef _HIDER_H
 #define _HIDER_H
 
-#include <ntddk.h>
-
-#define BIT(x) (1<<(x-1))
+#include "_global.h"
 
 //enums
 enum HIDE_TYPE

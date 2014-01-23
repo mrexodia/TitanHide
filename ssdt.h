@@ -1,7 +1,7 @@
 #ifndef _SSDT_H
 #define _SSDT_H
 
-#include <ntddk.h>
+#include "_global.h"
 
 //structures
 struct SSDTStruct

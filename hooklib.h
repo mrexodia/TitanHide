@@ -1,15 +1,7 @@
 #ifndef _HOOKLIB_H_
 #define _HOOKLIB_H_
 
-#include <ntddk.h>
-
-#ifdef _WIN64
-typedef unsigned long long duint;
-typedef signed long long dsint;
-#else
-typedef unsigned long duint;
-typedef signed long dsint;
-#endif //_WIN64
+#include "_global.h"
 
 #pragma pack(push,1)
 struct opcode

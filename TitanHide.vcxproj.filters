@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VisualDDKHelpers.h">
-      <Filter>Header files</Filter>
-    </ClInclude>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header files</Filter>
-    </ClInclude>
     <ClInclude Include="misc.h">
       <Filter>Header files</Filter>
     </ClInclude>
@@ -39,12 +33,15 @@
     <ClInclude Include="hider.h">
       <Filter>Header files</Filter>
     </ClInclude>
+    <ClInclude Include="_global.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="VisualDDKHelpers.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TitanHide.cpp">
-      <Filter>Source files</Filter>
-    </ClCompile>
-    <ClCompile Include="stdafx.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="misc.cpp">
@@ -63,6 +60,9 @@
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="hider.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="_global.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>

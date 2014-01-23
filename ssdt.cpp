@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "ssdt.h"
 #include "undocumented.h"
 
@@ -290,7 +289,6 @@ PVOID SSDTgpa(const char* apiname)
     {
         readOffset=offsetNtQueryObject;
     }
-
     if(readOffset==-1)
     {
         DbgPrint("[TITANHIDE] Unknown function...\n");

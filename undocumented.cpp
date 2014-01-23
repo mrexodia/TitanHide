@@ -160,18 +160,16 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
                                           SystemInfoBufferSize*2,
                                           &SystemInfoBufferSize);
 
-        if (NT_SUCCESS(status))
+        if(NT_SUCCESS(status))
         {
-            PSYSTEM_MODULE_ENTRY pSysModuleEntry =
-                ((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Module;
+            PSYSTEM_MODULE_ENTRY pSysModuleEntry=((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Module;
             ULONG i;
             int len=strlen(pModuleName);
-            for (i = 0; i <((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Count; i++)
+            for(i=0; i<((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Count; i++)
             {
-                //DbgPrint("[TITANHIDE] %s\n", pSysModuleEntry[i].ImageName+pSysModuleEntry[i].ModuleNameOffset);
-                if (_strnicmp(pSysModuleEntry[i].ImageName + pSysModuleEntry[i].ModuleNameOffset, pModuleName, len) == 0)
+                if(_strnicmp(pSysModuleEntry[i].ImageName + pSysModuleEntry[i].ModuleNameOffset, pModuleName, len) == 0)
                 {
-                    pModuleBase = pSysModuleEntry[i].Base;
+                    pModuleBase=pSysModuleEntry[i].Base;
                     break;
                 }
             }
