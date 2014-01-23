@@ -77,204 +77,211 @@ PVOID SSDTgpa(const char* apiname)
     int sp=osServicePack;
     int pt=osProductType;
 
-    //hard-coded offsets
-    int offsetNtQueryObject=0;
+    static bool initDone=false;
 
-    //Offset list from: http://j00ru.vexillium.org/ntapi_64/
-    if(ma==5 && mi==1 && pt==VER_NT_WORKSTATION) //Windows XP
+    //hard-coded offsets
+    static int offsetNtQueryObject=0;
+
+
+    if(!initDone)
     {
-        DbgPrint("[TITANHIDE] Windows XP ");
+        initDone=true;
+        //Offset list from: http://j00ru.vexillium.org/ntapi_64/
+        if(ma==5 && mi==1 && pt==VER_NT_WORKSTATION) //Windows XP
+        {
+            DbgPrint("[TITANHIDE] Windows XP ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000d;
+            offsetNtQueryObject=0x000d;
 #else
-        offsetNtQueryObject=0x00a3;
+            offsetNtQueryObject=0x00a3;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            case 1:
+            {
+                DbgPrint("SP1 ");
+            }
+            break;
+            case 2:
+            {
+                DbgPrint("SP2 ");
+            }
+            break;
+            case 3:
+            {
+                DbgPrint("SP3 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        case 1:
+        else if(ma==5 && mi==1) //Windows Server 2003
         {
-            DbgPrint("SP1 ");
-        }
-        break;
-        case 2:
-        {
-            DbgPrint("SP2 ");
-        }
-        break;
-        case 3:
-        {
-            DbgPrint("SP3 ");
-        }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==5 && mi==1) //Windows Server 2003
-    {
-        DbgPrint("[TITANHIDE] Windows Server 2003 ");
+            DbgPrint("[TITANHIDE] Windows Server 2003 ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000d;
+            offsetNtQueryObject=0x000d;
 #else
-        offsetNtQueryObject=0x00aa;
+            offsetNtQueryObject=0x00aa;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            case 1:
+            {
+                DbgPrint("SP1 ");
+            }
+            break;
+            case 2:
+            {
+                DbgPrint("SP2 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        case 1:
+        else if(ma==6 && mi==0 && pt==VER_NT_WORKSTATION) //Windows Vista
         {
-            DbgPrint("SP1 ");
-        }
-        break;
-        case 2:
-        {
-            DbgPrint("SP2 ");
-        }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==6 && mi==0 && pt==VER_NT_WORKSTATION) //Windows Vista
-    {
-        DbgPrint("[TITANHIDE] Windows Vista ");
+            DbgPrint("[TITANHIDE] Windows Vista ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000d;
+            offsetNtQueryObject=0x000d;
 #else
-        offsetNtQueryObject=0x00ed;
+            offsetNtQueryObject=0x00ed;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            case 1:
+            {
+                DbgPrint("SP1 ");
+            }
+            break;
+            case 2:
+            {
+                DbgPrint("SP2 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        case 1:
+        else if(ma==6 && mi==0 && pt!=VER_NT_WORKSTATION) //Windows Server 2008
         {
-            DbgPrint("SP1 ");
-        }
-        break;
-        case 2:
-        {
-            DbgPrint("SP2 ");
-        }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==6 && mi==0 && pt!=VER_NT_WORKSTATION) //Windows Server 2008
-    {
-        DbgPrint("[TITANHIDE] Windows Server 2008 ");
+            DbgPrint("[TITANHIDE] Windows Server 2008 ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000d;
+            offsetNtQueryObject=0x000d;
 #else
-        offsetNtQueryObject=0x00ed;
+            offsetNtQueryObject=0x00ed;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            case 1:
+            {
+                DbgPrint("SP1 ");
+            }
+            break;
+            case 2:
+            {
+                DbgPrint("SP2 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        case 1:
+        else if(ma==6 && mi==1 && pt==VER_NT_WORKSTATION) //Windows 7
         {
-            DbgPrint("SP1 ");
-        }
-        break;
-        case 2:
-        {
-            DbgPrint("SP2 ");
-        }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==6 && mi==1 && pt==VER_NT_WORKSTATION) //Windows 7
-    {
-        DbgPrint("[TITANHIDE] Windows 7 ");
+            DbgPrint("[TITANHIDE] Windows 7 ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000d;
+            offsetNtQueryObject=0x000d;
 #else
-        offsetNtQueryObject=0x00f8;
+            offsetNtQueryObject=0x00f8;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            case 1:
+            {
+                DbgPrint("SP1 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        case 1:
+        else if(ma==6 && mi==2 && pt!=VER_NT_WORKSTATION) //Windows Server 2012
         {
-            DbgPrint("SP1 ");
+            DbgPrint("[TITANHIDE] Windows Server 2012 ");
+            offsetNtQueryObject=0x000e;
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==6 && mi==2 && pt!=VER_NT_WORKSTATION) //Windows Server 2012
-    {
-        DbgPrint("[TITANHIDE] Windows Server 2012 ");
-        offsetNtQueryObject=0x000e;
-        switch(osServicePack)
+        else if(ma==6 && mi==2 && pt==VER_NT_WORKSTATION) //Windows 8
         {
-        case 0:
-        {
-            DbgPrint("SP0 ");
-        }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==6 && mi==2 && pt==VER_NT_WORKSTATION) //Windows 8
-    {
-        DbgPrint("[TITANHIDE] Windows 8 ");
+            DbgPrint("[TITANHIDE] Windows 8 ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000e;
+            offsetNtQueryObject=0x000e;
 #else
-        offsetNtQueryObject=0x00a2;
+            offsetNtQueryObject=0x00a2;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
-        }
-        DbgPrint("detected!\n");
-    }
-    else if(ma==6 && mi==3 && pt==VER_NT_WORKSTATION) //Windows 8.1
-    {
-        DbgPrint("[TITANHIDE] Windows 8.1 ");
+        else if(ma==6 && mi==3 && pt==VER_NT_WORKSTATION) //Windows 8.1
+        {
+            DbgPrint("[TITANHIDE] Windows 8.1 ");
 #ifdef _WIN64
-        offsetNtQueryObject=0x000f;
+            offsetNtQueryObject=0x000f;
 #else
-        offsetNtQueryObject=0x00a5;
+            offsetNtQueryObject=0x00a5;
 #endif
-        switch(osServicePack)
-        {
-        case 0:
-        {
-            DbgPrint("SP0 ");
+            switch(osServicePack)
+            {
+            case 0:
+            {
+                DbgPrint("SP0 ");
+            }
+            break;
+            }
+            DbgPrint("detected!\n");
         }
-        break;
+        else
+        {
+            DbgPrint("[TITANHIDE] OS Unsupported...\n");
+            return 0;
         }
-        DbgPrint("detected!\n");
-    }
-    else
-    {
-        DbgPrint("[TITANHIDE] OS Unsupported...\n");
-        return 0;
     }
 
     //get read offset

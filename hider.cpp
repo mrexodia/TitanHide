@@ -21,11 +21,24 @@ static void EntryAdd(HIDE_ENTRY* NewEntry)
     TotalHideEntries=NewTotalHideEntries;
 }
 
+static void EntryClear()
+{
+    TotalHideEntries=0;
+    if(HideEntries)
+        RtlFreeMemory(HideEntries);
+    HideEntries=0;
+}
+
 static void EntryDel(int EntryIndex)
 {
     if(EntryIndex<TotalHideEntries && HideEntries)
     {
         int NewTotalHideEntries=TotalHideEntries-1;
+        if(!NewTotalHideEntries) //nothing left
+        {
+            EntryClear();
+            return;
+        }
         HIDE_ENTRY* NewHideEntries=(HIDE_ENTRY*)RtlAllocateMemory(true, NewTotalHideEntries*sizeof(HIDE_ENTRY));
         if(!NewHideEntries)
         {
@@ -45,23 +58,6 @@ static void EntryDel(int EntryIndex)
     }
 }
 
-static void EntrySet(int EntryIndex, ULONG Type)
-{
-    if(EntryIndex<TotalHideEntries && HideEntries)
-    {
-        HideEntries[EntryIndex].Type|=Type;
-    }
-}
-
-static void EntryUnset(int EntryIndex, ULONG Type)
-{
-    lock();
-    if(EntryIndex<TotalHideEntries && HideEntries)
-    {
-        HideEntries[EntryIndex].Type&=~Type;
-    }
-}
-
 static int EntryFind(ULONG Pid)
 {
     if(!HideEntries)
@@ -78,13 +74,6 @@ static int EntryFind(ULONG Pid)
     return -1;
 }
 
-static void EntryClear()
-{
-    TotalHideEntries=0;
-    if(HideEntries)
-        RtlFreeMemory(HideEntries);
-}
-
 static ULONG EntryGet(int EntryIndex)
 {
     ULONG Type=0;
@@ -93,6 +82,22 @@ static ULONG EntryGet(int EntryIndex)
         Type=HideEntries[EntryIndex].Type;
     }
     return Type;
+}
+
+static void EntrySet(int EntryIndex, ULONG Type)
+{
+    if(EntryIndex<TotalHideEntries && HideEntries)
+    {
+        HideEntries[EntryIndex].Type|=Type;
+    }
+}
+
+static void EntryUnset(int EntryIndex, ULONG Type)
+{
+    if(EntryIndex<TotalHideEntries && HideEntries)
+    {
+        HideEntries[EntryIndex].Type&=~Type;
+    }
 }
 
 //usable functions
