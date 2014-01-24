@@ -152,7 +152,6 @@ bool HiderProcessData(PVOID Buffer, ULONG Size)
                 HIDE_ENTRY HideEntry;
                 HideEntry.Pid=HideInfo[i].Pid;
                 HideEntry.Type=HideInfo[i].Type;
-                HideEntry.Arg=HideInfo[i].Arg;
                 EntryAdd(&HideEntry);
             }
             else

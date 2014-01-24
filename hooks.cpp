@@ -7,51 +7,45 @@
 
 static HOOK hNtQueryInformationProcess;
 static HOOK hNtQueryObject;
+static HOOK hNtQuerySystemInformation;
 
-static NTSTATUS HookNtQueryInformationProcess(
-    IN HANDLE ProcessHandle,
-    IN PROCESSINFOCLASS ProcessInformationClass,
-    OUT PVOID ProcessInformation,
-    IN ULONG ProcessInformationLength,
-    OUT PULONG ReturnLength
-)
+static NTSTATUS NTAPI HookNtQuerySystemInformation(
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL)
 {
-    unhook(hNtQueryInformationProcess);
-    NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
-    if(NT_SUCCESS(ret) && ProcessInformation)
+    unhook(hNtQuerySystemInformation);
+    NTSTATUS ret=NtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
+    if(NT_SUCCESS(ret) && SystemInformation)
     {
-        ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
-
-        if(ProcessInformationClass==ProcessDebugFlags)
+        ULONG pid=(ULONG)PsGetCurrentProcessId();
+        if(SystemInformationClass==SystemKernelDebuggerInformation)
         {
-            DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
-            if(HiderIsHidden(pid, HideProcessDebugFlags))
-                *(unsigned int*)ProcessInformation=TRUE;
-        }
-        else if(ProcessInformationClass==ProcessDebugPort)
-        {
-            DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
-            if(HiderIsHidden(pid, HideProcessDebugPort))
-                *(unsigned int*)ProcessInformation=0;
-        }
-        else if(ProcessInformationClass==ProcessDebugObjectHandle)
-        {
-            DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
-            if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
-                *(unsigned int*)ProcessInformation=0;
+            DbgPrint("[TITANHIDE] SystemKernelDebuggerInformation by %d\n", pid);
+            if(HiderIsHidden(pid, HideSystemDebuggerInformation))
+            {
+                typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION
+                {
+                    BOOLEAN DebuggerEnabled;
+                    BOOLEAN DebuggerNotPresent;
+                } SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
+                SYSTEM_KERNEL_DEBUGGER_INFORMATION* DebuggerInfo=(SYSTEM_KERNEL_DEBUGGER_INFORMATION*)SystemInformation;
+                DebuggerInfo->DebuggerEnabled=false;
+                DebuggerInfo->DebuggerNotPresent=true;
+            }
         }
     }
-    hook(hNtQueryInformationProcess);
+    hook(hNtQuerySystemInformation);
     return ret;
 }
 
-static NTSTATUS HookNtQueryObject(
+static NTSTATUS NTAPI HookNtQueryObject(
     IN HANDLE Handle OPTIONAL,
     IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
     OUT PVOID ObjectInformation OPTIONAL,
     IN ULONG ObjectInformationLength,
-    OUT PULONG ReturnLength OPTIONAL
-)
+    OUT PULONG ReturnLength OPTIONAL)
 {
     unhook(hNtQueryObject);
     NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
@@ -97,6 +91,42 @@ static NTSTATUS HookNtQueryObject(
     return ret;
 }
 
+static NTSTATUS NTAPI HookNtQueryInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    OUT PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength,
+    OUT PULONG ReturnLength)
+{
+    unhook(hNtQueryInformationProcess);
+    NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
+    if(NT_SUCCESS(ret) && ProcessInformation)
+    {
+        ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
+
+        if(ProcessInformationClass==ProcessDebugFlags)
+        {
+            DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
+            if(HiderIsHidden(pid, HideProcessDebugFlags))
+                *(unsigned int*)ProcessInformation=TRUE;
+        }
+        else if(ProcessInformationClass==ProcessDebugPort)
+        {
+            DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
+            if(HiderIsHidden(pid, HideProcessDebugPort))
+                *(unsigned int*)ProcessInformation=0;
+        }
+        else if(ProcessInformationClass==ProcessDebugObjectHandle)
+        {
+            DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
+            if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
+                *(unsigned int*)ProcessInformation=0;
+        }
+    }
+    hook(hNtQueryInformationProcess);
+    return ret;
+}
+
 bool HooksInit()
 {
     hNtQueryInformationProcess=hook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
@@ -105,6 +135,9 @@ bool HooksInit()
     hNtQueryObject=hook(SSDTgpa("NtQueryObject"), (void*)HookNtQueryObject);
     if(!hNtQueryObject)
         return false;
+    hNtQuerySystemInformation=hook(L"NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
+    if(!hNtQuerySystemInformation)
+        return false;
     return true;
 }
 
@@ -112,4 +145,5 @@ void HooksFree()
 {
     unhook(hNtQueryInformationProcess, true);
     unhook(hNtQueryObject, true);
+    unhook(hNtQuerySystemInformation, true);
 }

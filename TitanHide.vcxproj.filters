@@ -39,6 +39,9 @@
     <ClInclude Include="VisualDDKHelpers.h">
       <Filter>Header files</Filter>
     </ClInclude>
+    <ClInclude Include="TitanHide.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TitanHide.cpp">

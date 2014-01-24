@@ -28,6 +28,4 @@ typedef unsigned long duint;
 typedef signed long dsint;
 #endif //_WIN64
 
-#define BIT(x) (1<<(x-1))
-
 #endif

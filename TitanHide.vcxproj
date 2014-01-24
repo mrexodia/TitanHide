@@ -206,6 +206,7 @@
     <ClInclude Include="hooks.h" />
     <ClInclude Include="misc.h" />
     <ClInclude Include="ssdt.h" />
+    <ClInclude Include="TitanHide.h" />
     <ClInclude Include="undocumented.h" />
     <ClInclude Include="VisualDDKHelpers.h" />
     <ClInclude Include="_global.h" />

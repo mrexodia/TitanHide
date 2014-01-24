@@ -101,6 +101,30 @@ NTSTATUS ZwQuerySystemInformation(
     return ZwQSI(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
 }
 
+NTSTATUS NtQuerySystemInformation(
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL)
+{
+    typedef NTSTATUS (*QUERY_SYSTEM_INFO) (
+        IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+        OUT PVOID SystemInformation,
+        IN ULONG SystemInformationLength,
+        OUT PULONG ReturnLength OPTIONAL
+    );
+    static QUERY_SYSTEM_INFO NtQSI=0;
+    if(!NtQSI)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtQuerySystemInformation");
+        NtQSI=(QUERY_SYSTEM_INFO)MmGetSystemRoutineAddress(&routineName);
+        if(!NtQSI)
+            return STATUS_UNSUCCESSFUL;
+    }
+    return NtQSI(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
+}
+
 //Based on: http://alter.org.ua/docs/nt_kernel/procaddr
 PVOID KernelGetModuleBase(PCHAR pModuleName)
 {

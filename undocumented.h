@@ -29,7 +29,8 @@ typedef enum _OBJECT_INFORMATION_CLASS
 
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
-    SystemModuleInformation=11
+    SystemModuleInformation=11,
+    SystemKernelDebuggerInformation=35
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
 //functions
@@ -52,6 +53,18 @@ NTSTATUS NtQueryObject(
     IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
     OUT PVOID ObjectInformation OPTIONAL,
     IN ULONG ObjectInformationLength,
+    OUT PULONG ReturnLength OPTIONAL);
+
+NTSTATUS ZwQuerySystemInformation(
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL);
+
+NTSTATUS NtQuerySystemInformation(
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL);
 
 PVOID KernelGetModuleBase(PCHAR pModuleName);
