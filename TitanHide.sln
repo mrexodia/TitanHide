@@ -1,7 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TitanHide", "TitanHide.vcxproj", "{FF0F7CC3-F888-44BC-B7DD-6EAE71DA7EFF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TitanHide", "TitanHide\TitanHide.vcxproj", "{FF0F7CC3-F888-44BC-B7DD-6EAE71DA7EFF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TitanHideGUI", "TitanHideGUI\TitanHideGUI.vcxproj", "{86641CD2-9317-4093-82BC-4C91BDFEDD33}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TitanHideTest", "TitanHideTest\TitanHideTest.vcxproj", "{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -19,6 +23,18 @@ Global
 		{FF0F7CC3-F888-44BC-B7DD-6EAE71DA7EFF}.Release|Win32.Build.0 = Release|Win32
 		{FF0F7CC3-F888-44BC-B7DD-6EAE71DA7EFF}.Release|x64.ActiveCfg = Release|x64
 		{FF0F7CC3-F888-44BC-B7DD-6EAE71DA7EFF}.Release|x64.Build.0 = Release|x64
+		{86641CD2-9317-4093-82BC-4C91BDFEDD33}.Debug|Win32.ActiveCfg = Debug|Win32
+		{86641CD2-9317-4093-82BC-4C91BDFEDD33}.Debug|Win32.Build.0 = Debug|Win32
+		{86641CD2-9317-4093-82BC-4C91BDFEDD33}.Debug|x64.ActiveCfg = Debug|x64
+		{86641CD2-9317-4093-82BC-4C91BDFEDD33}.Release|Win32.ActiveCfg = Release|Win32
+		{86641CD2-9317-4093-82BC-4C91BDFEDD33}.Release|Win32.Build.0 = Release|Win32
+		{86641CD2-9317-4093-82BC-4C91BDFEDD33}.Release|x64.ActiveCfg = Release|Win32
+		{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}.Debug|Win32.ActiveCfg = Debug|Win32
+		{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}.Debug|Win32.Build.0 = Debug|Win32
+		{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}.Debug|x64.ActiveCfg = Debug|x64
+		{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}.Release|Win32.ActiveCfg = Release|Win32
+		{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}.Release|Win32.Build.0 = Release|Win32
+		{52193B93-E4D9-4C8A-BCE9-3D6F62F29309}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

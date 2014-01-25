@@ -15,3 +15,4 @@ Features:
 - ProcessDebugObjectHandle (NtQueryInformationProcess)
 - DebugObject (NtQueryObject)
 - SystemKernelDebuggerInformation (NtQuerySystemInformation)
+- NtClose (STATUS_INVALID_HANDLE exception)
