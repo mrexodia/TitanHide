@@ -51,16 +51,19 @@ PVOID SSDTfind()
     unsigned int rvaSSDT=0;
     for(unsigned int i=0; i<function_size; i++)
     {
-        if(*(unsigned int*)(function+i)==0x1ABC834B) //4b83bc1a????????00 cmp qword ptr [r10+r11+????????h],0
+        if(((*(unsigned int*)(function+i))&0xFFFFF0)==0xBC8340 && !*(unsigned char*)(function+i+8)) //4?83bc?? ???????? 00 cmp qword ptr [r10+r11+????????h],0
         {
-            rvaSSDT=*(unsigned int*)(function+i+sizeof(unsigned int));
+            rvaSSDT=*(unsigned int*)(function+i+4);
             break;
         }
     }
+    if(!rvaSSDT)
+        return 0;
+    DbgPrint("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
     PVOID base=KernelGetModuleBase("ntoskrnl");
     if(!base)
         return 0;
-    DbgPrint("[TITANHIDE] KernelGetModuleBase(ntoskrnl)->0x%llX\n", base);
+    DbgPrint("[TITANHIDE] KernelGetModuleBase(ntoskrnl)->0x%p\n", base);
     return (PVOID)((unsigned char*)base+rvaSSDT);
 }
 

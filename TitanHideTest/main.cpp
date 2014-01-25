@@ -118,8 +118,10 @@ typedef enum _OBJECT_INFORMATION_CLASS
 // debug objects. This function can cause an exception (although rarely)
 // so either surround it in a try catch or __try __except block
 // but that shouldn't happen unless one tinkers with the function
-inline bool CheckObjectList()
+bool CheckObjectList()
 {
+    __try
+    {
     typedef NTSTATUS (NTAPI *pNtQueryObject)(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
 
     POBJECT_ALL_INFORMATION pObjectAllInfo = NULL;
@@ -199,6 +201,12 @@ inline bool CheckObjectList()
 
     VirtualFree(pMemory, 0, MEM_RELEASE);
     return false;
+    }
+    __except(1)
+    {
+        puts("exception!");
+        return false;
+    }
 }
 
 enum PROCESSINFOCLASS
