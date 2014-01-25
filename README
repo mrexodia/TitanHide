@@ -16,3 +16,9 @@ Features:
 - DebugObject (NtQueryObject)
 - SystemKernelDebuggerInformation (NtQuerySystemInformation)
 - NtClose (STATUS_INVALID_HANDLE exception)
+
+Test environments:
+
+- Windows 7 x64 (SP1)
+- Windows XP x86 (SP3)
+- Windows XP x64 (SP1)
