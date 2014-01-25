@@ -23,14 +23,13 @@ bool SSDTinit()
 //Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
 PVOID SSDTfind()
 {
+    UNICODE_STRING routineName;
 #ifndef _WIN64
     //x86 code
-    UNICODE_STRING routineName;
     RtlInitUnicodeString(&routineName, L"KeServiceDescriptorTable");
     return MmGetSystemRoutineAddress(&routineName);
 #endif
     //x64 code
-    UNICODE_STRING routineName;
     RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
     PVOID KeASST=MmGetSystemRoutineAddress(&routineName);
     if(!KeASST)

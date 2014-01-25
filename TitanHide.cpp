@@ -108,5 +108,10 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     DbgPrint("[TITANHIDE] SSDTinit() returned %d\n", SSDTinit());
     DbgPrint("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
 
+    //test code
+    /*UNICODE_STRING usfn;
+    RtlInitUnicodeString(&usfn, L"KeRaiseUserException");
+    DbgPrint("[TITANHIDE] KeRaiseUserException: %llX\n", MmGetSystemRoutineAddress(&usfn));*/
+
     return STATUS_SUCCESS;
 }

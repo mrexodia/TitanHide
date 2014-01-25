@@ -8,6 +8,39 @@
 static HOOK hNtQueryInformationProcess;
 static HOOK hNtQueryObject;
 static HOOK hNtQuerySystemInformation;
+static HOOK hNtClose;
+static HOOK hKeRaiseUserException;
+
+static bool bNtClose=false;
+
+static NTSTATUS NTAPI HookKeRaiseUserException(
+    IN NTSTATUS ExceptionCode)
+{
+    if(bNtClose && (ExceptionCode==STATUS_HANDLE_NOT_CLOSABLE || ExceptionCode==STATUS_INVALID_HANDLE))
+    {
+        ULONG pid=(ULONG)PsGetCurrentProcessId();
+        DbgPrint("[TITANHIDE] NtClose by %d\n", pid);
+        if(HiderIsHidden(pid, HideNtClose))
+        {
+            return ExceptionCode;
+        }
+    }
+    unhook(hKeRaiseUserException);
+    NTSTATUS ret=KeRaiseUserException(ExceptionCode);
+    hook(hKeRaiseUserException);
+    return ret;
+}
+
+static NTSTATUS NTAPI HookNtClose(
+    IN HANDLE Handle)
+{
+    unhook(hNtClose);
+    bNtClose=true;
+    NTSTATUS ret=NtClose(Handle);
+    bNtClose=false;
+    hook(hNtClose);
+    return ret;
+}
 
 static NTSTATUS NTAPI HookNtQuerySystemInformation(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
@@ -138,6 +171,12 @@ bool HooksInit()
     hNtQuerySystemInformation=hook(L"NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
     if(!hNtQuerySystemInformation)
         return false;
+    hNtClose=hook(L"NtClose", (void*)HookNtClose);
+    if(!hNtClose)
+        return false;
+    hKeRaiseUserException=hook(L"KeRaiseUserException", (void*)HookKeRaiseUserException);
+    if(!hKeRaiseUserException)
+        return false;
     return true;
 }
 
@@ -146,4 +185,6 @@ void HooksFree()
     unhook(hNtQueryInformationProcess, true);
     unhook(hNtQueryObject, true);
     unhook(hNtQuerySystemInformation, true);
+    unhook(hNtClose, true);
+    unhook(hKeRaiseUserException, true);
 }

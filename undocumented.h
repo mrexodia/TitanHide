@@ -34,38 +34,53 @@ typedef enum _SYSTEM_INFORMATION_CLASS
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
 //functions
-NTSTATUS ZwQueryInformationProcess(
+NTSTATUS NTAPI ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
     OUT PVOID ProcessInformation,
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS ZwQueryInformationThread(
+NTSTATUS NTAPI ZwQueryInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN OUT PVOID ThreadInformation,
     IN ULONG ThreadInformationLength,
     OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NtQueryObject(
+NTSTATUS NTAPI NtQueryObject(
     IN HANDLE Handle OPTIONAL,
     IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
     OUT PVOID ObjectInformation OPTIONAL,
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS ZwQuerySystemInformation(
+NTSTATUS NTAPI ZwQuerySystemInformation(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NtQuerySystemInformation(
+NTSTATUS NTAPI NtQuerySystemInformation(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL);
+
+NTSTATUS NTAPI NtClose(
+    IN HANDLE Handle);
+
+NTSTATUS NTAPI NtDuplicateObject(
+    IN HANDLE SourceProcessHandle,
+    IN HANDLE SourceHandle,
+    IN HANDLE TargetProcessHandle,
+    OUT PHANDLE TargetHandle,
+    IN ACCESS_MASK DesiredAccess OPTIONAL,
+    IN BOOLEAN InheritHandle,
+    IN ULONG Options);
+
+NTSTATUS NTAPI KeRaiseUserException(
+    IN NTSTATUS ExceptionCode);
 
 PVOID KernelGetModuleBase(PCHAR pModuleName);
 
