@@ -17,6 +17,7 @@ bool SSDTinit()
     osMinorVersion=OS.dwMinorVersion;
     osServicePack=OS.wServicePackMajor;
     osProductType=OS.wProductType;
+    DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", osMajorVersion, osMinorVersion, osServicePack);
     return true;
 }
 
@@ -65,11 +66,6 @@ PVOID SSDTfind()
 
 PVOID SSDTgpa(const char* apiname)
 {
-#ifndef _WIN64
-    DbgPrint("[TITANHIDE] x86 Unsupported...\n");
-    return 0;
-#endif
-
     int ma=osMajorVersion;
     int mi=osMinorVersion;
     int sp=osServicePack;
@@ -85,7 +81,7 @@ PVOID SSDTgpa(const char* apiname)
     {
         initDone=true;
         //Offset list from: http://j00ru.vexillium.org/ntapi_64/
-        if(ma==5 && mi==1 && pt==VER_NT_WORKSTATION) //Windows XP
+        if(ma==5 && (mi==1 || (mi==2 && pt==VER_NT_WORKSTATION))) //Windows XP (x86/x64)
         {
             DbgPrint("[TITANHIDE] Windows XP ");
 #ifdef _WIN64
@@ -312,5 +308,9 @@ PVOID SSDTgpa(const char* apiname)
         DbgPrint("[TITANHIDE] Invalid read offset...\n");
         return 0;
     }
+#ifdef _WIN64
     return (PVOID)((((LONG*)SSDT->pServiceTable)[readOffset]>>4)+SSDTbase);
+#else
+    return (PVOID)((LONG*)SSDT->pServiceTable)[readOffset];
+#endif
 }
