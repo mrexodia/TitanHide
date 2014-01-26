@@ -20,10 +20,13 @@ bool CheckProcessDebugFlags()
 
     Status = NtQIP(GetCurrentProcess(),
                    0x1f, // ProcessDebugFlags
-                   &NoDebugInherit, 4, NULL);
+                   &NoDebugInherit, sizeof(NoDebugInherit), NULL);
 
     if (Status != 0x00000000)
+    {
+        printf("NtQueryInformationProcess failed with %X\n", Status);
         return false;
+    }
 
     if(NoDebugInherit == FALSE)
         return true;
@@ -37,7 +40,8 @@ bool CheckProcessDebugPort()
     typedef int (WINAPI *pNtQueryInformationProcess)
     (HANDLE ,UINT ,PVOID ,ULONG , PULONG);
 
-    DWORD NoDebugInherit = 0;
+    DWORD_PTR DebugPort = 0;
+    ULONG ReturnSize=0;
     int Status;
 
     // Get NtQueryInformationProcess
@@ -46,13 +50,16 @@ bool CheckProcessDebugPort()
                                                "NtQueryInformationProcess" );
 
     Status = NtQIP(GetCurrentProcess(),
-                   0x7, // ProcessDebugFlags
-                   &NoDebugInherit, 4, NULL);
+                   0x7, // ProcessDebugPort
+                   &DebugPort, sizeof(DebugPort), &ReturnSize);
 
     if (Status != 0x00000000)
+    {
+        printf("NtQueryInformationProcess failed with %X, %d\n", Status, ReturnSize);
         return false;
+    }
 
-    if(NoDebugInherit)
+    if(DebugPort)
         return true;
     else
         return false;
@@ -64,8 +71,9 @@ bool CheckProcessDebugObjectHandle()
     typedef int (WINAPI *pNtQueryInformationProcess)
     (HANDLE ,UINT ,PVOID ,ULONG , PULONG);
 
-    DWORD DebugHandle = 0;
+    DWORD_PTR DebugHandle = 0;
     int Status;
+    ULONG ReturnSize=0;
 
     // Get NtQueryInformationProcess
     pNtQueryInformationProcess NtQIP = (pNtQueryInformationProcess)
@@ -74,10 +82,12 @@ bool CheckProcessDebugObjectHandle()
 
     Status = NtQIP(GetCurrentProcess(),
                    30, // ProcessDebugHandle
-                   &DebugHandle, 4, NULL);
+                   &DebugHandle, sizeof(DebugHandle), &ReturnSize);
 
-    if (Status != 0x00000000)
+    if(Status != 0x00000000)
     {
+        if(Status != 0xC0000353) //STATUS_PORT_NOT_SET
+            printf("NtQueryInformationProcess failed with %X, %d\n", Status, ReturnSize);
         return false;
     }
 
@@ -341,14 +351,14 @@ bool CheckSystemDebugger()
 
 bool CheckNtClose()
 {
-    __try
-    {
-        CloseHandle((HANDLE)0x1234);
-    }
-    __except(EXCEPTION_EXECUTE_HANDLER)
-    {
-        return true;
-    }
+    HANDLE hProcess=OpenProcess(SYNCHRONIZE, FALSE, GetCurrentProcessId());
+    SetHandleInformation(hProcess, 0xFFFFFFFF, HANDLE_FLAG_PROTECT_FROM_CLOSE);
+
+    //*(char*)0=0;
+    CloseHandle((HANDLE)0x1234);
+    
+    SetHandleInformation(hProcess, HANDLE_FLAG_PROTECT_FROM_CLOSE, 0);
+    CloseHandle(hProcess);
     return false;
 }
 
@@ -363,7 +373,7 @@ int main(int argc, char* argv[])
         printf("NtQueryObject: %d\n", CheckObjectList());
         printf("CheckSystemDebugger: %d\n", CheckSystemDebugger());
         printf("CheckNtClose: %d\n", CheckNtClose());
-        printf("ThreadHideFromDebugger: %d\n", HideFromDebugger());
+        //printf("ThreadHideFromDebugger: %d\n", HideFromDebugger());
         puts("");
         Sleep(1000);
     }

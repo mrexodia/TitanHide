@@ -51,7 +51,7 @@ PVOID SSDTfind()
     unsigned int rvaSSDT=0;
     for(unsigned int i=0; i<function_size; i++)
     {
-        if(((*(unsigned int*)(function+i))&0xFFFFF0)==0xBC8340 && !*(unsigned char*)(function+i+8)) //4?83bc?? ???????? 00 cmp qword ptr [r10+r11+????????h],0
+        if(((*(unsigned int*)(function+i))&0xFFFFF0)==0xBC8340 && !*(unsigned char*)(function+i+8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
         {
             rvaSSDT=*(unsigned int*)(function+i+4);
             break;
