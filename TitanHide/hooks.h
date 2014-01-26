@@ -3,7 +3,7 @@
 
 #include "_global.h"
 
-bool HooksInit();
+int HooksInit();
 void HooksFree();
 
 #endif

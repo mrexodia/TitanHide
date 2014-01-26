@@ -70,7 +70,7 @@ NTSTATUS NTAPI NtQueryObject(
     static QUERY_OBJECT NtQO=0;
     if(!NtQO)
     {
-        NtQO=(QUERY_OBJECT)SSDTgpa("NtQueryObject");
+        NtQO=(QUERY_OBJECT)SSDTgpa(L"NtQueryObject");
         if(!NtQO)
             return STATUS_UNSUCCESSFUL;
     }

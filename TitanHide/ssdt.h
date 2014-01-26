@@ -19,6 +19,6 @@ struct SSDTStruct
 //functions
 bool SSDTinit();
 PVOID SSDTfind();
-PVOID SSDTgpa(const char* apiname);
+PVOID SSDTgpa(const wchar_t* apiname);
 
 #endif

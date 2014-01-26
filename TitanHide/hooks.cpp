@@ -195,27 +195,28 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     return ret;
 }
 
-bool HooksInit()
+int HooksInit()
 {
+    int hook_count=0;
     hNtQueryInformationProcess=hook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
-    if(!hNtQueryInformationProcess)
-        return false;
-    hNtQueryObject=hook(SSDTgpa("NtQueryObject"), (void*)HookNtQueryObject);
-    if(!hNtQueryObject)
-        return false;
+    if(hNtQueryInformationProcess)
+        hook_count++;
+    hNtQueryObject=hook(L"NtQueryObject", (void*)HookNtQueryObject);
+    if(hNtQueryObject)
+        hook_count++;
     hNtQuerySystemInformation=hook(L"NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
-    if(!hNtQuerySystemInformation)
-        return false;
+    if(hNtQuerySystemInformation)
+        hook_count++;
     hNtClose=hook(L"NtClose", (void*)HookNtClose);
-    if(!hNtClose)
-        return false;
+    if(hNtClose)
+        hook_count++;
     hKeRaiseUserException=hook(L"KeRaiseUserException", (void*)HookKeRaiseUserException);
-    if(!hKeRaiseUserException)
-        return false;
+    if(hKeRaiseUserException)
+        hook_count++;
     hNtSetInformationThread=hook(L"NtSetInformationThread", (void*)HookNtSetInformationThread);
-    if(!hNtSetInformationThread)
-        return false;
-    return true;
+    if(hNtSetInformationThread)
+        hook_count++;
+    return hook_count;
 }
 
 void HooksFree()

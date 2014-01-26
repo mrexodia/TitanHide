@@ -67,7 +67,7 @@ PVOID SSDTfind()
     return (PVOID)((unsigned char*)base+rvaSSDT);
 }
 
-PVOID SSDTgpa(const char* apiname)
+PVOID SSDTgpa(const wchar_t* apiname)
 {
     int ma=osMajorVersion;
     int mi=osMinorVersion;
@@ -283,7 +283,7 @@ PVOID SSDTgpa(const char* apiname)
 
     //get read offset
     int readOffset=-1;
-    if(!_stricmp(apiname, "NtQueryObject")) //NtQueryObject
+    if(!_wcsicmp(apiname, L"NtQueryObject")) //NtQueryObject
     {
         readOffset=offsetNtQueryObject;
     }

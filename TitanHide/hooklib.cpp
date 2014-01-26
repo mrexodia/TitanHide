@@ -1,5 +1,6 @@
 #include "hooklib.h"
 #include "misc.h"
+#include "ssdt.h"
 
 //Based on: http://leguanyuan.blogspot.nl/2013/09/x64-inline-hook-zwcreatesection.html
 
@@ -25,21 +26,22 @@ static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED *Destination, IN CONST VOID
     return STATUS_SUCCESS;
 }
 
-static void* gpa(wchar_t* proc)
+static void* gpa(const wchar_t* proc)
 {
     if(!proc)
         return 0;
     UNICODE_STRING usfn;
     RtlInitUnicodeString(&usfn, proc);
-    return MmGetSystemRoutineAddress(&usfn);
+    PVOID addr=MmGetSystemRoutineAddress(&usfn);
+    if(!addr)
+        addr=SSDTgpa(proc);
+    if(!addr)
+        DbgPrint("[TITANHIDE] No such procedure %ws...\n", proc);
+    return addr;
 }
 
-HOOK hook(PVOID api, void* newfunc)
+static HOOK hook_internal(duint addr, void* newfunc)
 {
-    duint addr=(duint)api;
-    if(!addr)
-        return 0;
-    DbgPrint("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
     //allocate structure
     HOOK hook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
     //set hooking address
@@ -63,9 +65,22 @@ HOOK hook(PVOID api, void* newfunc)
     return hook;
 }
 
-HOOK hook(wchar_t* api, void* newfunc)
+HOOK hook(PVOID api, void* newfunc)
 {
-    return hook(gpa(api), newfunc);
+    duint addr=(duint)api;
+    if(!addr)
+        return 0;
+    DbgPrint("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
+    return hook_internal(addr, newfunc);
+}
+
+HOOK hook(const wchar_t* api, void* newfunc)
+{
+    duint addr=(duint)gpa(api);
+    if(!addr)
+        return 0;
+    DbgPrint("[TITANHIDE] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);
+    return hook_internal(addr, newfunc);
 }
 
 bool unhook(HOOK hook, bool free)
