@@ -4,6 +4,7 @@
 
 #define DLG_MAIN                                100
 #define IDC_CHK_NTCLOSE                         1001
+#define IDC_CHK_THREADHIDEFROMDEBUGGER          1002
 #define IDC_CHK_PROCESSDEBUGFLAGS               1009
 #define IDC_CHK_PROCESSDEBUGOBJECTHANDLE        1012
 #define IDC_CHK_PROCESSDEBUGPORT                1013

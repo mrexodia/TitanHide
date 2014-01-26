@@ -11,7 +11,8 @@ enum HIDE_TYPE
     HideProcessDebugObjectHandle=BIT(3), //NtQueryInformationProcess
     HideDebugObject=BIT(4), //NtQueryObject
     HideSystemDebuggerInformation=BIT(5), //NtQuerySystemInformation
-    HideNtClose=BIT(6) //NtClose
+    HideNtClose=BIT(6), //NtClose
+    HideThreadHideFromDebugger=BIT(7) //NtSetInformationThread
 };
 
 enum HIDE_COMMAND

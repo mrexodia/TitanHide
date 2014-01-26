@@ -17,6 +17,7 @@ bool CheckProcessDebugFlags()
                                        GetProcAddress( GetModuleHandle( TEXT("ntdll.dll") ),
                                                "NtQueryInformationProcess" );
 
+
     Status = NtQIP(GetCurrentProcess(),
                    0x1f, // ProcessDebugFlags
                    &NoDebugInherit, 4, NULL);
@@ -91,6 +92,23 @@ bool CheckProcessDebugObjectHandle()
         return false;
 }
 
+bool HideFromDebugger()
+{
+    typedef NTSTATUS (NTAPI *NT_SET_INFORMATION_THREAD) (
+        IN HANDLE ThreadHandle,
+        IN ULONG ThreadInformationClass,
+        IN PVOID ThreadInformation,
+        IN ULONG ThreadInformationLength
+    );
+    NT_SET_INFORMATION_THREAD NtSIT = (NT_SET_INFORMATION_THREAD)
+                                      GetProcAddress( GetModuleHandle( TEXT("ntdll.dll") ),
+                                              "NtSetInformationThread" );
+    return NT_SUCCESS(NtSIT(GetCurrentThread(),
+                            0x11, //ThreadHideFromDebugger
+                            0,
+                            0));
+}
+
 typedef struct _OBJECT_TYPE_INFORMATION
 {
     UNICODE_STRING TypeName;
@@ -122,85 +140,85 @@ bool CheckObjectList()
 {
     __try
     {
-    typedef NTSTATUS (NTAPI *pNtQueryObject)(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+        typedef NTSTATUS (NTAPI *pNtQueryObject)(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
 
-    POBJECT_ALL_INFORMATION pObjectAllInfo = NULL;
-    void *pMemory = NULL;
-    NTSTATUS Status;
-    ULONG Size = 0;
+        POBJECT_ALL_INFORMATION pObjectAllInfo = NULL;
+        void *pMemory = NULL;
+        NTSTATUS Status;
+        ULONG Size = 0;
 
-    // Get NtQueryObject
-    pNtQueryObject NtQO = (pNtQueryObject)GetProcAddress(
-                              GetModuleHandle( TEXT( "ntdll.dll" ) ),
-                              "NtQueryObject" );
+        // Get NtQueryObject
+        pNtQueryObject NtQO = (pNtQueryObject)GetProcAddress(
+                                  GetModuleHandle( TEXT( "ntdll.dll" ) ),
+                                  "NtQueryObject" );
 
-    // Get the size of the list
-    Status = NtQO(NULL, ObjectAllInformation, //ObjectAllTypesInformation
-                  &Size, sizeof(ULONG), &Size);
+        // Get the size of the list
+        Status = NtQO(NULL, ObjectAllInformation, //ObjectAllTypesInformation
+                      &Size, sizeof(ULONG), &Size);
 
-    // Allocate room for the list
-    pMemory = VirtualAlloc(NULL, Size, MEM_RESERVE | MEM_COMMIT,
-                           PAGE_READWRITE);
+        // Allocate room for the list
+        pMemory = VirtualAlloc(NULL, Size, MEM_RESERVE | MEM_COMMIT,
+                               PAGE_READWRITE);
 
-    if(pMemory == NULL)
-        return false;
+        if(pMemory == NULL)
+            return false;
 
-    // Now we can actually retrieve the list
-    Status = NtQO(GetCurrentProcess(), ObjectAllInformation, pMemory, Size, NULL);
+        // Now we can actually retrieve the list
+        Status = NtQO(GetCurrentProcess(), ObjectAllInformation, pMemory, Size, NULL);
 
-    // Status != STATUS_SUCCESS
-    if (Status != STATUS_SUCCESS)
-    {
-        VirtualFree(pMemory, 0, MEM_RELEASE);
-        return false;
-    }
-
-    // We have the information we need
-    pObjectAllInfo = (POBJECT_ALL_INFORMATION)pMemory;
-
-    unsigned char *pObjInfoLocation =(unsigned char*)pObjectAllInfo->ObjectTypeInformation;
-
-    ULONG NumObjects = pObjectAllInfo->NumberOfObjects;
-
-    for(UINT i = 0; i < NumObjects; i++)
-    {
-        POBJECT_TYPE_INFORMATION pObjectTypeInfo = (POBJECT_TYPE_INFORMATION)pObjInfoLocation;
-
-        // The debug object will always be present
-        if (wcscmp(L"DebugObject", pObjectTypeInfo->TypeName.Buffer) == 0)
+        // Status != STATUS_SUCCESS
+        if (Status != STATUS_SUCCESS)
         {
-            // Are there any objects?
-            if (pObjectTypeInfo->TotalNumberOfObjects)
-            {
-                VirtualFree(pMemory, 0, MEM_RELEASE);
-                return true;
-            }
-            else
-            {
-                VirtualFree(pMemory, 0, MEM_RELEASE);
-                return false;
-            }
+            VirtualFree(pMemory, 0, MEM_RELEASE);
+            return false;
         }
 
-        // Get the address of the current entries
-        // string so we can find the end
-        pObjInfoLocation = (unsigned char*)pObjectTypeInfo->TypeName.Buffer;
+        // We have the information we need
+        pObjectAllInfo = (POBJECT_ALL_INFORMATION)pMemory;
 
-        // Add the size
-        pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
+        unsigned char *pObjInfoLocation =(unsigned char*)pObjectAllInfo->ObjectTypeInformation;
 
-        // Skip the trailing null and alignment bytes
-        ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-sizeof(void*);
+        ULONG NumObjects = pObjectAllInfo->NumberOfObjects;
 
-        // Not pretty but it works
-        if((ULONG_PTR)tmp!=(ULONG_PTR)pObjInfoLocation)
-            tmp+=sizeof(void*);
-        pObjInfoLocation = ((unsigned char*)tmp);
+        for(UINT i = 0; i < NumObjects; i++)
+        {
+            POBJECT_TYPE_INFORMATION pObjectTypeInfo = (POBJECT_TYPE_INFORMATION)pObjInfoLocation;
 
-    }
+            // The debug object will always be present
+            if (wcscmp(L"DebugObject", pObjectTypeInfo->TypeName.Buffer) == 0)
+            {
+                // Are there any objects?
+                if (pObjectTypeInfo->TotalNumberOfObjects)
+                {
+                    VirtualFree(pMemory, 0, MEM_RELEASE);
+                    return true;
+                }
+                else
+                {
+                    VirtualFree(pMemory, 0, MEM_RELEASE);
+                    return false;
+                }
+            }
 
-    VirtualFree(pMemory, 0, MEM_RELEASE);
-    return false;
+            // Get the address of the current entries
+            // string so we can find the end
+            pObjInfoLocation = (unsigned char*)pObjectTypeInfo->TypeName.Buffer;
+
+            // Add the size
+            pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
+
+            // Skip the trailing null and alignment bytes
+            ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-sizeof(void*);
+
+            // Not pretty but it works
+            if((ULONG_PTR)tmp!=(ULONG_PTR)pObjInfoLocation)
+                tmp+=sizeof(void*);
+            pObjInfoLocation = ((unsigned char*)tmp);
+
+        }
+
+        VirtualFree(pMemory, 0, MEM_RELEASE);
+        return false;
     }
     __except(1)
     {
@@ -345,6 +363,7 @@ int main(int argc, char* argv[])
         printf("NtQueryObject: %d\n", CheckObjectList());
         printf("CheckSystemDebugger: %d\n", CheckSystemDebugger());
         printf("CheckNtClose: %d\n", CheckNtClose());
+        printf("ThreadHideFromDebugger: %d\n", HideFromDebugger());
         puts("");
         Sleep(1000);
     }

@@ -16,6 +16,7 @@ Features:
 - DebugObject (NtQueryObject)
 - SystemKernelDebuggerInformation (NtQuerySystemInformation)
 - NtClose (STATUS_INVALID_HANDLE exception)
+- ThreadHideFromDebugger (NtSetInformationThread)
 
 Test environments:
 

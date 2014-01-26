@@ -82,6 +82,12 @@ NTSTATUS NTAPI NtDuplicateObject(
 NTSTATUS NTAPI KeRaiseUserException(
     IN NTSTATUS ExceptionCode);
 
+NTSTATUS NTAPI NtSetInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength);
+
 PVOID KernelGetModuleBase(PCHAR pModuleName);
 
 #endif

@@ -110,8 +110,8 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 
     //test code
     /*UNICODE_STRING usfn;
-    RtlInitUnicodeString(&usfn, L"KeRaiseUserException");
-    DbgPrint("[TITANHIDE] KeRaiseUserException: 0x%p\n", MmGetSystemRoutineAddress(&usfn));*/
+    RtlInitUnicodeString(&usfn, L"NtSetInformationThread");
+    DbgPrint("[TITANHIDE] NtSetInformationThread: 0x%p\n", MmGetSystemRoutineAddress(&usfn));*/
 
     return STATUS_SUCCESS;
 }

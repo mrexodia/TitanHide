@@ -191,6 +191,30 @@ NTSTATUS NTAPI KeRaiseUserException(
     return KeRUE(ExceptionCode);
 }
 
+NTSTATUS NTAPI NtSetInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength)
+{
+    typedef NTSTATUS (NTAPI *NT_SET_INFORMATION_THREAD) (
+        IN HANDLE ThreadHandle,
+        IN THREADINFOCLASS ThreadInformationClass,
+        IN PVOID ThreadInformation,
+        IN ULONG ThreadInformationLength
+    );
+    static NT_SET_INFORMATION_THREAD NtSIT=0;
+    if(!NtSIT)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtSetInformationThread");
+        NtSIT=(NT_SET_INFORMATION_THREAD)MmGetSystemRoutineAddress(&routineName);
+        if(!NtSIT)
+            return STATUS_UNSUCCESSFUL;
+    }
+    return NtSIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
+}
+
 //Based on: http://alter.org.ua/docs/nt_kernel/procaddr
 PVOID KernelGetModuleBase(PCHAR pModuleName)
 {

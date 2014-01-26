@@ -10,8 +10,39 @@ static HOOK hNtQueryObject;
 static HOOK hNtQuerySystemInformation;
 static HOOK hNtClose;
 static HOOK hKeRaiseUserException;
+static HOOK hNtSetInformationThread;
 
 static bool bNtClose=false;
+
+NTSTATUS NTAPI HookNtSetInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength)
+{
+    if(ThreadInformationClass==ThreadHideFromDebugger)
+    {
+        ULONG pid=(ULONG)PsGetCurrentProcessId();
+        DbgPrint("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
+        if(HiderIsHidden(pid, HideThreadHideFromDebugger))
+        {
+            //Taken from: http://newgre.net/idastealth
+            PKTHREAD Object;
+		    NTSTATUS status=ObReferenceObjectByHandle(ThreadHandle, 0, NULL, KernelMode, (PVOID*)&Object, NULL);
+		    if(NT_SUCCESS(status))
+		    {
+			    ObDereferenceObject(Object);
+    			return STATUS_SUCCESS;
+		    }
+		    else
+                return status;
+        }
+    }
+    unhook(hNtSetInformationThread);
+    NTSTATUS ret=NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
+    hook(hNtSetInformationThread);
+    return STATUS_SUCCESS;
+}
 
 static NTSTATUS NTAPI HookKeRaiseUserException(
     IN NTSTATUS ExceptionCode)
@@ -153,7 +184,11 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
         {
             DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
+            {
                 *(unsigned int*)ProcessInformation=0;
+                //Taken from: http://newgre.net/idastealth
+                ret=STATUS_PORT_NOT_SET;
+            }
         }
     }
     hook(hNtQueryInformationProcess);
@@ -177,6 +212,9 @@ bool HooksInit()
     hKeRaiseUserException=hook(L"KeRaiseUserException", (void*)HookKeRaiseUserException);
     if(!hKeRaiseUserException)
         return false;
+    hNtSetInformationThread=hook(L"NtSetInformationThread", (void*)HookNtSetInformationThread);
+    if(!hNtSetInformationThread)
+        return false;
     return true;
 }
 
@@ -187,4 +225,5 @@ void HooksFree()
     unhook(hNtQuerySystemInformation, true);
     unhook(hNtClose, true);
     unhook(hKeRaiseUserException, true);
+    unhook(hNtSetInformationThread, true);
 }
