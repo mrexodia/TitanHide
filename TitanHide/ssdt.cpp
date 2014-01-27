@@ -28,7 +28,8 @@ PVOID SSDTfind()
 #ifndef _WIN64
     //x86 code
     RtlInitUnicodeString(&routineName, L"KeServiceDescriptorTable");
-    return MmGetSystemRoutineAddress(&routineName);
+    PVOID KeSSDT=MmGetSystemRoutineAddress(&routineName);
+    return KeSSDT;
 #endif
     //x64 code
     RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");

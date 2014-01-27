@@ -3,16 +3,17 @@
 #include "ssdt.h"
 #include "hider.h"
 
-void DriverUnload(IN PDRIVER_OBJECT DriverObject)
+static UNICODE_STRING DeviceName;
+static UNICODE_STRING Win32Device;
+
+static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
-    UNICODE_STRING Win32Device;
-    RtlInitUnicodeString(&Win32Device,L"\\DosDevices\\TitanHide");
     IoDeleteSymbolicLink(&Win32Device);
     IoDeleteDevice(DriverObject->DeviceObject);
     HooksFree();
 }
 
-NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+static NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     Irp->IoStatus.Status=STATUS_SUCCESS;
     Irp->IoStatus.Information=0;
@@ -20,7 +21,7 @@ NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     return STATUS_SUCCESS;
 }
 
-NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+static NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     Irp->IoStatus.Status=STATUS_NOT_SUPPORTED;
     Irp->IoStatus.Information=0;
@@ -28,7 +29,7 @@ NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     return Irp->IoStatus.Status;
 }
 
-NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
+static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
     NTSTATUS RetStatus=STATUS_SUCCESS;
     PIO_STACK_LOCATION pIoStackIrp=IoGetCurrentIrpStackLocation(Irp);
@@ -59,7 +60,6 @@ NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
 extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING  RegistryPath)
 {
-    UNICODE_STRING DeviceName, Win32Device;
     PDEVICE_OBJECT DeviceObject=NULL;
     NTSTATUS status;
 
@@ -91,7 +91,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         DbgPrint("[TITANHIDE] Unexpected I/O Error...\n");
         return STATUS_UNEXPECTED_IO_ERROR;
     }
-    DbgPrint("[TITANHIDE] Device %ws created successfully!\n", DeviceName.Buffer);
+    DbgPrint("[TITANHIDE] Device %wZ created successfully!\n", DeviceName);
 
     //create symbolic link
     DeviceObject->Flags|=DO_BUFFERED_IO;
@@ -102,7 +102,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         DbgPrint("[TITANHIDE] IoCreateSymbolicLink Error...\n");
         return status;
     }
-    DbgPrint("[TITANHIDE] Symbolic link %ws, %ws created!\n", Win32Device.Buffer, DeviceName.Buffer);
+    DbgPrint("[TITANHIDE] Symbolic link %wZ->%wZ created!\n", Win32Device, DeviceName);
 
     //initialize hooking
     DbgPrint("[TITANHIDE] SSDTinit() returned %d\n", SSDTinit());

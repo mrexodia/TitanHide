@@ -30,9 +30,9 @@ static void* gpa(const wchar_t* proc)
 {
     if(!proc)
         return 0;
-    UNICODE_STRING usfn;
-    RtlInitUnicodeString(&usfn, proc);
-    PVOID addr=MmGetSystemRoutineAddress(&usfn);
+    UNICODE_STRING routineName;
+    RtlInitUnicodeString(&routineName, proc);
+    PVOID addr=MmGetSystemRoutineAddress(&routineName);
     if(!addr)
         addr=SSDTgpa(proc);
     if(!addr)

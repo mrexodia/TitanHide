@@ -3,6 +3,11 @@
 #include <Subauth.h>
 #include "..\TitanHide\TitanHide.h"
 
+//Thanks to:
+//http://www.codeproject.com/Articles/30815/An-Anti-Reverse-Engineering-Guide
+//http://pferrie.host22.com/papers/antidebug.pdf
+//http://resources.infosecinstitute.com/anti-debugging-detecting-system-debugger/
+
 bool CheckProcessDebugFlags()
 {
     // Much easier in ASM but C/C++ looks so much better
@@ -195,7 +200,9 @@ bool CheckObjectList()
             POBJECT_TYPE_INFORMATION pObjectTypeInfo = (POBJECT_TYPE_INFORMATION)pObjInfoLocation;
 
             // The debug object will always be present
-            if (wcscmp(L"DebugObject", pObjectTypeInfo->TypeName.Buffer) == 0)
+            wchar_t DebugObject[]=L"DebugObject";
+            int DebugObjectLength=lstrlenW(DebugObject)*sizeof(wchar_t);
+            if(pObjectTypeInfo->TypeName.Length==DebugObjectLength && !memcmp(pObjectTypeInfo->TypeName.Buffer, DebugObject, DebugObjectLength)) //UNICODE_STRING is not NULL-terminated (pointed to by deepzero!)
             {
                 // Are there any objects?
                 if (pObjectTypeInfo->TotalNumberOfObjects)
