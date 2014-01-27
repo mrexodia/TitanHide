@@ -225,7 +225,7 @@ bool CheckObjectList()
             pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
 
             // Skip the trailing null and alignment bytes
-            ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-sizeof(void*);
+            ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-(int)sizeof(void*);
 
             // Not pretty but it works
             if((ULONG_PTR)tmp!=(ULONG_PTR)pObjInfoLocation)
@@ -358,20 +358,22 @@ bool CheckSystemDebugger()
 
 bool CheckNtClose()
 {
-    HANDLE hProcess=OpenProcess(SYNCHRONIZE, FALSE, GetCurrentProcessId());
-    SetHandleInformation(hProcess, 0xFFFFFFFF, HANDLE_FLAG_PROTECT_FROM_CLOSE);
-
-    //*(char*)0=0;
-    CloseHandle((HANDLE)0x1234);
-    
-    SetHandleInformation(hProcess, HANDLE_FLAG_PROTECT_FROM_CLOSE, 0);
-    CloseHandle(hProcess);
+    __try
+    {
+        CloseHandle((HANDLE)0x1234);
+    }
+    __except(EXCEPTION_EXECUTE_HANDLER)
+    {
+        return true;
+    }
     return false;
 }
 
 int main(int argc, char* argv[])
 {
-    printf("pid: %d\n\n", (int)GetCurrentProcessId());
+    char title[256]="";
+    sprintf(title, "pid: %d", (int)GetCurrentProcessId());
+    SetConsoleTitleA(title);
     while(1)
     {
         printf("ProcessDebugFlags: %d\n", CheckProcessDebugFlags());
