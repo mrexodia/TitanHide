@@ -88,6 +88,12 @@ NTSTATUS NTAPI NtSetInformationThread(
     IN PVOID ThreadInformation,
     IN ULONG ThreadInformationLength);
 
+NTSTATUS NTAPI NtSetInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    IN PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength);
+
 PVOID KernelGetModuleBase(PCHAR pModuleName);
 
 #endif

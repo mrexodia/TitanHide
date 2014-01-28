@@ -13,7 +13,10 @@ static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED *Destination, IN CONST VOID
     MmBuildMdlForNonPagedPool(g_pmdl);
     unsigned int* Mapped=(unsigned int*)MmMapLockedPages(g_pmdl, KernelMode);
     if(!Mapped)
+    {
+        IoFreeMdl(g_pmdl);
         return STATUS_UNSUCCESSFUL;
+    }
     KIRQL kirql=KeRaiseIrqlToDpcLevel();
     RtlCopyMemory(Mapped, Source, Length);
     KeLowerIrql(kirql);

@@ -296,3 +296,27 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
 
     return pModuleBase;
 }
+
+NTSTATUS NTAPI NtSetInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    IN PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength)
+{
+    typedef NTSTATUS (NTAPI *NT_SET_INFO_PROCESS) (
+        IN HANDLE ProcessHandle,
+        IN PROCESSINFOCLASS ProcessInformationClass,
+        IN PVOID ProcessInformation,
+        IN ULONG ProcessInformationLength
+    );
+    static NT_SET_INFO_PROCESS NtSIP=0;
+    if(!NtSIP)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtSetInformationProcess");
+        NtSIP=(NT_SET_INFO_PROCESS)MmGetSystemRoutineAddress(&routineName);
+        if(!NtSIP)
+            return STATUS_UNSUCCESSFUL;
+    }
+    return NtSIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
+}

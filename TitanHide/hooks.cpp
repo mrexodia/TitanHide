@@ -11,10 +11,23 @@ static HOOK hNtQuerySystemInformation;
 static HOOK hNtClose;
 static HOOK hKeRaiseUserException;
 static HOOK hNtSetInformationThread;
+static HOOK hNtSetInformationProcess;
 
 static bool bNtClose=false;
 
-NTSTATUS NTAPI HookNtSetInformationThread(
+static NTSTATUS NTAPI HookNtSetInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    IN PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength)
+{
+    unhook(hNtSetInformationProcess);
+    NTSTATUS ret=NtSetInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
+    hook(hNtSetInformationProcess);
+    return ret;
+}
+
+static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN PVOID ThreadInformation,
@@ -216,6 +229,9 @@ int HooksInit()
     hNtSetInformationThread=hook(L"NtSetInformationThread", (void*)HookNtSetInformationThread);
     if(hNtSetInformationThread)
         hook_count++;
+    hNtSetInformationProcess=hook(L"NtSetInformationProcess", (void*)HookNtSetInformationProcess);
+    if(hNtSetInformationProcess)
+        hook_count++;
     return hook_count;
 }
 
@@ -227,4 +243,5 @@ void HooksFree()
     unhook(hNtClose, true);
     unhook(hKeRaiseUserException, true);
     unhook(hNtSetInformationThread, true);
+    unhook(hNtSetInformationProcess, true);
 }
