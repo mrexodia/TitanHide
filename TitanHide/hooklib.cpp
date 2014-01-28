@@ -21,11 +21,8 @@ static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED *Destination, IN CONST VOID
     RtlCopyMemory(Mapped, Source, Length);
     KeLowerIrql(kirql);
     //Restore memory properties.
-    if(g_pmdl)
-    {
-        MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
-        IoFreeMdl(g_pmdl);
-    }
+    MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
+    IoFreeMdl(g_pmdl);
     return STATUS_SUCCESS;
 }
 
