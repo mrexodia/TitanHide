@@ -20,5 +20,6 @@ struct SSDTStruct
 bool SSDTinit();
 PVOID SSDTfind();
 PVOID SSDTgpa(const wchar_t* apiname);
+PVOID SSDThook(const wchar_t* apiname, void* newfunc);
 
 #endif

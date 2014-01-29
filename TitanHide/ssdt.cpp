@@ -1,74 +1,13 @@
 #include "ssdt.h"
 #include "undocumented.h"
+#include "hooklib.h"
 
 static int osMajorVersion=0;
 static int osMinorVersion=0;
 static int osServicePack=0;
 static int osProductType=0;
 
-bool SSDTinit()
-{
-    RTL_OSVERSIONINFOEXW OS;
-    RtlZeroMemory(&OS, sizeof(OS));
-    OS.dwOSVersionInfoSize=sizeof(OS);
-    if(!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&OS)))
-        return false;
-    osMajorVersion=OS.dwMajorVersion;
-    osMinorVersion=OS.dwMinorVersion;
-    osServicePack=OS.wServicePackMajor;
-    osProductType=OS.wProductType;
-    DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", osMajorVersion, osMinorVersion, osServicePack);
-    return true;
-}
-
-//Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
-PVOID SSDTfind()
-{
-    UNICODE_STRING routineName;
-#ifndef _WIN64
-    //x86 code
-    RtlInitUnicodeString(&routineName, L"KeServiceDescriptorTable");
-    PVOID KeSSDT=MmGetSystemRoutineAddress(&routineName);
-    return KeSSDT;
-#endif
-    //x64 code
-    RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
-    PVOID KeASST=MmGetSystemRoutineAddress(&routineName);
-    if(!KeASST)
-        return 0;
-    unsigned char function[1024];
-    unsigned int function_size=0;
-    RtlCopyMemory(function, KeASST, sizeof(function));
-    for(unsigned int i=0; i<sizeof(function); i++)
-    {
-        if(function[i]==0xC3)
-        {
-            function_size=i+1;
-            break;
-        }
-    }
-    if(!function_size)
-        return 0;
-    unsigned int rvaSSDT=0;
-    for(unsigned int i=0; i<function_size; i++)
-    {
-        if(((*(unsigned int*)(function+i))&0xFFFFF0)==0xBC8340 && !*(unsigned char*)(function+i+8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
-        {
-            rvaSSDT=*(unsigned int*)(function+i+4);
-            break;
-        }
-    }
-    if(!rvaSSDT)
-        return 0;
-    DbgPrint("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
-    PVOID base=KernelGetModuleBase("ntoskrnl");
-    if(!base)
-        return 0;
-    DbgPrint("[TITANHIDE] KernelGetModuleBase(ntoskrnl)->0x%p\n", base);
-    return (PVOID)((unsigned char*)base+rvaSSDT);
-}
-
-PVOID SSDTgpa(const wchar_t* apiname)
+static int SSDTgetOffset(const wchar_t* apiname)
 {
     int ma=osMajorVersion;
     int mi=osMinorVersion;
@@ -79,7 +18,6 @@ PVOID SSDTgpa(const wchar_t* apiname)
 
     //hard-coded offsets
     static int offsetNtQueryObject=0;
-
 
     if(!initDone)
     {
@@ -291,9 +229,96 @@ PVOID SSDTgpa(const wchar_t* apiname)
     if(readOffset==-1)
     {
         DbgPrint("[TITANHIDE] Unknown function...\n");
-        return 0;
     }
+    return readOffset;
+}
 
+bool SSDTinit()
+{
+    static bool initDone=false;
+    if(initDone)
+        return true;
+
+    RTL_OSVERSIONINFOEXW OS;
+    RtlZeroMemory(&OS, sizeof(OS));
+    OS.dwOSVersionInfoSize=sizeof(OS);
+    if(!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&OS)))
+        return false;
+    osMajorVersion=OS.dwMajorVersion;
+    osMinorVersion=OS.dwMinorVersion;
+    osServicePack=OS.wServicePackMajor;
+    osProductType=OS.wProductType;
+    DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", osMajorVersion, osMinorVersion, osServicePack);
+
+    SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
+    if(!SSDT)
+    {
+        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        return false;
+    }
+    unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
+    if(!SSDTbase)
+    {
+        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        return false;
+    }
+    initDone=true;
+    return true;
+}
+
+//Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
+PVOID SSDTfind()
+{
+    static PVOID SSDT=0;
+    if(!SSDT)
+    {
+        UNICODE_STRING routineName;
+#ifndef _WIN64
+        //x86 code
+        RtlInitUnicodeString(&routineName, L"KeServiceDescriptorTable");
+        SSDT=MmGetSystemRoutineAddress(&routineName);
+#endif
+        //x64 code
+        RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
+        PVOID KeASST=MmGetSystemRoutineAddress(&routineName);
+        if(!KeASST)
+            return 0;
+        unsigned char function[1024];
+        unsigned int function_size=0;
+        RtlCopyMemory(function, KeASST, sizeof(function));
+        for(unsigned int i=0; i<sizeof(function); i++)
+        {
+            if(function[i]==0xC3)
+            {
+                function_size=i+1;
+                break;
+            }
+        }
+        if(!function_size)
+            return 0;
+        unsigned int rvaSSDT=0;
+        for(unsigned int i=0; i<function_size; i++)
+        {
+            if(((*(unsigned int*)(function+i))&0xFFFFF0)==0xBC8340 && !*(unsigned char*)(function+i+8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
+            {
+                rvaSSDT=*(unsigned int*)(function+i+4);
+                break;
+            }
+        }
+        if(!rvaSSDT)
+            return 0;
+        DbgPrint("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
+        static PVOID base=KernelGetModuleBase("ntoskrnl");
+        if(!base)
+            return 0;
+        DbgPrint("[TITANHIDE] KernelGetModuleBase(ntoskrnl)->0x%p\n", base);
+        SSDT=(PVOID)((unsigned char*)base+rvaSSDT);
+    }
+    return SSDT;
+}
+
+PVOID SSDTgpa(const wchar_t* apiname)
+{
     //read address from SSDT
     static SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
@@ -307,6 +332,9 @@ PVOID SSDTgpa(const wchar_t* apiname)
         DbgPrint("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
+    int readOffset=SSDTgetOffset(apiname);
+    if(readOffset==-1)
+        return 0;
     if(readOffset>=SSDT->NumberOfServices)
     {
         DbgPrint("[TITANHIDE] Invalid read offset...\n");
@@ -317,4 +345,48 @@ PVOID SSDTgpa(const wchar_t* apiname)
 #else
     return (PVOID)((LONG*)SSDT->pServiceTable)[readOffset];
 #endif
+}
+
+PVOID SSDThook(const wchar_t* apiname, void* newfunc)
+{
+    static SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
+    if(!SSDT)
+    {
+        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        return 0;
+    }
+    unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
+    if(!SSDTbase)
+    {
+        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        return 0;
+    }
+    int readOffset=SSDTgetOffset(apiname);
+    if(readOffset==-1)
+        return 0;
+    if(readOffset>=SSDT->NumberOfServices)
+    {
+        DbgPrint("[TITANHIDE] Invalid read offset...\n");
+        return 0;
+    }
+
+    duint Lowest=(duint)SSDT;
+    duint Highest=Lowest+0x0FFFFFFF;
+
+    DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
+
+    if((duint)newfunc<(Highest-12) && (duint)newfunc>Lowest)
+        DbgPrint("[TITANHIDE] Cave OK!\n");
+    else
+        return 0;
+
+    PVOID original=(PVOID)((((LONG*)SSDT->pServiceTable)[readOffset]>>4)+SSDTbase);
+
+    ULONG newRva=(duint)newfunc-(duint)SSDT;
+
+    DbgPrint("[TITANHIDE] New RVA: 0x%X\n", newRva);
+
+    DbgPrint("[TITANHIDE] Old RVA: 0x%X\n", (duint)original-(duint)SSDT);
+    
+    return original;
 }

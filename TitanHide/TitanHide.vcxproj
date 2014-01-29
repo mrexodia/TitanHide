@@ -205,6 +205,7 @@
     <ClInclude Include="hooklib.h" />
     <ClInclude Include="hooks.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="pe.h" />
     <ClInclude Include="ssdt.h" />
     <ClInclude Include="TitanHide.h" />
     <ClInclude Include="undocumented.h" />
@@ -216,6 +217,7 @@
     <ClCompile Include="hooklib.cpp" />
     <ClCompile Include="hooks.cpp" />
     <ClCompile Include="misc.cpp" />
+    <ClCompile Include="pe.cpp" />
     <ClCompile Include="ssdt.cpp" />
     <ClCompile Include="TitanHide.cpp" />
     <ClCompile Include="undocumented.cpp" />
