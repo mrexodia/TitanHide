@@ -2,6 +2,7 @@
 #define _SSDT_H
 
 #include "_global.h"
+#include "hooklib.h"
 
 //structures
 struct SSDTStruct
@@ -17,9 +18,9 @@ struct SSDTStruct
 };
 
 //functions
-bool SSDTinit();
 PVOID SSDTfind();
 PVOID SSDTgpa(const wchar_t* apiname);
-PVOID SSDThook(const wchar_t* apiname, void* newfunc);
+HOOK SSDThook(const wchar_t* apiname, void* newfunc);
+void SSDTunhook(HOOK hHook);
 
 #endif

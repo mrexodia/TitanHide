@@ -20,9 +20,11 @@ struct opcode
 struct hookstruct
 {
     duint addr;
-    PVOID old;
     opcode hook;
     unsigned char orig[sizeof(opcode)];
+    //SSDT extension
+    PVOID SSDTold;
+    int SSDToffset;
 };
 
 typedef hookstruct* HOOK;

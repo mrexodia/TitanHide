@@ -1,15 +1,22 @@
 #include "ssdt.h"
 #include "undocumented.h"
-#include "hooklib.h"
 #include "misc.h"
-
-static int osMajorVersion=0;
-static int osMinorVersion=0;
-static int osServicePack=0;
-static int osProductType=0;
+#include "pe.h"
 
 static int SSDTgetOffset(const wchar_t* apiname)
 {
+    RTL_OSVERSIONINFOEXW OS;
+    RtlZeroMemory(&OS, sizeof(OS));
+    OS.dwOSVersionInfoSize=sizeof(OS);
+    if(!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&OS)))
+        return 0;
+    int osMajorVersion=OS.dwMajorVersion;
+    int osMinorVersion=OS.dwMinorVersion;
+    int osServicePack=OS.wServicePackMajor;
+    int osProductType=OS.wProductType;
+
+    DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", osMajorVersion, osMinorVersion, osServicePack);
+
     int ma=osMajorVersion;
     int mi=osMinorVersion;
     int sp=osServicePack;
@@ -234,39 +241,6 @@ static int SSDTgetOffset(const wchar_t* apiname)
     return readOffset;
 }
 
-bool SSDTinit()
-{
-    static bool initDone=false;
-    if(initDone)
-        return true;
-
-    RTL_OSVERSIONINFOEXW OS;
-    RtlZeroMemory(&OS, sizeof(OS));
-    OS.dwOSVersionInfoSize=sizeof(OS);
-    if(!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&OS)))
-        return false;
-    osMajorVersion=OS.dwMajorVersion;
-    osMinorVersion=OS.dwMinorVersion;
-    osServicePack=OS.wServicePackMajor;
-    osProductType=OS.wProductType;
-    DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", osMajorVersion, osMinorVersion, osServicePack);
-
-    SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
-    if(!SSDT)
-    {
-        DbgPrint("[TITANHIDE] SSDT not found...\n");
-        return false;
-    }
-    unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
-    if(!SSDTbase)
-    {
-        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
-        return false;
-    }
-    initDone=true;
-    return true;
-}
-
 //Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
 PVOID SSDTfind()
 {
@@ -348,33 +322,30 @@ PVOID SSDTgpa(const wchar_t* apiname)
 #endif
 }
 
-static NTSTATUS InterlockedSet(LONG* Destination, LONG Source)
+static void InterlockedSet(LONG* Destination, LONG Source)
 {
-    /*
-    //Change memory properties.
-    PMDL g_pmdl=IoAllocateMdl(Destination, sizeof(opcode), 0, 0, NULL);
-    if(!g_pmdl)
-        return STATUS_UNSUCCESSFUL;
-    MmBuildMdlForNonPagedPool(g_pmdl);
-    LONG* Mapped=(LONG*)MmMapLockedPages(g_pmdl, KernelMode);
-    if(!Mapped)
-    {
-        IoFreeMdl(g_pmdl);
-        return STATUS_UNSUCCESSFUL;
-    }
-    InterlockedExchange(Mapped, Source);
-    //Restore memory properties.
-    MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
-    IoFreeMdl(g_pmdl);
-    return STATUS_SUCCESS;
-    */
     unlockCR0();
     InterlockedExchange(Destination, Source);
     lockCR0();
-    return STATUS_SUCCESS;
 }
 
-PVOID SSDThook(const wchar_t* apiname, void* newfunc)
+static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
+{
+    unsigned char* Code=(unsigned char*)CodeStart;
+
+    for(unsigned int i=0,j=0; i<CodeSize; i++)
+    {
+        if(Code[i]==0x90 || Code[i]==0xCC)
+            j++;
+        else
+            j=0;
+        if(j==CaveSize)
+            return (PVOID)((duint)CodeStart+i-CaveSize+1);
+    }
+    return 0;
+}
+
+HOOK SSDThook(const wchar_t* apiname, void* newfunc)
 {
     static SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
@@ -382,54 +353,127 @@ PVOID SSDThook(const wchar_t* apiname, void* newfunc)
         DbgPrint("[TITANHIDE] SSDT not found...\n");
         return 0;
     }
-    duint SSDTbase=(unsigned long long)SSDT->pServiceTable;
+    duint SSDTbase=(duint)SSDT->pServiceTable;
     if(!SSDTbase)
     {
         DbgPrint("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
-    int readOffset=SSDTgetOffset(apiname);
-    if(readOffset==-1)
+    int apiOffset=SSDTgetOffset(apiname);
+    if(apiOffset==-1)
         return 0;
-    if(readOffset>=SSDT->NumberOfServices)
+    if(apiOffset>=SSDT->NumberOfServices)
     {
-        DbgPrint("[TITANHIDE] Invalid read offset...\n");
+        DbgPrint("[TITANHIDE] Invalid API offset...\n");
         return 0;
     }
-
-    duint Lowest=(duint)SSDT;
-    duint Highest=Lowest+0x0FFFFFFF;
-
-    DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
-
-    if((duint)newfunc<(Highest-12) && (duint)newfunc>Lowest)
-        DbgPrint("[TITANHIDE] Cave OK!\n");
-    else
-        return 0;
-
-    ULONG originalRva=(((LONG*)SSDT->pServiceTable)[readOffset]);
-
-    PVOID original=(PVOID)((originalRva>>4)+SSDTbase);
-
-    ULONG newRva=(duint)newfunc-SSDTbase;
-    newRva=(newRva<<4)|(originalRva&0xF);
-
-    DbgPrint("[TITANHIDE] New RVA: 0x%X\n", newRva);
-
-    DbgPrint("[TITANHIDE] Old RVA: 0x%X\n", originalRva);
-
-    //DbgBreakPoint();
-
-    LONG* SSDT_Table=(LONG*)SSDT->pServiceTable;
-
-    DbgPrint("[TITANHIDE] SSDT_Table[readOffset]: 0x%p\n", &SSDT_Table[readOffset]);
-
-    /*unlockCR0();
-    lockCR0();*/
-
-    InterlockedSet(&SSDT_Table[readOffset], newRva);
-
-    //((LONG*)SSDT->pServiceTable)[readOffset]=newRva<<4;
+    HOOK hHook=0;
+    LONG* SSDT_Table=(LONG*)SSDTbase;
+    ULONG oldValue=SSDT_Table[apiOffset];
+    ULONG newValue;    
+    PVOID original;
+#ifdef _WIN64
+    /*
+    x64 SSDT Hook;
+    1) find API addr
+    2) get code page+size
+    3) find cave address
+    4) hook cave address (using hooklib)
+    5) change SSDT value
+    */
+    newValue=oldValue; //for testing
     
-    return original;
+    original=(PVOID)((oldValue>>4)+SSDTbase);
+
+    static ULONG CodeSize=0;
+    static PVOID CodeStart=0;
+    if(!CodeStart)
+    {
+        duint Lowest=SSDTbase;
+        duint Highest=Lowest+0x0FFFFFFF;
+        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
+        CodeSize=0;
+        CodeStart=PeGetPageBase(KernelGetModuleBase("ntoskrnl"), &CodeSize, original);
+        if(!CodeStart || !CodeSize)
+        {
+            DbgPrint("[TITANHIDE] PeGetPageBase failed...\n");
+            return 0;
+        }
+        DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
+        if((duint)CodeStart<Lowest) //start of the page is out of range (impossible, but whatever)
+        {
+            CodeSize-=Lowest-(duint)CodeStart;
+            CodeStart=(PVOID)Lowest;
+            DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
+        }
+        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
+    }
+
+    PVOID CaveAddress=FindCaveAddress(CodeStart, CodeSize, sizeof(opcode));
+    if(!CaveAddress)
+    {
+        DbgPrint("[TITANHIDE] FindCaveAddress failed...\n");
+        return 0;
+    }
+    DbgPrint("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
+
+    hHook=hook(CaveAddress, (void*)newfunc);
+    if(!hHook)
+        return 0;
+    hHook->SSDTold=original;
+    hHook->SSDToffset=apiOffset;
+
+    newValue=(duint)CaveAddress-SSDTbase;
+    newValue=(newValue<<4)|oldValue&0xF;
+
+#else
+    /*
+    x86 SSDT Hook:
+    1) change SSDT value
+    */
+    newValue=(ULONG)newfunc;
+    original=(PVOID)oldValue;
+    hHook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
+#endif
+    
+    InterlockedSet(&SSDT_Table[apiOffset], newValue);
+    
+    return hHook;
+}
+
+void SSDTunhook(HOOK hHook)
+{
+    DbgBreakPoint();
+    if(!hHook)
+        return;
+    static SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
+    if(!SSDT)
+    {
+        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        return;
+    }
+    duint SSDTbase=(duint)SSDT->pServiceTable;
+    if(!SSDTbase)
+    {
+        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        return;
+    }
+    int apiOffset=hHook->SSDToffset;
+    LONG* SSDT_Table=(LONG*)SSDTbase;
+    ULONG oldValue=SSDT_Table[apiOffset];
+    ULONG newValue;
+    
+#ifdef _WIN64
+    newValue=(duint)hHook->SSDTold-SSDTbase;
+    newValue=(newValue<<4)|oldValue&0xF;
+#else
+    newValue=(ULONG)hHook->SSDTold;
+#endif
+
+    InterlockedSet(&SSDT_Table[apiOffset], newValue);
+    
+#ifdef _WIN64
+    unhook(hHook, true);
+#endif
+
 }

@@ -1,5 +1,4 @@
 #include "hooks.h"
-#include "hooklib.h"
 #include "undocumented.h"
 #include "ssdt.h"
 #include "hider.h"
@@ -12,46 +11,8 @@ static HOOK hNtQuerySystemInformation=0;
 static HOOK hNtClose=0;
 static HOOK hKeRaiseUserException=0;
 static HOOK hNtSetInformationThread=0;
-static HOOK hNtSetInformationProcess=0;
 
 static bool bNtClose=false;
-
-static NTSTATUS NTAPI HookNtSetInformationProcess(
-    IN HANDLE ProcessHandle,
-    IN PROCESSINFOCLASS ProcessInformationClass,
-    IN PVOID ProcessInformation,
-    IN ULONG ProcessInformationLength)
-{
-    unhook(hNtSetInformationProcess);
-    NTSTATUS ret=NtSetInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
-    
-    ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
-
-    if(ProcessInformationClass==ProcessDebugFlags)
-    {
-        DbgPrint("[TITANHIDE] SetProcessDebugFlags by %d\n", pid);
-        if(HiderIsHidden(pid, HideProcessDebugFlags))
-            *(unsigned int*)ProcessInformation=TRUE;
-    }
-    else if(ProcessInformationClass==ProcessDebugPort)
-    {
-        DbgPrint("[TITANHIDE] SetProcessDebugPort by %d\n", pid);
-        if(HiderIsHidden(pid, HideProcessDebugPort))
-            *(unsigned int*)ProcessInformation=0;
-    }
-    else if(ProcessInformationClass==ProcessDebugObjectHandle)
-    {
-        DbgPrint("[TITANHIDE] SetProcessDebugObjectHandle by %d\n", pid);
-        if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
-        {
-            *(unsigned int*)ProcessInformation=0;
-            //Taken from: http://newgre.net/idastealth
-            ret=STATUS_PORT_NOT_SET;
-        }
-    }
-    hook(hNtSetInformationProcess);
-    return ret;
-}
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -67,13 +28,13 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
         {
             //Taken from: http://newgre.net/idastealth
             PKTHREAD Object;
-		    NTSTATUS status=ObReferenceObjectByHandle(ThreadHandle, 0, NULL, KernelMode, (PVOID*)&Object, NULL);
-		    if(NT_SUCCESS(status))
-		    {
-			    ObDereferenceObject(Object);
-    			return STATUS_SUCCESS;
-		    }
-		    else
+            NTSTATUS status=ObReferenceObjectByHandle(ThreadHandle, 0, NULL, KernelMode, (PVOID*)&Object, NULL);
+            if(NT_SUCCESS(status))
+            {
+                ObDereferenceObject(Object);
+                return STATUS_SUCCESS;
+            }
+            else
                 return status;
         }
     }
@@ -150,15 +111,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    typedef NTSTATUS (NTAPI *NTQUERYOBJECT) (
-        IN HANDLE Handle OPTIONAL,
-        IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
-        OUT PVOID ObjectInformation OPTIONAL,
-        IN ULONG ObjectInformationLength,
-        OUT PULONG ReturnLength OPTIONAL
-    );
-    static NTQUERYOBJECT NtQO=(NTQUERYOBJECT)hNtQueryObject->old;
-    NTSTATUS ret=NtQO(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
@@ -240,26 +193,10 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     return ret;
 }
 
-static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
-{
-    unsigned char* Code=(unsigned char*)CodeStart;
-
-    for(unsigned int i=0,j=0; i<CodeSize; i++)
-    {
-        if(Code[i]==0x90 || Code[i]==0xCC)
-            j++;
-        else
-            j=0;
-        if(j==CaveSize)
-            return (PVOID)((duint)CodeStart+i-CaveSize+1);
-    }
-    return 0;
-}
-
 int HooksInit()
 {
-    /*int hook_count=0;
-    hNtQueryInformationProcess=hook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
+    int hook_count=0;
+    /*hNtQueryInformationProcess=hook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(hNtQueryInformationProcess)
         hook_count++;
     hNtQueryObject=hook(L"NtQueryObject", (void*)HookNtQueryObject);
@@ -280,63 +217,19 @@ int HooksInit()
     hNtSetInformationProcess=hook(L"NtSetInformationProcess", (void*)HookNtSetInformationProcess);
     if(hNtSetInformationProcess)
         hook_count++;*/
-    PVOID NtQO=SSDTgpa(L"NtQueryObject");
-    if(!NtQO)
-        return 0;
-    static ULONG CodeSize=0;
-    static PVOID CodeStart=0;
-    if(!CodeStart)
-    {
-        duint Lowest=(duint)SSDTfind();
-        duint Highest=Lowest+0x0FFFFFFF;
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
-        CodeSize=0;
-        CodeStart=PeGetPageBase(KernelGetModuleBase("ntoskrnl"), &CodeSize, NtQO);
-        if(!CodeStart || !CodeSize)
-        {
-            DbgPrint("[TITANHIDE] PeGetPageBase failed...\n");
-            return 0;
-        }
-        DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
-        if((duint)CodeStart<Lowest) //start of the page is out of range
-        {
-            CodeSize-=Lowest-(duint)CodeStart;
-            CodeStart=(PVOID)Lowest;
-            DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
-        }
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
-        /*ULONG NewSize=(duint)NtQO-(duint)CodeStart;
-        CodeStart=NtQO;
-        CodeSize=NewSize;
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);*/
-    }
-    PVOID CaveAddress=FindCaveAddress(CodeStart, CodeSize, 12);
-    if(!CaveAddress)
-    {
-        DbgPrint("[TITANHIDE] FindCaveAddress failed...\n");
-        return 0;
-    }
-    DbgPrint("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
 
-    hNtQueryObject=hook(CaveAddress, (void*)HookNtQueryObject);
-    if(!hNtQueryObject)
-        return 0;
+    /*hNtQueryInformationProcess=SSDThook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
+    if(hNtQueryInformationProcess)
+        hook_count++;*/
+    hNtQueryObject=SSDThook(L"NtQueryObject", (void*)HookNtQueryObject);
+    if(hNtQueryObject)
+        hook_count++;
+    return hook_count;
 
-    hNtQueryObject->old=SSDThook(L"NtQueryObject", CaveAddress);
-    DbgPrint("[TITANHIDE] Original: 0x%p\n", hNtQueryObject->old);
-    
     return 0;
 }
 
 void HooksFree()
 {
-    //unhook(hNtQueryInformationProcess, true);
-    if(hNtQueryObject && hNtQueryObject->old)
-        SSDThook(L"NtQueryObject", hNtQueryObject->old);
-    unhook(hNtQueryObject, true);
-    /*unhook(hNtQuerySystemInformation, true);
-    unhook(hNtClose, true);
-    unhook(hKeRaiseUserException, true);
-    unhook(hNtSetInformationThread, true);
-    unhook(hNtSetInformationProcess, true);*/
+    SSDTunhook(hNtQueryObject);
 }

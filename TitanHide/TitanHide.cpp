@@ -105,7 +105,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     DbgPrint("[TITANHIDE] Symbolic link %wZ->%wZ created!\n", Win32Device, DeviceName);
 
     //initialize hooking
-    DbgPrint("[TITANHIDE] SSDTinit() returned %d\n", SSDTinit());
+    DbgPrint("[TITANHIDE] UndocumentedInit() returned %d\n", UndocumentedInit());
     DbgPrint("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
 
     //test code

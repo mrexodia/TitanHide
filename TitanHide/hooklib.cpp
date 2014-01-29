@@ -46,7 +46,6 @@ static HOOK hook_internal(duint addr, void* newfunc)
     HOOK hook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
     //set hooking address
     hook->addr=addr;
-    hook->old=0;
     //set hooking opcode
 #ifdef _WIN64
     hook->hook.mov=0xB848;
@@ -86,7 +85,7 @@ HOOK hook(const wchar_t* api, void* newfunc)
 
 bool unhook(HOOK hook, bool free)
 {
-    if(!hook)
+    if(!hook || !hook->addr)
         return false;
     if(NT_SUCCESS(SuperRtlCopyMemory((void*)hook->addr, hook->orig, sizeof(opcode))))
     {
