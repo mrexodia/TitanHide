@@ -157,6 +157,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
         IN ULONG ObjectInformationLength,
         OUT PULONG ReturnLength OPTIONAL
     );
+    DbgBreakPoint();
     static NTQUERYOBJECT NtQO=(NTQUERYOBJECT)hNtQueryObject->old;
     NTSTATUS ret=NtQO(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     //unhook(hNtQueryObject);
@@ -308,10 +309,10 @@ int HooksInit()
             DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
         }
         DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
-        ULONG NewSize=(duint)NtQO-(duint)CodeStart;
+        /*ULONG NewSize=(duint)NtQO-(duint)CodeStart;
         CodeStart=NtQO;
         CodeSize=NewSize;
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
+        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);*/
     }
     PVOID CaveAddress=FindCaveAddress(CodeStart, CodeSize, 12);
     if(!CaveAddress)

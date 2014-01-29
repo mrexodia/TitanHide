@@ -409,7 +409,7 @@ PVOID SSDThook(const wchar_t* apiname, void* newfunc)
 
     ULONG originalRva=(((LONG*)SSDT->pServiceTable)[readOffset]);
 
-    PVOID original=(PVOID)((originalRva<<4)+SSDTbase);
+    PVOID original=(PVOID)((originalRva>>4)+SSDTbase);
 
     ULONG newRva=(duint)newfunc-SSDTbase;
     newRva=(newRva<<4)|(originalRva&0xF);
@@ -427,7 +427,7 @@ PVOID SSDThook(const wchar_t* apiname, void* newfunc)
     /*unlockCR0();
     lockCR0();*/
 
-    InterlockedSet(&SSDT_Table[readOffset], originalRva);
+    InterlockedSet(&SSDT_Table[readOffset], newRva);
 
     //((LONG*)SSDT->pServiceTable)[readOffset]=newRva<<4;
     
