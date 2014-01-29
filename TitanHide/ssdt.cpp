@@ -5,41 +5,39 @@
 
 static int SSDTgetOffset(const wchar_t* apiname)
 {
-    RTL_OSVERSIONINFOEXW OS;
-    RtlZeroMemory(&OS, sizeof(OS));
-    OS.dwOSVersionInfoSize=sizeof(OS);
-    if(!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&OS)))
-        return 0;
-    int osMajorVersion=OS.dwMajorVersion;
-    int osMinorVersion=OS.dwMinorVersion;
-    int osServicePack=OS.wServicePackMajor;
-    int osProductType=OS.wProductType;
-
-    DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", osMajorVersion, osMinorVersion, osServicePack);
-
-    int ma=osMajorVersion;
-    int mi=osMinorVersion;
-    int sp=osServicePack;
-    int pt=osProductType;
-
-    static bool initDone=false;
-
     //hard-coded offsets
     static int offsetNtQueryObject=0;
-
+    static int offsetNtQueryInformationProcess=0;
+    
+    static bool initDone=false;
     if(!initDone)
     {
+        RTL_OSVERSIONINFOEXW OS;
+        RtlZeroMemory(&OS, sizeof(OS));
+        OS.dwOSVersionInfoSize=sizeof(OS);
+        if(!NT_SUCCESS(RtlGetVersion((PRTL_OSVERSIONINFOW)&OS)))
+            return -1;
+        int ma=OS.dwMajorVersion;
+        int mi=OS.dwMinorVersion;
+        int sp=OS.wServicePackMajor;
+        int pt=OS.wProductType;
+
         initDone=true;
+
+        DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", ma, mi, sp);
+
         //Offset list from: http://j00ru.vexillium.org/ntapi_64/
         if(ma==5 && (mi==1 || (mi==2 && pt==VER_NT_WORKSTATION))) //Windows XP (x86/x64)
         {
             DbgPrint("[TITANHIDE] Windows XP ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
+            offsetNtQueryInformationProcess=0x0016;
 #else
             offsetNtQueryObject=0x00a3;
+            offsetNtQueryInformationProcess=0x009a;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -69,10 +67,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
             DbgPrint("[TITANHIDE] Windows Server 2003 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
+            offsetNtQueryInformationProcess=0x0016;
 #else
             offsetNtQueryObject=0x00aa;
+            offsetNtQueryInformationProcess=0x00a1;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -97,10 +97,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
             DbgPrint("[TITANHIDE] Windows Vista ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
+            offsetNtQueryInformationProcess=0x0016;
 #else
             offsetNtQueryObject=0x00ed;
+            offsetNtQueryInformationProcess=0x00e4;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -125,10 +127,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
             DbgPrint("[TITANHIDE] Windows Server 2008 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
+            offsetNtQueryInformationProcess=0x0016;
 #else
             offsetNtQueryObject=0x00ed;
+            offsetNtQueryInformationProcess=0x00e4;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -153,10 +157,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
             DbgPrint("[TITANHIDE] Windows 7 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
+            offsetNtQueryInformationProcess=0x0016;
 #else
             offsetNtQueryObject=0x00f8;
+            offsetNtQueryInformationProcess=0x00ea;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -175,7 +181,8 @@ static int SSDTgetOffset(const wchar_t* apiname)
         {
             DbgPrint("[TITANHIDE] Windows Server 2012 ");
             offsetNtQueryObject=0x000e;
-            switch(osServicePack)
+            offsetNtQueryInformationProcess=0x0017;
+            switch(sp)
             {
             case 0:
             {
@@ -190,10 +197,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
             DbgPrint("[TITANHIDE] Windows 8 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000e;
+            offsetNtQueryInformationProcess=0x0017;
 #else
             offsetNtQueryObject=0x00a2;
+            offsetNtQueryInformationProcess=0x00b0;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -208,10 +217,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
             DbgPrint("[TITANHIDE] Windows 8.1 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000f;
+            offsetNtQueryInformationProcess=0x0018;
 #else
             offsetNtQueryObject=0x00a5;
+            offsetNtQueryInformationProcess=0x00b3;
 #endif
-            switch(osServicePack)
+            switch(sp)
             {
             case 0:
             {
@@ -231,9 +242,10 @@ static int SSDTgetOffset(const wchar_t* apiname)
     //get read offset
     int readOffset=-1;
     if(!_wcsicmp(apiname, L"NtQueryObject")) //NtQueryObject
-    {
         readOffset=offsetNtQueryObject;
-    }
+    else if(!_wcsicmp(apiname, L"NtQueryInformationProcess")) //NtQueryInformationProcess
+        readOffset=offsetNtQueryInformationProcess;
+
     if(readOffset==-1)
     {
         DbgPrint("[TITANHIDE] Unknown function...\n");
@@ -242,7 +254,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
 }
 
 //Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
-PVOID SSDTfind()
+static PVOID SSDTfind()
 {
     static PVOID SSDT=0;
     if(!SSDT)

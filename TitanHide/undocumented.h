@@ -33,6 +33,60 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemKernelDebuggerInformation=35
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
+//typedefs
+typedef NTSTATUS (NTAPI *NTQUERYINFORMATIONPROCESS) (
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    OUT PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *ZWQUERYINFORMATIONTHREAD) (
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN OUT PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *NTQUERYOBJECT) (
+    IN HANDLE Handle OPTIONAL,
+    IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    OUT PVOID ObjectInformation OPTIONAL,
+    IN ULONG ObjectInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *ZWQUERYSYSTEMINFORMATION) (
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *NTQUERYSYSTEMINFORMATION) (
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *NTCLOSE) (
+    IN HANDLE Handle
+);
+
+typedef NTSTATUS (NTAPI *KERAISEUSEREXCEPTION) (
+    IN NTSTATUS ExceptionCode
+);
+
+typedef NTSTATUS (NTAPI *NTSETINFORMATIONTHREAD) (
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength
+);
+
 //functions
 bool UndocumentedInit();
 

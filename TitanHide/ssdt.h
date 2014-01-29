@@ -18,7 +18,6 @@ struct SSDTStruct
 };
 
 //functions
-PVOID SSDTfind();
 PVOID SSDTgpa(const wchar_t* apiname);
 HOOK SSDThook(const wchar_t* apiname, void* newfunc);
 void SSDTunhook(HOOK hHook);

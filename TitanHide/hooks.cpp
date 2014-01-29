@@ -160,7 +160,6 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength)
 {
-    unhook(hNtQueryInformationProcess);
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ProcessInformation)
     {
@@ -189,7 +188,6 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             }
         }
     }
-    hook(hNtQueryInformationProcess);
     return ret;
 }
 
@@ -217,10 +215,10 @@ int HooksInit()
     hNtSetInformationProcess=hook(L"NtSetInformationProcess", (void*)HookNtSetInformationProcess);
     if(hNtSetInformationProcess)
         hook_count++;*/
-
-    /*hNtQueryInformationProcess=SSDThook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
+    DbgBreakPoint();
+    hNtQueryInformationProcess=SSDThook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(hNtQueryInformationProcess)
-        hook_count++;*/
+        hook_count++;
     hNtQueryObject=SSDThook(L"NtQueryObject", (void*)HookNtQueryObject);
     if(hNtQueryObject)
         hook_count++;
@@ -231,5 +229,6 @@ int HooksInit()
 
 void HooksFree()
 {
+    SSDTunhook(hNtQueryInformationProcess);
     SSDTunhook(hNtQueryObject);
 }
