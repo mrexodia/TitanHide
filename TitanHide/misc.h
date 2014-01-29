@@ -8,4 +8,7 @@ void RtlFreeMemory(void* InPointer);
 ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle);
 ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle);
 
+extern "C" void unlockCR0();
+extern "C" void lockCR0();
+
 #endif

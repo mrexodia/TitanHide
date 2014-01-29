@@ -20,6 +20,7 @@ struct opcode
 struct hookstruct
 {
     duint addr;
+    PVOID old;
     opcode hook;
     unsigned char orig[sizeof(opcode)];
 };

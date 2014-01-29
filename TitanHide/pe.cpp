@@ -35,5 +35,5 @@ PVOID PeGetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr)
         return 0;
     if(Size)
         *Size=psh[section].SizeOfRawData;
-    return (PVOID)((unsigned char*)lpHeader+psh[section].Misc.VirtualSize);
+    return (PVOID)((unsigned char*)lpHeader+psh[section].VirtualAddress);
 }

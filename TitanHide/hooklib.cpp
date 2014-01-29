@@ -46,6 +46,7 @@ static HOOK hook_internal(duint addr, void* newfunc)
     HOOK hook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
     //set hooking address
     hook->addr=addr;
+    hook->old=0;
     //set hooking opcode
 #ifdef _WIN64
     hook->hook.mov=0xB848;

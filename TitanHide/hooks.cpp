@@ -150,8 +150,17 @@ static NTSTATUS NTAPI HookNtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    unhook(hNtQueryObject);
-    NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    typedef NTSTATUS (NTAPI *NTQUERYOBJECT) (
+        IN HANDLE Handle OPTIONAL,
+        IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
+        OUT PVOID ObjectInformation OPTIONAL,
+        IN ULONG ObjectInformationLength,
+        OUT PULONG ReturnLength OPTIONAL
+    );
+    static NTQUERYOBJECT NtQO=(NTQUERYOBJECT)hNtQueryObject->old;
+    NTSTATUS ret=NtQO(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    //unhook(hNtQueryObject);
+    //NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
@@ -190,7 +199,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
             }
         }
     }
-    hook(hNtQueryObject);
+    //hook(hNtQueryObject);
     return ret;
 }
 
@@ -237,6 +246,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
 {
     unsigned char* Code=(unsigned char*)CodeStart;
+
     for(unsigned int i=0,j=0; i<CodeSize; i++)
     {
         if(Code[i]==0x90 || Code[i]==0xCC)
@@ -244,7 +254,7 @@ static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
         else
             j=0;
         if(j==CaveSize)
-            return (PVOID)(Code+i-CaveSize);
+            return (PVOID)((duint)CodeStart+i-CaveSize+1);
     }
     return 0;
 }
@@ -283,8 +293,8 @@ int HooksInit()
         duint Lowest=(duint)SSDTfind();
         duint Highest=Lowest+0x0FFFFFFF;
         DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
-        ULONG CodeSize=0;
-        PVOID CodeStart=PeGetPageBase(KernelGetModuleBase("ntoskrnl"), &CodeSize, NtQO);
+        CodeSize=0;
+        CodeStart=PeGetPageBase(KernelGetModuleBase("ntoskrnl"), &CodeSize, NtQO);
         if(!CodeStart || !CodeSize)
         {
             DbgPrint("[TITANHIDE] PeGetPageBase failed...\n");
@@ -294,9 +304,13 @@ int HooksInit()
         if((duint)CodeStart<Lowest) //start of the page is out of range
         {
             CodeSize-=Lowest-(duint)CodeStart;
-            CodeStart=(PVOID)Lowest;   
+            CodeStart=(PVOID)Lowest;
             DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
         }
+        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
+        ULONG NewSize=(duint)NtQO-(duint)CodeStart;
+        CodeStart=NtQO;
+        CodeSize=NewSize;
         DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
     }
     PVOID CaveAddress=FindCaveAddress(CodeStart, CodeSize, 12);
@@ -305,86 +319,29 @@ int HooksInit()
         DbgPrint("[TITANHIDE] FindCaveAddress failed...\n");
         return 0;
     }
-    /*if(!NtQO)
-        return 0;
-    int found=-1;
-    for(int i=0,j=0; i<0x2000; i++)
-    {
-        if(NtQO[i]==0x90 || NtQO[i]==0xCC) //padding
-            j++;
-        else
-            j=0;
-        if(j==sizeof(opcode))
-        {
-            found=i-11;
-            break;
-        }
-    }
-    if(found==-1)
-        return 0;
+    DbgPrint("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
 
-
-
-    duint Lowest=(duint)SSDTfind();
-    duint Highest=Lowest+0x0FFFFFFF;
-    DbgPrint("[TITANHIDE] Valid range: 0x%p-0x%p\n", Lowest, Highest);
-    PVOID NtBase=KernelGetModuleBase("ntoskrnl");
-    ULONG CodeSize=0;
-    PVOID CodePage=PeGetPageBase(NtBase, &CodeSize, (duint)NtQO-(duint)NtBase);
-    DbgPrint("[TITANHIDE] CodePage: 0x%p, 0x%X\n", CodePage, CodeSize);
-    if((duint)CodePage<Lowest) //start of the page is out of range
-    {
-        CodeSize-=Lowest-(duint)CodePage;
-        CodePage=(PVOID)Lowest;   
-        DbgPrint("[TITANHIDE]  NewPage: 0x%p, 0x%X\n", CodePage, CodeSize);
-    }
-    DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodePage, (duint)CodePage+CodeSize);
-
-    unsigned char* test=(unsigned char*)CodePage;
-    int nops=0;
-    int caves=0;
-    for(unsigned int i=0,j=0; i<CodeSize; i++)
-    {
-        if(test[i]==0x90 || test[i]==0xCC)
-        {
-            nops++;
-            j++;
-        }
-        else
-            j=0;
-        if(j==12)
-        {
-            caves++;
-            j=0;
-        }
-    }
-    DbgPrint("[TITANHIDE] 0x90/0xCC in ntoskrnl: %d, caves: %d\n", nops, caves);
-
-    DbgPrint("[TITANHIDE] Cave address: 0x%p\n", NtQO+found);
-
-    duint NtQO_cave=(duint)(NtQO+found);
-    if(NtQO_cave<(Highest-12))
-        DbgPrint("[TITANHIDE] Cave OK!\n");
-    else
-        return 0;
-
-    hNtQueryObject=hook((PVOID)NtQO_cave, (void*)HookNtQueryObject);
+    hNtQueryObject=hook(CaveAddress, (void*)HookNtQueryObject);
     if(!hNtQueryObject)
         return 0;
 
-    PVOID original=SSDThook(L"NtQueryObject", (void*)NtQO_cave);
-    DbgPrint("[TITANHIDE] Original: 0x%p\n", original);*/
+    PVOID original=SSDThook(L"NtQueryObject", CaveAddress);
+    DbgPrint("[TITANHIDE] Original: 0x%p\n", original);
+
+    hNtQueryObject->old=original;
     
     return 0;
 }
 
 void HooksFree()
 {
-    unhook(hNtQueryInformationProcess, true);
+    //unhook(hNtQueryInformationProcess, true);
+    if(hNtQueryObject && hNtQueryObject->old)
+        SSDThook(L"NtQueryObject", hNtQueryObject->old);
     unhook(hNtQueryObject, true);
-    unhook(hNtQuerySystemInformation, true);
+    /*unhook(hNtQuerySystemInformation, true);
     unhook(hNtClose, true);
     unhook(hKeRaiseUserException, true);
     unhook(hNtSetInformationThread, true);
-    unhook(hNtSetInformationProcess, true);
+    unhook(hNtSetInformationProcess, true);*/
 }

@@ -1,6 +1,7 @@
 #include "ssdt.h"
 #include "undocumented.h"
 #include "hooklib.h"
+#include "misc.h"
 
 static int osMajorVersion=0;
 static int osMinorVersion=0;
@@ -347,6 +348,32 @@ PVOID SSDTgpa(const wchar_t* apiname)
 #endif
 }
 
+static NTSTATUS InterlockedSet(LONG* Destination, LONG Source)
+{
+    /*
+    //Change memory properties.
+    PMDL g_pmdl=IoAllocateMdl(Destination, sizeof(opcode), 0, 0, NULL);
+    if(!g_pmdl)
+        return STATUS_UNSUCCESSFUL;
+    MmBuildMdlForNonPagedPool(g_pmdl);
+    LONG* Mapped=(LONG*)MmMapLockedPages(g_pmdl, KernelMode);
+    if(!Mapped)
+    {
+        IoFreeMdl(g_pmdl);
+        return STATUS_UNSUCCESSFUL;
+    }
+    InterlockedExchange(Mapped, Source);
+    //Restore memory properties.
+    MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
+    IoFreeMdl(g_pmdl);
+    return STATUS_SUCCESS;
+    */
+    unlockCR0();
+    InterlockedExchange(Destination, Source);
+    lockCR0();
+    return STATUS_SUCCESS;
+}
+
 PVOID SSDThook(const wchar_t* apiname, void* newfunc)
 {
     static SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
@@ -355,7 +382,7 @@ PVOID SSDThook(const wchar_t* apiname, void* newfunc)
         DbgPrint("[TITANHIDE] SSDT not found...\n");
         return 0;
     }
-    unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
+    duint SSDTbase=(unsigned long long)SSDT->pServiceTable;
     if(!SSDTbase)
     {
         DbgPrint("[TITANHIDE] ServiceTable not found...\n");
@@ -380,13 +407,29 @@ PVOID SSDThook(const wchar_t* apiname, void* newfunc)
     else
         return 0;
 
-    PVOID original=(PVOID)((((LONG*)SSDT->pServiceTable)[readOffset]>>4)+SSDTbase);
+    ULONG originalRva=(((LONG*)SSDT->pServiceTable)[readOffset]);
 
-    ULONG newRva=(duint)newfunc-(duint)SSDT;
+    PVOID original=(PVOID)((originalRva<<4)+SSDTbase);
+
+    ULONG newRva=(duint)newfunc-SSDTbase;
+    newRva=(newRva<<4)|(originalRva&0xF);
 
     DbgPrint("[TITANHIDE] New RVA: 0x%X\n", newRva);
 
-    DbgPrint("[TITANHIDE] Old RVA: 0x%X\n", (duint)original-(duint)SSDT);
+    DbgPrint("[TITANHIDE] Old RVA: 0x%X\n", originalRva);
+
+    //DbgBreakPoint();
+
+    LONG* SSDT_Table=(LONG*)SSDT->pServiceTable;
+
+    DbgPrint("[TITANHIDE] SSDT_Table[readOffset]: 0x%p\n", &SSDT_Table[readOffset]);
+
+    /*unlockCR0();
+    lockCR0();*/
+
+    InterlockedSet(&SSDT_Table[readOffset], originalRva);
+
+    //((LONG*)SSDT->pServiceTable)[readOffset]=newRva<<4;
     
     return original;
 }
