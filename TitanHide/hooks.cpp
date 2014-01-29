@@ -157,11 +157,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
         IN ULONG ObjectInformationLength,
         OUT PULONG ReturnLength OPTIONAL
     );
-    DbgBreakPoint();
     static NTQUERYOBJECT NtQO=(NTQUERYOBJECT)hNtQueryObject->old;
     NTSTATUS ret=NtQO(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
-    //unhook(hNtQueryObject);
-    //NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
@@ -200,7 +197,6 @@ static NTSTATUS NTAPI HookNtQueryObject(
             }
         }
     }
-    //hook(hNtQueryObject);
     return ret;
 }
 
@@ -326,10 +322,8 @@ int HooksInit()
     if(!hNtQueryObject)
         return 0;
 
-    PVOID original=SSDThook(L"NtQueryObject", CaveAddress);
-    DbgPrint("[TITANHIDE] Original: 0x%p\n", original);
-
-    hNtQueryObject->old=original;
+    hNtQueryObject->old=SSDThook(L"NtQueryObject", CaveAddress);
+    DbgPrint("[TITANHIDE] Original: 0x%p\n", hNtQueryObject->old);
     
     return 0;
 }
