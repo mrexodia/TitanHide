@@ -23,8 +23,9 @@ struct hookstruct
     opcode hook;
     unsigned char orig[sizeof(opcode)];
     //SSDT extension
-    PVOID SSDTold;
     int SSDToffset;
+    ULONG SSDTold;
+    ULONG SSDTnew;
 };
 
 typedef hookstruct* HOOK;
