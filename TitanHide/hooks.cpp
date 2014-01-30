@@ -111,6 +111,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
+    SSDTunhook(hNtQueryObject);
     NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
@@ -150,6 +151,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
             }
         }
     }
+    SSDThook(hNtQueryObject);
     return ret;
 }
 
@@ -160,6 +162,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength)
 {
+    SSDTunhook(hNtQueryInformationProcess);
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ProcessInformation)
     {
@@ -188,6 +191,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             }
         }
     }
+    SSDThook(hNtQueryInformationProcess);
     return ret;
 }
 
@@ -215,7 +219,6 @@ int HooksInit()
     hNtSetInformationProcess=hook(L"NtSetInformationProcess", (void*)HookNtSetInformationProcess);
     if(hNtSetInformationProcess)
         hook_count++;*/
-    DbgBreakPoint();
     hNtQueryInformationProcess=SSDThook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(hNtQueryInformationProcess)
         hook_count++;
@@ -229,6 +232,6 @@ int HooksInit()
 
 void HooksFree()
 {
-    SSDTunhook(hNtQueryInformationProcess);
-    SSDTunhook(hNtQueryObject);
+    SSDTunhook(hNtQueryInformationProcess, true);
+    SSDTunhook(hNtQueryObject, true);
 }

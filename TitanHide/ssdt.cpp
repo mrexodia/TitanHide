@@ -334,12 +334,23 @@ PVOID SSDTgpa(const wchar_t* apiname)
 #endif
 }
 
-static LONG InterlockedSet(LONG* Destination, LONG Source)
+static void InterlockedSet(LONG* Destination, LONG Source)
 {
-    unlockCR0();
-    LONG old=InterlockedExchange(Destination, Source);
-    lockCR0();
-    return old;
+    //Change memory properties.
+    PMDL g_pmdl=IoAllocateMdl(Destination, sizeof(LONG), 0, 0, NULL);
+    if(!g_pmdl)
+        return;
+    MmBuildMdlForNonPagedPool(g_pmdl);
+    LONG* Mapped=(LONG*)MmMapLockedPages(g_pmdl, KernelMode);
+    if(!Mapped)
+    {
+        IoFreeMdl(g_pmdl);
+        return;
+    }
+    InterlockedExchange(Mapped, Source);
+    //Restore memory properties.
+    MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
+    IoFreeMdl(g_pmdl);
 }
 
 static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
@@ -463,6 +474,8 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
 
 void SSDThook(HOOK hHook)
 {
+    if(!hHook)
+        return;
     SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
     {
@@ -475,7 +488,7 @@ void SSDThook(HOOK hHook)
         DbgPrint("[TITANHIDE] ServiceTable not found...\n");
         return;
     }
-    hHook->SSDTold=InterlockedSet(&SSDT_Table[hHook->SSDToffset], hHook->SSDTnew);
+    InterlockedSet(&SSDT_Table[hHook->SSDToffset], hHook->SSDTnew);
 }
 
 void SSDTunhook(HOOK hHook, bool free)
@@ -494,7 +507,7 @@ void SSDTunhook(HOOK hHook, bool free)
         DbgPrint("[TITANHIDE] ServiceTable not found...\n");
         return;
     }
-    hHook->SSDTnew=InterlockedSet(&SSDT_Table[hHook->SSDToffset], hHook->SSDTold);
+    InterlockedSet(&SSDT_Table[hHook->SSDToffset], hHook->SSDTold);
 #ifdef _WIN64
     if(free)
         unhook(hHook, true);

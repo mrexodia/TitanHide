@@ -1,29 +1,6 @@
 #include "misc.h"
 #include "undocumented.h"
 
-#ifndef _WIN64
-extern "C" __declspec(naked) void unlockCR0()
-{
-    __asm
-    {
-        mov eax, cr0
-        and eax, 0FFFEFFFFh ;
-        ~10000
-        mov cr0, eax
-    }
-}
-
-extern "C" __declspec(naked) void lockCR0()
-{
-    __asm
-    {
-        mov eax, cr0
-        or eax, 10000h
-        mov cr0, eax
-    }
-}
-#endif
-
 void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize)
 {
     void* Result=ExAllocatePoolWithTag(NonPagedPool, InSize, 'HIDE');
