@@ -1,5 +1,6 @@
 #include "undocumented.h"
 #include "ssdt.h"
+#include "log.h"
 
 NTSTATUS NTAPI ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
@@ -215,8 +216,32 @@ NTSTATUS NTAPI NtSetInformationThread(
     return NtSIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
 }
 
+NTSTATUS NTAPI NtSetInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    IN PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength)
+{
+    typedef NTSTATUS (NTAPI *NTSETINFORMATIONPROCESS) (
+        IN HANDLE ProcessHandle,
+        IN PROCESSINFOCLASS ProcessInformationClass,
+        IN PVOID ProcessInformation,
+        IN ULONG ProcessInformationLength
+    );
+    static NTSETINFORMATIONPROCESS NtSIP=0;
+    if(!NtSIP)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtSetInformationProcess");
+        NtSIP=(NTSETINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
+        if(!NtSIP)
+            return STATUS_UNSUCCESSFUL;
+    }
+    return NtSIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
+}
+
 //Based on: http://alter.org.ua/docs/nt_kernel/procaddr
-PVOID KernelGetModuleBase(PCHAR pModuleName)
+static PVOID KernelGetModuleBase(PCHAR pModuleName)
 {
     typedef struct _SYSTEM_MODULE_ENTRY
     {
@@ -253,7 +278,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
 
     if (!SystemInfoBufferSize)
     {
-        DbgPrint("[TITANHIDE] ZwQuerySystemInformation (1) failed...\n");
+        Log("[TITANHIDE] ZwQuerySystemInformation (1) failed...\n");
         return NULL;
     }
 
@@ -261,7 +286,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
 
     if (!pSystemInfoBuffer)
     {
-        DbgPrint("[TITANHIDE] ExAllocatePool failed...\n");
+        Log("[TITANHIDE] ExAllocatePool failed...\n");
         return NULL;
     }
 
@@ -287,7 +312,7 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
         }
     }
     else
-        DbgPrint("[TITANHIDE] ZwQuerySystemInformation (2) failed...\n");
+        Log("[TITANHIDE] ZwQuerySystemInformation (2) failed...\n");
 
     if(pSystemInfoBuffer)
     {
@@ -297,26 +322,14 @@ PVOID KernelGetModuleBase(PCHAR pModuleName)
     return pModuleBase;
 }
 
-NTSTATUS NTAPI NtSetInformationProcess(
-    IN HANDLE ProcessHandle,
-    IN PROCESSINFOCLASS ProcessInformationClass,
-    IN PVOID ProcessInformation,
-    IN ULONG ProcessInformationLength)
+PVOID GetKernelBase()
 {
-    typedef NTSTATUS (NTAPI *NT_SET_INFO_PROCESS) (
-        IN HANDLE ProcessHandle,
-        IN PROCESSINFOCLASS ProcessInformationClass,
-        IN PVOID ProcessInformation,
-        IN ULONG ProcessInformationLength
-    );
-    static NT_SET_INFO_PROCESS NtSIP=0;
-    if(!NtSIP)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtSetInformationProcess");
-        NtSIP=(NT_SET_INFO_PROCESS)MmGetSystemRoutineAddress(&routineName);
-        if(!NtSIP)
-            return STATUS_UNSUCCESSFUL;
-    }
-    return NtSIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
+    PVOID base=KernelGetModuleBase("ntoskrnl");
+    if(!base)
+        base=KernelGetModuleBase("ntkrnlmp");
+    if(!base)
+        base=KernelGetModuleBase("ntkrnlpa");
+    if(!base)
+        base=KernelGetModuleBase("ntkrpamp");
+    return base;
 }

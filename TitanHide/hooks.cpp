@@ -4,6 +4,7 @@
 #include "hider.h"
 #include "misc.h"
 #include "pe.h"
+#include "log.h"
 
 static HOOK hNtQueryInformationProcess=0;
 static HOOK hNtQueryObject=0;
@@ -23,7 +24,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     if(ThreadInformationClass==ThreadHideFromDebugger)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
-        DbgPrint("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
+        Log("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
         if(HiderIsHidden(pid, HideThreadHideFromDebugger))
         {
             //Taken from: http://newgre.net/idastealth
@@ -50,7 +51,7 @@ static NTSTATUS NTAPI HookKeRaiseUserException(
     if(bNtClose && (ExceptionCode==STATUS_HANDLE_NOT_CLOSABLE || ExceptionCode==STATUS_INVALID_HANDLE))
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
-        DbgPrint("[TITANHIDE] NtClose by %d\n", pid);
+        Log("[TITANHIDE] NtClose by %d\n", pid);
         if(HiderIsHidden(pid, HideNtClose))
         {
             return ExceptionCode;
@@ -86,7 +87,7 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
         ULONG pid=(ULONG)PsGetCurrentProcessId();
         if(SystemInformationClass==SystemKernelDebuggerInformation)
         {
-            DbgPrint("[TITANHIDE] SystemKernelDebuggerInformation by %d\n", pid);
+            Log("[TITANHIDE] SystemKernelDebuggerInformation by %d\n", pid);
             if(HiderIsHidden(pid, HideSystemDebuggerInformation))
             {
                 typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION
@@ -123,7 +124,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
             OBJECT_TYPE_INFORMATION* type=(OBJECT_TYPE_INFORMATION*)ObjectInformation;
             if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
             {
-                DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
+                Log("[TITANHIDE] DebugObject by %d\n", pid);
                 if(HiderIsHidden(pid, HideDebugObject))
                     type->TotalNumberOfObjects=0;
             }
@@ -138,7 +139,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
                 OBJECT_TYPE_INFORMATION* pObjectTypeInfo=(OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
                 if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
                 {
-                    DbgPrint("[TITANHIDE] DebugObject by %d\n", pid);
+                    Log("[TITANHIDE] DebugObject by %d\n", pid);
                     if(HiderIsHidden(pid, HideDebugObject))
                         pObjectTypeInfo->TotalNumberOfObjects=0;
                 }
@@ -170,19 +171,19 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
         if(ProcessInformationClass==ProcessDebugFlags)
         {
-            DbgPrint("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
+            Log("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugFlags))
                 *(unsigned int*)ProcessInformation=TRUE;
         }
         else if(ProcessInformationClass==ProcessDebugPort)
         {
-            DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
+            Log("[TITANHIDE] ProcessDebugPort by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugPort))
                 *(ULONG_PTR*)ProcessInformation=0;
         }
         else if(ProcessInformationClass==ProcessDebugObjectHandle)
         {
-            DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
+            Log("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
             {
                 //Taken from: http://newgre.net/idastealth

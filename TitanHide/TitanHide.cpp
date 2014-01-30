@@ -2,6 +2,7 @@
 #include "undocumented.h"
 #include "ssdt.h"
 #include "hider.h"
+#include "log.h"
 
 static UNICODE_STRING DeviceName;
 static UNICODE_STRING Win32Device;
@@ -39,17 +40,17 @@ static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
         if(pInBuffer)
         {
             if(HiderProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
-                DbgPrint("[TITANHIDE] HiderProcessData OK!\n");
+                Log("[TITANHIDE] HiderProcessData OK!\n");
             else
             {
-                DbgPrint("[TITANHIDE] HiderProcessData failed...\n");
+                Log("[TITANHIDE] HiderProcessData failed...\n");
                 RetStatus=STATUS_UNSUCCESSFUL;
             }
         }
     }
     else
     {
-        DbgPrint("[TITANHIDE] Invalid IRP stack pointer...\n");
+        Log("[TITANHIDE] Invalid IRP stack pointer...\n");
         RetStatus=STATUS_UNSUCCESSFUL;
     }
     Irp->IoStatus.Status=RetStatus;
@@ -83,15 +84,15 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
                           &DeviceObject);
     if(!NT_SUCCESS(status))
     {
-        DbgPrint("[TITANHIDE] IoCreateDevice Error...\n");
+        Log("[TITANHIDE] IoCreateDevice Error...\n");
         return status;
     }
     if(!DeviceObject)
     {
-        DbgPrint("[TITANHIDE] Unexpected I/O Error...\n");
+        Log("[TITANHIDE] Unexpected I/O Error...\n");
         return STATUS_UNEXPECTED_IO_ERROR;
     }
-    DbgPrint("[TITANHIDE] Device %wZ created successfully!\n", DeviceName);
+    Log("[TITANHIDE] Device %wZ created successfully!\n", DeviceName);
 
     //create symbolic link
     DeviceObject->Flags|=DO_BUFFERED_IO;
@@ -99,18 +100,18 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     status=IoCreateSymbolicLink(&Win32Device, &DeviceName);
     if(!NT_SUCCESS(status))
     {
-        DbgPrint("[TITANHIDE] IoCreateSymbolicLink Error...\n");
+        Log("[TITANHIDE] IoCreateSymbolicLink Error...\n");
         return status;
     }
-    DbgPrint("[TITANHIDE] Symbolic link %wZ->%wZ created!\n", Win32Device, DeviceName);
+    Log("[TITANHIDE] Symbolic link %wZ->%wZ created!\n", Win32Device, DeviceName);
 
     //initialize hooking
-    DbgPrint("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
+    Log("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
 
     //test code
     /*UNICODE_STRING usfn;
     RtlInitUnicodeString(&usfn, L"NtSetInformationThread");
-    DbgPrint("[TITANHIDE] NtSetInformationThread: 0x%p\n", MmGetSystemRoutineAddress(&usfn));*/
+    Log("[TITANHIDE] NtSetInformationThread: 0x%p\n", MmGetSystemRoutineAddress(&usfn));*/
 
     return STATUS_SUCCESS;
 }

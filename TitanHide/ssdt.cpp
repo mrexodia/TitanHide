@@ -2,6 +2,7 @@
 #include "undocumented.h"
 #include "misc.h"
 #include "pe.h"
+#include "log.h"
 
 static int SSDTgetOffset(const wchar_t* apiname)
 {
@@ -26,12 +27,12 @@ static int SSDTgetOffset(const wchar_t* apiname)
 
         initDone=true;
 
-        DbgPrint("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", ma, mi, sp);
+        Log("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", ma, mi, sp);
 
         //Offset list from: http://j00ru.vexillium.org/ntapi_64/
         if(ma==5 && (mi==1 || (mi==2 && pt==VER_NT_WORKSTATION))) //Windows XP (x86/x64)
         {
-            DbgPrint("[TITANHIDE] Windows XP ");
+            Log("[TITANHIDE] Windows XP ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
             offsetNtQueryInformationProcess=0x0016;
@@ -47,30 +48,30 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             case 1:
             {
-                DbgPrint("SP1 ");
+                Log("SP1 ");
             }
             break;
             case 2:
             {
-                DbgPrint("SP2 ");
+                Log("SP2 ");
             }
             break;
             case 3:
             {
-                DbgPrint("SP3 ");
+                Log("SP3 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==5 && mi==1) //Windows Server 2003
         {
-            DbgPrint("[TITANHIDE] Windows Server 2003 ");
+            Log("[TITANHIDE] Windows Server 2003 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
             offsetNtQueryInformationProcess=0x0016;
@@ -86,25 +87,25 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             case 1:
             {
-                DbgPrint("SP1 ");
+                Log("SP1 ");
             }
             break;
             case 2:
             {
-                DbgPrint("SP2 ");
+                Log("SP2 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==6 && mi==0 && pt==VER_NT_WORKSTATION) //Windows Vista
         {
-            DbgPrint("[TITANHIDE] Windows Vista ");
+            Log("[TITANHIDE] Windows Vista ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
             offsetNtQueryInformationProcess=0x0016;
@@ -123,25 +124,25 @@ static int SSDTgetOffset(const wchar_t* apiname)
 #ifndef _WIN64
                 offsetNtSetInformationThread=0x0136; //x86 SP0 is different
 #endif
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             case 1:
             {
-                DbgPrint("SP1 ");
+                Log("SP1 ");
             }
             break;
             case 2:
             {
-                DbgPrint("SP2 ");
+                Log("SP2 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==6 && mi==0 && pt!=VER_NT_WORKSTATION) //Windows Server 2008
         {
-            DbgPrint("[TITANHIDE] Windows Server 2008 ");
+            Log("[TITANHIDE] Windows Server 2008 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
             offsetNtQueryInformationProcess=0x0016;
@@ -157,25 +158,25 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             case 1:
             {
-                DbgPrint("SP1 ");
+                Log("SP1 ");
             }
             break;
             case 2:
             {
-                DbgPrint("SP2 ");
+                Log("SP2 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==6 && mi==1 && pt==VER_NT_WORKSTATION) //Windows 7
         {
-            DbgPrint("[TITANHIDE] Windows 7 ");
+            Log("[TITANHIDE] Windows 7 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000d;
             offsetNtQueryInformationProcess=0x0016;
@@ -191,20 +192,20 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             case 1:
             {
-                DbgPrint("SP1 ");
+                Log("SP1 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==6 && mi==2 && pt!=VER_NT_WORKSTATION) //Windows Server 2012
         {
-            DbgPrint("[TITANHIDE] Windows Server 2012 ");
+            Log("[TITANHIDE] Windows Server 2012 ");
             offsetNtQueryObject=0x000e;
             offsetNtQueryInformationProcess=0x0017;
             offsetNtQuerySystemInformation=0x0034;
@@ -213,15 +214,15 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==6 && mi==2 && pt==VER_NT_WORKSTATION) //Windows 8
         {
-            DbgPrint("[TITANHIDE] Windows 8 ");
+            Log("[TITANHIDE] Windows 8 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000e;
             offsetNtQueryInformationProcess=0x0017;
@@ -237,15 +238,15 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else if(ma==6 && mi==3 && pt==VER_NT_WORKSTATION) //Windows 8.1
         {
-            DbgPrint("[TITANHIDE] Windows 8.1 ");
+            Log("[TITANHIDE] Windows 8.1 ");
 #ifdef _WIN64
             offsetNtQueryObject=0x000f;
             offsetNtQueryInformationProcess=0x0018;
@@ -261,15 +262,15 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
             case 0:
             {
-                DbgPrint("SP0 ");
+                Log("SP0 ");
             }
             break;
             }
-            DbgPrint("detected!\n");
+            Log("detected!\n");
         }
         else
         {
-            DbgPrint("[TITANHIDE] OS Unsupported...\n");
+            Log("[TITANHIDE] OS Unsupported...\n");
             return 0;
         }
     }
@@ -287,7 +288,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
 
     if(readOffset==-1)
     {
-        DbgPrint("[TITANHIDE] Unknown function...\n");
+        Log("[TITANHIDE] Unknown function...\n");
     }
     return readOffset;
 }
@@ -333,11 +334,14 @@ static PVOID SSDTfind()
         }
         if(!rvaSSDT)
             return 0;
-        DbgPrint("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
-        PVOID base=KernelGetModuleBase("ntoskrnl");
+        Log("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
+        PVOID base=GetKernelBase();
         if(!base)
+        {
+
             return 0;
-        DbgPrint("[TITANHIDE] KernelGetModuleBase(ntoskrnl)->0x%p\n", base);
+        }
+        Log("[TITANHIDE] GetKernelBase()->0x%p\n", base);
         SSDT=(PVOID)((unsigned char*)base+rvaSSDT);
 #endif
     }
@@ -350,13 +354,13 @@ PVOID SSDTgpa(const wchar_t* apiname)
     SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
     {
-        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\n");
         return 0;
     }
     unsigned long long SSDTbase=(unsigned long long)SSDT->pServiceTable;
     if(!SSDTbase)
     {
-        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
     int readOffset=SSDTgetOffset(apiname);
@@ -364,7 +368,7 @@ PVOID SSDTgpa(const wchar_t* apiname)
         return 0;
     if(readOffset>=SSDT->NumberOfServices)
     {
-        DbgPrint("[TITANHIDE] Invalid read offset...\n");
+        Log("[TITANHIDE] Invalid read offset...\n");
         return 0;
     }
 #ifdef _WIN64
@@ -414,13 +418,13 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
     {
-        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\n");
         return 0;
     }
     ULONG_PTR SSDTbase=(ULONG_PTR)SSDT->pServiceTable;
     if(!SSDTbase)
     {
-        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
     int apiOffset=SSDTgetOffset(apiname);
@@ -428,7 +432,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
         return 0;
     if(apiOffset>=SSDT->NumberOfServices)
     {
-        DbgPrint("[TITANHIDE] Invalid API offset...\n");
+        Log("[TITANHIDE] Invalid API offset...\n");
         return 0;
     }
 
@@ -453,31 +457,31 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     {
         ULONG_PTR Lowest=SSDTbase;
         ULONG_PTR Highest=Lowest+0x0FFFFFFF;
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
+        Log("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
         CodeSize=0;
-        CodeStart=PeGetPageBase(KernelGetModuleBase("ntoskrnl"), &CodeSize, (PVOID)((oldValue>>4)+SSDTbase));
+        CodeStart=PeGetPageBase(GetKernelBase(), &CodeSize, (PVOID)((oldValue>>4)+SSDTbase));
         if(!CodeStart || !CodeSize)
         {
-            DbgPrint("[TITANHIDE] PeGetPageBase failed...\n");
+            Log("[TITANHIDE] PeGetPageBase failed...\n");
             return 0;
         }
-        DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
+        Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
         if((ULONG_PTR)CodeStart<Lowest) //start of the page is out of range (impossible, but whatever)
         {
             CodeSize-=Lowest-(ULONG_PTR)CodeStart;
             CodeStart=(PVOID)Lowest;
-            DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
+            Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
         }
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (ULONG_PTR)CodeStart+CodeSize);
+        Log("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (ULONG_PTR)CodeStart+CodeSize);
     }
 
     PVOID CaveAddress=FindCaveAddress(CodeStart, CodeSize, sizeof(opcode));
     if(!CaveAddress)
     {
-        DbgPrint("[TITANHIDE] FindCaveAddress failed...\n");
+        Log("[TITANHIDE] FindCaveAddress failed...\n");
         return 0;
     }
-    DbgPrint("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
+    Log("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
 
     hHook=hook(CaveAddress, (void*)newfunc);
     if(!hHook)
@@ -519,13 +523,13 @@ void SSDThook(HOOK hHook)
     SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
     {
-        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\n");
         return;
     }
     LONG* SSDT_Table=(LONG*)SSDT->pServiceTable;
     if(!SSDT_Table)
     {
-        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\n");
         return;
     }
     InterlockedSet(&SSDT_Table[hHook->SSDToffset], hHook->SSDTnew);
@@ -538,13 +542,13 @@ void SSDTunhook(HOOK hHook, bool free)
     SSDTStruct* SSDT=(SSDTStruct*)SSDTfind();
     if(!SSDT)
     {
-        DbgPrint("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\n");
         return;
     }
     LONG* SSDT_Table=(LONG*)SSDT->pServiceTable;
     if(!SSDT_Table)
     {
-        DbgPrint("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\n");
         return;
     }
     InterlockedSet(&SSDT_Table[hHook->SSDToffset], hHook->SSDTold);

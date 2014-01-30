@@ -1,6 +1,7 @@
 #include "hooklib.h"
 #include "misc.h"
 #include "ssdt.h"
+#include "log.h"
 
 //Based on: http://leguanyuan.blogspot.nl/2013/09/x64-inline-hook-zwcreatesection.html
 
@@ -36,7 +37,7 @@ static void* gpa(const wchar_t* proc)
     if(!addr)
         addr=SSDTgpa(proc);
     if(!addr)
-        DbgPrint("[TITANHIDE] No such procedure %ws...\n", proc);
+        Log("[TITANHIDE] No such procedure %ws...\n", proc);
     return addr;
 }
 
@@ -70,7 +71,7 @@ HOOK hook(PVOID api, void* newfunc)
     ULONG_PTR addr=(ULONG_PTR)api;
     if(!addr)
         return 0;
-    DbgPrint("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
+    Log("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
     return hook_internal(addr, newfunc);
 }
 
@@ -79,7 +80,7 @@ HOOK hook(const wchar_t* api, void* newfunc)
     ULONG_PTR addr=(ULONG_PTR)gpa(api);
     if(!addr)
         return 0;
-    DbgPrint("[TITANHIDE] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);
+    Log("[TITANHIDE] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);
     return hook_internal(addr, newfunc);
 }
 

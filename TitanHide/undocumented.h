@@ -94,6 +94,6 @@ NTSTATUS NTAPI NtSetInformationProcess(
     IN PVOID ProcessInformation,
     IN ULONG ProcessInformationLength);
 
-PVOID KernelGetModuleBase(PCHAR pModuleName);
+PVOID GetKernelBase();
 
 #endif

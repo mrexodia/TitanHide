@@ -45,6 +45,9 @@
     <ClInclude Include="pe.h">
       <Filter>Header files</Filter>
     </ClInclude>
+    <ClInclude Include="log.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TitanHide.cpp">
@@ -72,6 +75,9 @@
       <Filter>Source files</Filter>
     </ClCompile>
     <ClCompile Include="pe.cpp">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="log.cpp">
       <Filter>Source files</Filter>
     </ClCompile>
   </ItemGroup>
