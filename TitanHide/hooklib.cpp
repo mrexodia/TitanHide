@@ -40,7 +40,7 @@ static void* gpa(const wchar_t* proc)
     return addr;
 }
 
-static HOOK hook_internal(duint addr, void* newfunc)
+static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 {
     //allocate structure
     HOOK hook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
@@ -52,7 +52,7 @@ static HOOK hook_internal(duint addr, void* newfunc)
 #else
     hook->hook.mov=0xB8;
 #endif
-    hook->hook.addr=(duint)newfunc;
+    hook->hook.addr=(ULONG_PTR)newfunc;
     hook->hook.push=0x50;
     hook->hook.ret=0xc3;
     //set original data
@@ -67,7 +67,7 @@ static HOOK hook_internal(duint addr, void* newfunc)
 
 HOOK hook(PVOID api, void* newfunc)
 {
-    duint addr=(duint)api;
+    ULONG_PTR addr=(ULONG_PTR)api;
     if(!addr)
         return 0;
     DbgPrint("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
@@ -76,7 +76,7 @@ HOOK hook(PVOID api, void* newfunc)
 
 HOOK hook(const wchar_t* api, void* newfunc)
 {
-    duint addr=(duint)gpa(api);
+    ULONG_PTR addr=(ULONG_PTR)gpa(api);
     if(!addr)
         return 0;
     DbgPrint("[TITANHIDE] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);

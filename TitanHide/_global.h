@@ -20,12 +20,4 @@ extern "C"
 }
 #endif
 
-#ifdef _WIN64
-typedef unsigned long long duint;
-typedef signed long long dsint;
-#else
-typedef unsigned long duint;
-typedef signed long dsint;
-#endif //_WIN64
-
 #endif

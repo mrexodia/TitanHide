@@ -144,8 +144,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
                 }
                 pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
                 pObjInfoLocation+=pObjectTypeInfo->TypeName.MaximumLength;
-                duint tmp=((duint)pObjInfoLocation)&-sizeof(void*);
-                if((duint)tmp!=(duint)pObjInfoLocation)
+                ULONG_PTR tmp=((ULONG_PTR)pObjInfoLocation)&-sizeof(void*);
+                if((ULONG_PTR)tmp!=(ULONG_PTR)pObjInfoLocation)
                     tmp+=sizeof(void*);
                 pObjInfoLocation=((unsigned char*)tmp);
             }
@@ -178,14 +178,13 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
         {
             DbgPrint("[TITANHIDE] ProcessDebugPort by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugPort))
-                *(unsigned int*)ProcessInformation=0;
+                *(ULONG_PTR*)ProcessInformation=0;
         }
         else if(ProcessInformationClass==ProcessDebugObjectHandle)
         {
             DbgPrint("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
             {
-                *(unsigned int*)ProcessInformation=0;
                 //Taken from: http://newgre.net/idastealth
                 ret=STATUS_PORT_NOT_SET;
             }

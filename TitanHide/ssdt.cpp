@@ -364,7 +364,7 @@ static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
         else
             j=0;
         if(j==CaveSize)
-            return (PVOID)((duint)CodeStart+i-CaveSize+1);
+            return (PVOID)((ULONG_PTR)CodeStart+i-CaveSize+1);
     }
     return 0;
 }
@@ -377,7 +377,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
         DbgPrint("[TITANHIDE] SSDT not found...\n");
         return 0;
     }
-    duint SSDTbase=(duint)SSDT->pServiceTable;
+    ULONG_PTR SSDTbase=(ULONG_PTR)SSDT->pServiceTable;
     if(!SSDTbase)
     {
         DbgPrint("[TITANHIDE] ServiceTable not found...\n");
@@ -411,8 +411,8 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     static PVOID CodeStart=0;
     if(!CodeStart)
     {
-        duint Lowest=SSDTbase;
-        duint Highest=Lowest+0x0FFFFFFF;
+        ULONG_PTR Lowest=SSDTbase;
+        ULONG_PTR Highest=Lowest+0x0FFFFFFF;
         DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
         CodeSize=0;
         CodeStart=PeGetPageBase(KernelGetModuleBase("ntoskrnl"), &CodeSize, (PVOID)((oldValue>>4)+SSDTbase));
@@ -422,13 +422,13 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
             return 0;
         }
         DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
-        if((duint)CodeStart<Lowest) //start of the page is out of range (impossible, but whatever)
+        if((ULONG_PTR)CodeStart<Lowest) //start of the page is out of range (impossible, but whatever)
         {
-            CodeSize-=Lowest-(duint)CodeStart;
+            CodeSize-=Lowest-(ULONG_PTR)CodeStart;
             CodeStart=(PVOID)Lowest;
             DbgPrint("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
         }
-        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (duint)CodeStart+CodeSize);
+        DbgPrint("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (ULONG_PTR)CodeStart+CodeSize);
     }
 
     PVOID CaveAddress=FindCaveAddress(CodeStart, CodeSize, sizeof(opcode));
@@ -443,7 +443,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     if(!hHook)
         return 0;
 
-    newValue=(duint)CaveAddress-SSDTbase;
+    newValue=(ULONG_PTR)CaveAddress-SSDTbase;
     newValue=(newValue<<4)|oldValue&0xF;
 
     //update HOOK structure

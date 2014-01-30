@@ -11,7 +11,7 @@ struct opcode
 #else
     unsigned char mov;
 #endif
-    duint addr;
+    ULONG_PTR addr;
     unsigned char push;
     unsigned char ret;
 };
@@ -19,7 +19,7 @@ struct opcode
 
 struct hookstruct
 {
-    duint addr;
+    ULONG_PTR addr;
     opcode hook;
     unsigned char orig[sizeof(opcode)];
     //SSDT extension
