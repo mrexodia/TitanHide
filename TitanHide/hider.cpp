@@ -5,7 +5,7 @@ static HIDE_ENTRY* HideEntries=0;
 static int TotalHideEntries=0;
 
 //simple locking library
-static bool locked=false;
+static volatile bool locked=false;
 
 static void lock()
 {
