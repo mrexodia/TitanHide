@@ -7,8 +7,7 @@ void Log(const char* format, ...)
     char msg[1024]="";
     va_list vl;
     va_start(vl, format);
-    NTSTATUS status=RtlStringCbVPrintfA(msg, sizeof(msg), format, vl);
-    if(NT_SUCCESS(status))
+    if(_vsnprintf(msg, sizeof(msg)/sizeof(char), format, vl))
         DbgPrint(msg);
     va_end(format);
 

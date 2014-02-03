@@ -92,7 +92,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         Log("[TITANHIDE] Unexpected I/O Error...\n");
         return STATUS_UNEXPECTED_IO_ERROR;
     }
-    Log("[TITANHIDE] Device %wZ created successfully!\n", DeviceName);
+    Log("[TITANHIDE] Device %.*ws created successfully!\n", DeviceName.Length/sizeof(WCHAR), DeviceName.Buffer);
 
     //create symbolic link
     DeviceObject->Flags|=DO_BUFFERED_IO;
@@ -103,15 +103,10 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         Log("[TITANHIDE] IoCreateSymbolicLink Error...\n");
         return status;
     }
-    Log("[TITANHIDE] Symbolic link %wZ->%wZ created!\n", Win32Device, DeviceName);
+    Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\n", Win32Device.Length/sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length/sizeof(WCHAR), DeviceName.Buffer);
 
     //initialize hooking
     Log("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
-
-    //test code
-    /*UNICODE_STRING usfn;
-    RtlInitUnicodeString(&usfn, L"NtSetInformationThread");
-    Log("[TITANHIDE] NtSetInformationThread: 0x%p\n", MmGetSystemRoutineAddress(&usfn));*/
 
     return STATUS_SUCCESS;
 }
