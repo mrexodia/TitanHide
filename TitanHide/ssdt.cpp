@@ -512,6 +512,8 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
 #endif
     
     InterlockedSet(&SSDT_Table[apiOffset], newValue);
+
+    Log("[TITANHIDE] SSDThook(%ws:0x%p, 0x%p)\n", apiname, hHook->SSDTold, hHook->SSDTnew);
     
     return hHook;
 }
