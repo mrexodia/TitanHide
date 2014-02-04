@@ -12,7 +12,8 @@ static void EntryAdd(HIDE_ENTRY* NewEntry)
     if(TotalHideEntries>=MAX_HIDE_ENTRIES || !HideEntries)
         return;
     RtlCopyMemory(&HideEntries[TotalHideEntries], &NewEntry[0], sizeof(HIDE_ENTRY));
-    InterlockedAdd(&TotalHideEntries, 1);
+    int NewTotalHideEntries=TotalHideEntries+1;
+    InterlockedExchange(&TotalHideEntries, NewTotalHideEntries);
 }
 
 static void EntryClear()
