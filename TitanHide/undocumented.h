@@ -76,7 +76,7 @@ NTSTATUS NTAPI NtDuplicateObject(
     IN HANDLE TargetProcessHandle,
     OUT PHANDLE TargetHandle,
     IN ACCESS_MASK DesiredAccess OPTIONAL,
-    IN BOOLEAN InheritHandle,
+    IN ULONG HandleAttributes,
     IN ULONG Options);
 
 NTSTATUS NTAPI KeRaiseUserException(

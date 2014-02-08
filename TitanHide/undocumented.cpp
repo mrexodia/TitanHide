@@ -150,7 +150,7 @@ NTSTATUS NTAPI NtDuplicateObject(
     IN HANDLE TargetProcessHandle,
     OUT PHANDLE TargetHandle,
     IN ACCESS_MASK DesiredAccess OPTIONAL,
-    IN BOOLEAN InheritHandle,
+    IN ULONG HandleAttributes,
     IN ULONG Options)
 {
     typedef NTSTATUS (NTAPI *NTDUPLICATEOBJECT) (
@@ -159,7 +159,7 @@ NTSTATUS NTAPI NtDuplicateObject(
         IN HANDLE TargetProcessHandle,
         OUT PHANDLE TargetHandle,
         IN ACCESS_MASK DesiredAccess OPTIONAL,
-        IN BOOLEAN InheritHandle,
+        IN ULONG HandleAttributes,
         IN ULONG Options
     );
     static NTDUPLICATEOBJECT NtDO=0;
@@ -171,7 +171,7 @@ NTSTATUS NTAPI NtDuplicateObject(
         if(!NtDO)
             return STATUS_UNSUCCESSFUL;
     }
-    return NtDO(SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, InheritHandle, Options);
+    return NtDO(SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes, Options);
 }
 
 NTSTATUS NTAPI KeRaiseUserException(

@@ -22,9 +22,9 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     if(ThreadInformationClass==ThreadHideFromDebugger)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
-        Log("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
         if(HiderIsHidden(pid, HideThreadHideFromDebugger))
         {
+            Log("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
             //Taken from: http://newgre.net/idastealth
             PKTHREAD Object;
             NTSTATUS status=ObReferenceObjectByHandle(ThreadHandle, 0, NULL, KernelMode, (PVOID*)&Object, NULL);
@@ -75,9 +75,9 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
         ULONG pid=(ULONG)PsGetCurrentProcessId();
         if(SystemInformationClass==SystemKernelDebuggerInformation)
         {
-            Log("[TITANHIDE] SystemKernelDebuggerInformation by %d\n", pid);
             if(HiderIsHidden(pid, HideSystemDebuggerInformation))
             {
+                Log("[TITANHIDE] SystemKernelDebuggerInformation by %d\n", pid);
                 typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION
                 {
                     BOOLEAN DebuggerEnabled;
@@ -112,9 +112,11 @@ static NTSTATUS NTAPI HookNtQueryObject(
             OBJECT_TYPE_INFORMATION* type=(OBJECT_TYPE_INFORMATION*)ObjectInformation;
             if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
             {
-                Log("[TITANHIDE] DebugObject by %d\n", pid);
                 if(HiderIsHidden(pid, HideDebugObject))
+                {
+                    Log("[TITANHIDE] DebugObject by %d\n", pid);
                     type->TotalNumberOfObjects=0;
+                }
             }
         }
         else if(ObjectInformationClass==ObjectAllInformation)
@@ -127,9 +129,11 @@ static NTSTATUS NTAPI HookNtQueryObject(
                 OBJECT_TYPE_INFORMATION* pObjectTypeInfo=(OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
                 if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
                 {
-                    Log("[TITANHIDE] DebugObject by %d\n", pid);
                     if(HiderIsHidden(pid, HideDebugObject))
+                    {
+                        Log("[TITANHIDE] DebugObject by %d\n", pid);
                         pObjectTypeInfo->TotalNumberOfObjects=0;
+                    }
                 }
                 pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
                 pObjInfoLocation+=pObjectTypeInfo->TypeName.MaximumLength;
@@ -159,21 +163,25 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
         if(ProcessInformationClass==ProcessDebugFlags)
         {
-            Log("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugFlags))
+            {
+                Log("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
                 *(unsigned int*)ProcessInformation=TRUE;
+            }
         }
         else if(ProcessInformationClass==ProcessDebugPort)
         {
-            Log("[TITANHIDE] ProcessDebugPort by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugPort))
+            {
+                Log("[TITANHIDE] ProcessDebugPort by %d\n", pid);
                 *(ULONG_PTR*)ProcessInformation=0;
+            }
         }
         else if(ProcessInformationClass==ProcessDebugObjectHandle)
         {
-            Log("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
             if(HiderIsHidden(pid, HideProcessDebugObjectHandle))
             {
+                Log("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
                 //Taken from: http://newgre.net/idastealth
                 ret=STATUS_PORT_NOT_SET;
             }
