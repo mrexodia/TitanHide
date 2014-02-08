@@ -11,10 +11,7 @@ static HOOK hNtQueryInformationProcess=0;
 static HOOK hNtQueryObject=0;
 static HOOK hNtQuerySystemInformation=0;
 static HOOK hNtClose=0;
-static HOOK hKeRaiseUserException=0;
 static HOOK hNtSetInformationThread=0;
-
-static bool bNtClose=false;
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -46,33 +43,15 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     return ret;
 }
 
-static NTSTATUS NTAPI HookKeRaiseUserException(
-    IN NTSTATUS ExceptionCode)
-{
-    if(bNtClose && (ExceptionCode==STATUS_HANDLE_NOT_CLOSABLE || ExceptionCode==STATUS_INVALID_HANDLE))
-    {
-        ULONG pid=(ULONG)PsGetCurrentProcessId();
-        Log("[TITANHIDE] NtClose by %d\n", pid);
-        if(HiderIsHidden(pid, HideNtClose))
-        {
-            return ExceptionCode;
-        }
-    }
-    unhook(hKeRaiseUserException);
-    NTSTATUS ret=KeRaiseUserException(ExceptionCode);
-    hook(hKeRaiseUserException);
-    return ret;
-}
-
 static NTSTATUS NTAPI HookNtClose(
     IN HANDLE Handle)
 {
-    DbgBreakPoint();
     SSDTunhook(hNtClose);
     ULONG pid=(ULONG)PsGetCurrentProcessId();
     NTSTATUS ret;
     if(HiderIsHidden(pid, HideNtClose))
     {
+        Log("[TITANHIDE] NtClose by %d\n", pid);
         PVOID OldDebugPort=SetDebugPort(PsGetCurrentProcess(), 0);
         ret=NtClose(Handle);
         SetDebugPort(PsGetCurrentProcess(), OldDebugPort);

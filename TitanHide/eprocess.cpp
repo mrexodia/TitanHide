@@ -1,6 +1,8 @@
 #include "eprocess.h"
 #include <windef.h>
 
+#ifndef _WIN64
+
 typedef struct _DISPATCHER_HEADER_
 {
     union
@@ -267,6 +269,179 @@ typedef struct _EPROCESS_
     ULONG Cookie;
     ALPC_PROCESS_CONTEXT AlpcContext;*/
 } EPROCESS_, *PEPROCESS_;
+
+#else //x64 structs
+
+typedef struct _KEXECUTE_OPTIONS_
+{
+    union
+    {
+        ULONG ExecuteDisable: 1;
+        ULONG ExecuteEnable: 1;
+        ULONG DisableThunkEmulation: 1;
+        ULONG Permanent: 1;
+        ULONG ExecuteDispatchEnable: 1;
+        ULONG ImageDispatchEnable: 1;
+        ULONG DisableExceptionChainValdation: 1;
+        ULONG Spare: 1;
+        UCHAR ExecuteOptions;
+    };
+
+} KEXECUTE_OPTIONS_, *PKEXECUTE_OPTIONS_;
+
+typedef struct _KAFFINITY_EX_
+{
+    USHORT Count;
+    USHORT Size;
+    ULONG Reserved;
+    ULONGLONG Bitmap[4];
+} KAFFINITY_EX_,*PKAFFINITY_EX_;
+
+typedef struct _KPROCESS_
+{
+    DISPATCHER_HEADER Header;
+    LIST_ENTRY ProfileListHead;
+    ULONGLONG DirectoryTableBase;
+    LIST_ENTRY ThreadListHead;
+    ULONGLONG ProcessLock;
+    KAFFINITY_EX_ Affinity;
+    LIST_ENTRY ReadyListHead;
+    SINGLE_LIST_ENTRY SwapListEntry;
+    KAFFINITY_EX_ ActiveProcessors;
+    union
+    {
+        ULONG AutoAlignment: 1;
+        ULONG DisableBoost: 1;
+        ULONG DisableQuantum: 1;
+        ULONG ActiveGroupMask :4;
+        ULONG ReservedFlags: 25;
+        LONG ProcessFlags;
+    };
+    CHAR BasePriority;
+    CHAR QuantumReset;
+    UCHAR Visited;
+    UCHAR Unused3;
+    ULONG ThreadSeed[4] ;
+    USHORT IdealNode[4] ;
+    USHORT IdealGlobalNode;
+    KEXECUTE_OPTIONS_ Flags;
+    UCHAR Unused1;
+    UCHAR Unused2;
+    UCHAR Unused4;
+    ULONG StackCount;
+    LIST_ENTRY ProcessListEntry;
+    UINT64 CycleTime;
+    ULONG KernelTime;
+    ULONG UserTime;
+    PVOID InstrumentationCallback;
+    ULONGLONG LdtDescriptor[2];
+    PVOID LdtBaseAddress;
+    KGUARDED_MUTEX LdtProcessLock;
+    USHORT LdtFreeSelectorHint;
+    USHORT LdtTableLength;
+} KPROCESS, *PKPROCESS_;
+
+typedef struct _EPROCESS_
+{
+    KPROCESS Pcb;
+    PVOID ProcessLock; //EX_PUSH_LOCK
+    LARGE_INTEGER CreateTime;
+    LARGE_INTEGER ExitTime;
+    EX_RUNDOWN_REF RundownProtect;
+    PVOID UniqueProcessId;
+    LIST_ENTRY ActiveProcessLinks;
+    ULONGLONG ProcessQuotaUsage[2];
+    ULONGLONG ProcessQuotaPeak[2];
+    ULONGLONG CommitCharge;
+    PVOID QuotaBlock; //_EPROCESS_QUOTA_BLOCK *
+    PVOID CpuQuotaBlock; //_PS_CPU_QUOTA_BLOCK
+    ULONGLONG PeakVirtualSize;
+    ULONGLONG VirtualSize;
+    LIST_ENTRY SessionProcessLinks;
+    PVOID DebugPort;
+    /*
+    //union
+    //{
+    // PVOID ExceptionPortData;
+    // ULONG ExceptionPortValue;
+    // ULONG ExceptionPortState: 3;
+    //};
+    PVOID ExceptionPortData;
+    PVOID ObjectTable; //PHANDLE_TABLE
+    BYTE Token[8]; //EX_FAST_REF
+    ULONGLONG WorkingSetPage;
+    BYTE AddressCreationLock[8]; //EX_PUSH_LOCK
+    PVOID RotateInProgress; //PETHREAD
+    PVOID ForkInProgress; //PETHREAD
+    ULONGLONG HardwareTrigger;
+    PVOID PhysicalVadRoot; //PMM_AVL_TABLE
+    PVOID CloneRoot;
+    ULONGLONG NumberOfPrivatePages;
+    ULONGLONG NumberOfLockedPages;
+    PVOID Win32Process;
+    PVOID Job; //PEJOB
+    PVOID SectionObject;
+    PVOID SectionBaseAddress;
+
+    ULONG Cookie;
+    ULONG UmsScheduledThreads;
+    PVOID WorkingSetWatch; //_PAGEFAULT_HISTORY *
+    PVOID Win32WindowStation;
+    PVOID InheritedFromUniqueProcessId;
+    PVOID LdtInformation;
+    PVOID Spare;
+    ULONGLONG ConsoleHostProcess;
+    PVOID DeviceMap;
+    PVOID EtwDataSource;
+    PVOID FreeTebHint;
+    ULONGLONG PageDirectoryPte;	//_HARDWARE_PTE
+    //union
+    //{
+    // HARDWARE_PTE PageDirectoryPte;
+    // UINT64 Filler;
+    //};
+    PVOID Session;
+    UCHAR ImageFileName[15];
+    UCHAR PriorityClass;
+    LIST_ENTRY JobLinks;
+    PVOID LockedPagesList;
+    LIST_ENTRY ThreadListHead;
+    PVOID SecurityPort;
+    PVOID Wow64Process;
+    ULONG ActiveThreads;
+    ULONG ImagePathHash;
+    ULONG DefaultHardErrorProcessing;
+    LONG LastThreadExitStatus;
+    PPEB Peb;
+    BYTE PrefetchTrace[8]; //EX_FAST_REF
+    LARGE_INTEGER ReadOperationCount;
+    LARGE_INTEGER WriteOperationCount;
+    LARGE_INTEGER OtherOperationCount;
+    LARGE_INTEGER ReadTransferCount;
+    LARGE_INTEGER WriteTransferCount;
+    LARGE_INTEGER OtherTransferCount;
+    ULONGLONG CommitChargeLimit;
+    ULONGLONG CommitChargePeak;
+    PVOID AweInfo;
+    SE_AUDIT_PROCESS_CREATION_INFO SeAuditProcessCreationInfo;
+    MMSUPPORT Vm;
+    LIST_ENTRY MmProcessLinks;
+    PVOID HighestUserAddress;
+    ULONG ModifiedPageCount;
+    ULONG Flags2;
+    ULONG Flags;
+    LONG ExitStatus;
+    BYTE VadRoot[64]; //_MM_AVL_TABLE
+    BYTE AlpcContext[32]; //_ALPC_PROCESS_CONTEXT
+    LIST_ENTRY TimerResolutionLink;
+    ULONG RequestedTimerResolution;
+    ULONG ActiveThreadsHighWatermark;
+    ULONG SmallestTimerResolution;
+    PVOID TimerResolutionStackRecord;//_PO_DIAG_STACK_RECORD*
+    */
+} EPROCESS_, *PEPROCESS_;
+
+#endif
 
 PVOID SetDebugPort(PEPROCESS Process, PVOID DebugPort)
 {
