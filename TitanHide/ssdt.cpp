@@ -11,6 +11,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
     static int offsetNtQueryInformationProcess=0;
     static int offsetNtQuerySystemInformation=0;
     static int offsetNtSetInformationThread=0;
+    static int offsetNtClose=0;
     
     static bool initDone=false;
     if(!initDone)
@@ -38,11 +39,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0016;
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
+            offsetNtClose=0x000c;
 #else
             offsetNtQueryObject=0x00a3;
             offsetNtQueryInformationProcess=0x009a;
             offsetNtQuerySystemInformation=0x00ad;
             offsetNtSetInformationThread=0x00e5;
+            offsetNtClose=0x0019;
 #endif
             switch(sp)
             {
@@ -77,11 +80,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0016;
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
+            offsetNtClose=0x000c;
 #else
             offsetNtQueryObject=0x00aa;
             offsetNtQueryInformationProcess=0x00a1;
             offsetNtQuerySystemInformation=0x00b5;
             offsetNtSetInformationThread=0x00ee;
+            offsetNtClose=0x001b;
 #endif
             switch(sp)
             {
@@ -111,11 +116,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0016;
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
+            offsetNtClose=0x000c;
 #else
             offsetNtQueryObject=0x00ed;
             offsetNtQueryInformationProcess=0x00e4;
             offsetNtQuerySystemInformation=0x00f8;
             offsetNtSetInformationThread=0x0132;
+            offsetNtClose=0x0030;
 #endif
             switch(sp)
             {
@@ -148,11 +155,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0016;
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
+            offsetNtClose=0x000c;
 #else
             offsetNtQueryObject=0x00ed;
             offsetNtQueryInformationProcess=0x00e4;
             offsetNtQuerySystemInformation=0x00f8;
             offsetNtSetInformationThread=0x0132;
+            offsetNtClose=0x0030;
 #endif
             switch(sp)
             {
@@ -182,11 +191,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0016;
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
+            offsetNtClose=0x000c;
 #else
             offsetNtQueryObject=0x00f8;
             offsetNtQueryInformationProcess=0x00ea;
             offsetNtQuerySystemInformation=0x0105;
             offsetNtSetInformationThread=0x014f;
+            offsetNtClose=0x0032;
 #endif
             switch(sp)
             {
@@ -210,6 +221,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0017;
             offsetNtQuerySystemInformation=0x0034;
             offsetNtSetInformationThread=0x000b;
+            offsetNtClose=0x000d;
             switch(sp)
             {
             case 0:
@@ -228,11 +240,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0017;
             offsetNtQuerySystemInformation=0x0034;
             offsetNtSetInformationThread=0x000b;
+            offsetNtClose=0x000d;
 #else
             offsetNtQueryObject=0x00a2;
             offsetNtQueryInformationProcess=0x00b0;
             offsetNtQuerySystemInformation=0x0095;
             offsetNtSetInformationThread=0x0048;
+            offsetNtClose=0x00173;
 #endif
             switch(sp)
             {
@@ -252,11 +266,13 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQueryInformationProcess=0x0018;
             offsetNtQuerySystemInformation=0x0035;
             offsetNtSetInformationThread=0x000c;
+            offsetNtClose=0x000e;
 #else
             offsetNtQueryObject=0x00a5;
             offsetNtQueryInformationProcess=0x00b3;
             offsetNtQuerySystemInformation=0x0098;
             offsetNtSetInformationThread=0x004b;
+            offsetNtClose=0x00178;
 #endif
             switch(sp)
             {
@@ -285,6 +301,8 @@ static int SSDTgetOffset(const wchar_t* apiname)
         readOffset=offsetNtQuerySystemInformation;
     else if(!_wcsicmp(apiname, L"NtSetInformationThread")) //NtSetInformationThread
         readOffset=offsetNtSetInformationThread;
+    else if(!_wcsicmp(apiname, L"NtClose")) //NtClose
+        readOffset=offsetNtClose;
 
     if(readOffset==-1)
     {

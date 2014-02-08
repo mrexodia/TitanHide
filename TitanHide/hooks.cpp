@@ -5,6 +5,7 @@
 #include "misc.h"
 #include "pe.h"
 #include "log.h"
+#include "eprocess.h"
 
 static HOOK hNtQueryInformationProcess=0;
 static HOOK hNtQueryObject=0;
@@ -66,11 +67,19 @@ static NTSTATUS NTAPI HookKeRaiseUserException(
 static NTSTATUS NTAPI HookNtClose(
     IN HANDLE Handle)
 {
-    unhook(hNtClose);
-    bNtClose=true;
-    NTSTATUS ret=NtClose(Handle);
-    bNtClose=false;
-    hook(hNtClose);
+    DbgBreakPoint();
+    SSDTunhook(hNtClose);
+    ULONG pid=(ULONG)PsGetCurrentProcessId();
+    NTSTATUS ret;
+    if(HiderIsHidden(pid, HideNtClose))
+    {
+        PVOID OldDebugPort=SetDebugPort(PsGetCurrentProcess(), 0);
+        ret=NtClose(Handle);
+        SetDebugPort(PsGetCurrentProcess(), OldDebugPort);
+    }
+    else
+        ret=NtClose(Handle);
+    SSDThook(hNtClose);
     return ret;
 }
 
@@ -210,6 +219,9 @@ int HooksInit()
     hNtSetInformationThread=SSDThook(L"NtSetInformationThread", (void*)HookNtSetInformationThread);
     if(hNtSetInformationThread)
         hook_count++;
+    hNtClose=SSDThook(L"NtClose", (void*)HookNtClose);
+    if(hNtClose)
+        hook_count++;
     return hook_count;
 }
 
@@ -219,4 +231,5 @@ void HooksFree()
     SSDTunhook(hNtQueryObject, true);
     SSDTunhook(hNtQuerySystemInformation, true);
     SSDTunhook(hNtSetInformationThread, true);
+    SSDTunhook(hNtClose, true);
 }
