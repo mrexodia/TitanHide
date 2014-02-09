@@ -51,9 +51,10 @@ static NTSTATUS NTAPI HookNtClose(
     NTSTATUS ret;
     if(HiderIsHidden(pid, HideNtClose))
     {
-        Log("[TITANHIDE] NtClose by %d\n", pid);
         PVOID OldDebugPort=SetDebugPort(PsGetCurrentProcess(), 0);
         ret=NtClose(Handle);
+        if(!NT_SUCCESS(ret))
+            Log("[TITANHIDE] NtClose(0x%p) by %d\n", Handle, pid);
         SetDebugPort(PsGetCurrentProcess(), OldDebugPort);
     }
     else

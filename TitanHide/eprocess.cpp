@@ -15,7 +15,7 @@ static int GetDebugPortOffset()
         int ma=OS.dwMajorVersion;
         int mi=OS.dwMinorVersion;
         int pt=OS.wProductType;
-
+        //Thanks to Insid3Code: http://www.insid3code.blogspot.com
         if(ma==5 && (mi==1 || (mi==2 && pt==VER_NT_WORKSTATION))) //Windows XP (x86/x64)
         {
 #ifdef _WIN64
@@ -59,13 +59,24 @@ static int GetDebugPortOffset()
 #endif
         }
         else if(ma==6 && mi==2 && pt!=VER_NT_WORKSTATION) //Windows Server 2012
-        {   
+        {
+            DebugPortOffset=0x2f8;
         }
         else if(ma==6 && mi==2 && pt==VER_NT_WORKSTATION) //Windows 8
         {
+#ifdef _WIN64
+            DebugPortOffset=0x2f8;
+#else
+            DebugPortOffset=0x154;
+#endif
         }
         else if(ma==6 && mi==3 && pt==VER_NT_WORKSTATION) //Windows 8.1
         {
+#ifdef _WIN64
+            DebugPortOffset=0x410;
+#else
+            //TODO: add Windows 8.1 x64
+#endif
         }
     }
     return DebugPortOffset;
