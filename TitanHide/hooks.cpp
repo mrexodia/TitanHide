@@ -51,6 +51,19 @@ static NTSTATUS NTAPI HookNtClose(
     NTSTATUS ret;
     if(HiderIsHidden(pid, HideNtClose))
     {
+        /*
+        //code by ahmadmansoor
+        if(NT_SUCCESS(ObReferenceObjectByHandle(Handle,GENERIC_READ,0,UserMode,&XObject,NULL)))
+        {
+        	ObDereferenceObject(pObject);
+            status = NtClose(Handle);
+        }
+        else
+        {
+        	status = STATUS_INVALID_HANDLE;
+        }
+        return status;
+        */
         PVOID OldDebugPort=SetDebugPort(PsGetCurrentProcess(), 0);
         ret=NtClose(Handle);
         if(!NT_SUCCESS(ret))

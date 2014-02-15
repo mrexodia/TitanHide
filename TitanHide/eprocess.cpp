@@ -5,6 +5,36 @@
 static int GetDebugPortOffset()
 {
     static int DebugPortOffset=-1;
+    if(DebugPortOffset!=-1)
+        return DebugPortOffset;
+
+    //Get OS-independent DebugPort offset
+    UNICODE_STRING routineName;
+    RtlInitUnicodeString(&routineName, L"PsGetProcessDebugPort");
+    unsigned char* data=(unsigned char*)MmGetSystemRoutineAddress(&routineName);
+    if(data)
+    {
+        for(int i=0; i<20; i++) //20 bytes should be enough
+        {
+#ifdef _WIN64
+            if(data[i]==0x48 && data[i+1]==0x8B && (data[i+2]&0xF0)==0x80) //mov rax,[r64+X]
+            {
+                DebugPortOffset=*(int*)(data+i+3);
+                break;
+            }
+#else
+            if(data[i]==0x8B && (data[i+1]&0xF0)==0x80) //mov eax,[r32+X]
+            {
+                DebugPortOffset=*(int*)(data+i+2);
+                break;
+            }
+#endif
+        }
+        if(DebugPortOffset!=-1)
+            Log("[TITANHIDE] DebugPortOffset=%X\n", DebugPortOffset);
+    }
+
+    //Hard-coded offsets
     if(DebugPortOffset==-1)
     {
         RTL_OSVERSIONINFOEXW OS;
