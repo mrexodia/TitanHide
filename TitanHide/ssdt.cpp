@@ -323,7 +323,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
         readOffset=offsetNtSetInformationThread;
     else if(!_wcsicmp(apiname, L"NtClose")) //NtClose
         readOffset=offsetNtClose;
-    else if(!_wcsicmp(apiname, L"NtSetContextThread"))
+    else if(!_wcsicmp(apiname, L"NtSetContextThread")) //NtSetContextThread
         readOffset=offsetNtSetContextThread;
 
     if(readOffset==-1)

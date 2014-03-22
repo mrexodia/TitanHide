@@ -206,18 +206,23 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     return ret;
 }
 
-static NTSTATUS NTAPI HookSetContextThread(
+static NTSTATUS NTAPI HookNtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
-    if(Context->ContextFlags & CONTEXT_DEBUG_REGISTERS) {
-        Context->ContextFlags &= ~CONTEXT_DEBUG_REGISTERS;
+    ULONG pid=(ULONG)PsGetCurrentProcessId();
+    bool IsHidden=HiderIsHidden(pid, HideNtSetContextThread);
+    DWORD OriginalContextFlags;
+    if(Context && IsHidden)
+    {
+        OriginalContextFlags=Context->ContextFlags;
+        Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
     }
-
     SSDTunhook(hNtSetContextThread);
     NTSTATUS ret=NtSetContextThread(ThreadHandle, Context);
     SSDThook(hNtSetContextThread);
-
+    if(Context && IsHidden)
+        Context->ContextFlags=OriginalContextFlags;
     return ret;
 }
 
@@ -239,10 +244,9 @@ int HooksInit()
     hNtClose=SSDThook(L"NtClose", (void*)HookNtClose);
     if(hNtClose)
         hook_count++;
-    hNtSetContextThread=SSDThook(L"NtSetContextThread", (void*)HookSetContextThread);
+    hNtSetContextThread=SSDThook(L"NtSetContextThread", (void*)HookNtSetContextThread);
     if(hNtSetContextThread)
         hook_count++;
-
     return hook_count;
 }
 

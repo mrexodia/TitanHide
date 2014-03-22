@@ -98,6 +98,10 @@ NTSTATUS NTAPI NtSetInformationProcess(
     IN PVOID ProcessInformation,
     IN ULONG ProcessInformationLength);
 
+NTSTATUS NTAPI NtSetContextThread(
+    IN HANDLE ThreadHandle,
+    IN PCONTEXT Context);
+
 PVOID GetKernelBase();
 
 #endif
