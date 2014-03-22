@@ -13,7 +13,7 @@ enum HIDE_TYPE
     HideSystemDebuggerInformation=BIT(5), //NtQuerySystemInformation
     HideNtClose=BIT(6), //NtClose
     HideThreadHideFromDebugger=BIT(7), //NtSetInformationThread
-    HideSetContextThread=BIT(8) //NtSetContextThread
+    HideNtSetContextThread=BIT(8) //NtSetContextThread
 };
 
 enum HIDE_COMMAND
