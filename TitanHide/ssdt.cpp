@@ -49,7 +49,6 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtSetInformationThread=0x00e5;
             offsetNtClose=0x0019;
             offsetNtSetContextThread=0x00d5;
-
 #endif
             switch(sp)
             {
@@ -324,6 +323,8 @@ static int SSDTgetOffset(const wchar_t* apiname)
         readOffset=offsetNtSetInformationThread;
     else if(!_wcsicmp(apiname, L"NtClose")) //NtClose
         readOffset=offsetNtClose;
+    else if(!_wcsicmp(apiname, L"NtSetContextThread"))
+        readOffset=offsetNtSetContextThread;
 
     if(readOffset==-1)
     {
