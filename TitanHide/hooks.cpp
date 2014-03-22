@@ -12,6 +12,7 @@ static HOOK hNtQueryObject=0;
 static HOOK hNtQuerySystemInformation=0;
 static HOOK hNtClose=0;
 static HOOK hNtSetInformationThread=0;
+static HOOK hNtSetContextThread=0;
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -205,6 +206,21 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     return ret;
 }
 
+static NTSTATUS NTAPI HookSetContextThread(
+    IN HANDLE ThreadHandle,
+    IN PCONTEXT Context)
+{
+    if(Context->ContextFlags & CONTEXT_DEBUG_REGISTERS) {
+        Context->ContextFlags &= ~CONTEXT_DEBUG_REGISTERS;
+    }
+
+    SSDTunhook(hNtSetContextThread);
+    NTSTATUS ret=NtSetContextThread(ThreadHandle, Context);
+    SSDThook(hNtSetContextThread);
+
+    return ret;
+}
+
 int HooksInit()
 {
     int hook_count=0;
@@ -223,6 +239,10 @@ int HooksInit()
     hNtClose=SSDThook(L"NtClose", (void*)HookNtClose);
     if(hNtClose)
         hook_count++;
+    hNtSetContextThread=SSDThook(L"NtSetContextThread", (void*)HookSetContextThread);
+    if(hNtSetContextThread)
+        hook_count++;
+
     return hook_count;
 }
 
@@ -233,4 +253,5 @@ void HooksFree()
     SSDTunhook(hNtQuerySystemInformation, true);
     SSDTunhook(hNtSetInformationThread, true);
     SSDTunhook(hNtClose, true);
+    SSDTunhook(hNtSetContextThread, true);
 }

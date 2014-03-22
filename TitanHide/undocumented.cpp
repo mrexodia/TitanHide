@@ -144,6 +144,26 @@ NTSTATUS NTAPI NtClose(
     return NtC(Handle);
 }
 
+NTSTATUS NTAPI NtSetContextThread(
+    IN HANDLE ThreadHandle,
+    IN PCONTEXT Context)
+{
+    typedef NTSTATUS (NTAPI *NTSETCONTEXTTHREAD) (
+        IN HANDLE ThreadHandle,
+        IN PCONTEXT Context
+    );
+    static NTSETCONTEXTTHREAD NtSCT=0;
+    if(!NtSCT)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtSetContextThread");
+        NtSCT=(NTSETCONTEXTTHREAD)MmGetSystemRoutineAddress(&routineName);
+        if(!NtSCT)
+            return STATUS_UNSUCCESSFUL;
+    }
+    return NtSCT(ThreadHandle, Context);
+}
+
 NTSTATUS NTAPI NtDuplicateObject(
     IN HANDLE SourceProcessHandle,
     IN HANDLE SourceHandle,

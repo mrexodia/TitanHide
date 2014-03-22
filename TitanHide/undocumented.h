@@ -70,6 +70,10 @@ NTSTATUS NTAPI NtQuerySystemInformation(
 NTSTATUS NTAPI NtClose(
     IN HANDLE Handle);
 
+NTSTATUS NTAPI NtSetContextThread(
+    IN HANDLE ThreadHandle,
+    IN PCONTEXT Context);
+
 NTSTATUS NTAPI NtDuplicateObject(
     IN HANDLE SourceProcessHandle,
     IN HANDLE SourceHandle,

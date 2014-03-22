@@ -12,7 +12,8 @@ static int SSDTgetOffset(const wchar_t* apiname)
     static int offsetNtQuerySystemInformation=0;
     static int offsetNtSetInformationThread=0;
     static int offsetNtClose=0;
-    
+    static int offsetNtSetContextThread=0;
+
     static bool initDone=false;
     if(!initDone)
     {
@@ -30,7 +31,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
 
         Log("[TITANHIDE] RtlGetVersion: %d.%d SP%d\n", ma, mi, sp);
 
-        //Offset list from: http://j00ru.vexillium.org/ntapi_64/
+        //Offset list from: http://j00ru.vexillium.org/ntapi_64/ for x64 and http://j00ru.vexillium.org/ntapi/ for x86
         if(ma==5 && (mi==1 || (mi==2 && pt==VER_NT_WORKSTATION))) //Windows XP (x86/x64)
         {
             Log("[TITANHIDE] Windows XP ");
@@ -40,12 +41,15 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
             offsetNtClose=0x000c;
+            offsetNtSetContextThread=0x00f6;
 #else
             offsetNtQueryObject=0x00a3;
             offsetNtQueryInformationProcess=0x009a;
             offsetNtQuerySystemInformation=0x00ad;
             offsetNtSetInformationThread=0x00e5;
             offsetNtClose=0x0019;
+            offsetNtSetContextThread=0x00d5;
+
 #endif
             switch(sp)
             {
@@ -81,12 +85,14 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
             offsetNtClose=0x000c;
+            offsetNtSetContextThread=0x00f6;
 #else
             offsetNtQueryObject=0x00aa;
             offsetNtQueryInformationProcess=0x00a1;
             offsetNtQuerySystemInformation=0x00b5;
             offsetNtSetInformationThread=0x00ee;
             offsetNtClose=0x001b;
+            offsetNtSetContextThread=0x00dd;
 #endif
             switch(sp)
             {
@@ -117,12 +123,14 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
             offsetNtClose=0x000c;
+            offsetNtSetContextThread=0x0149;
 #else
             offsetNtQueryObject=0x00ed;
             offsetNtQueryInformationProcess=0x00e4;
             offsetNtQuerySystemInformation=0x00f8;
             offsetNtSetInformationThread=0x0132;
             offsetNtClose=0x0030;
+            offsetNtSetContextThread=0x0121;
 #endif
             switch(sp)
             {
@@ -130,7 +138,11 @@ static int SSDTgetOffset(const wchar_t* apiname)
             {
 #ifndef _WIN64
                 offsetNtSetInformationThread=0x0136; //x86 SP0 is different
+                offsetNtSetContextThread=0x0125;
+#else
+                offsetNtSetContextThread=0x014f;
 #endif
+
                 Log("SP0 ");
             }
             break;
@@ -156,12 +168,14 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
             offsetNtClose=0x000c;
+            offsetNtSetContextThread=0x0149;
 #else
             offsetNtQueryObject=0x00ed;
             offsetNtQueryInformationProcess=0x00e4;
             offsetNtQuerySystemInformation=0x00f8;
             offsetNtSetInformationThread=0x0132;
             offsetNtClose=0x0030;
+            offsetNtSetContextThread=0x0121;
 #endif
             switch(sp)
             {
@@ -192,12 +206,14 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0033;
             offsetNtSetInformationThread=0x000a;
             offsetNtClose=0x000c;
+            offsetNtSetContextThread=0x0150;
 #else
             offsetNtQueryObject=0x00f8;
             offsetNtQueryInformationProcess=0x00ea;
             offsetNtQuerySystemInformation=0x0105;
             offsetNtSetInformationThread=0x014f;
             offsetNtClose=0x0032;
+            offsetNtSetContextThread=0x013c;
 #endif
             switch(sp)
             {
@@ -222,6 +238,7 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0034;
             offsetNtSetInformationThread=0x000b;
             offsetNtClose=0x000d;
+            offsetNtSetContextThread=0x0165;
             switch(sp)
             {
             case 0:
@@ -241,12 +258,14 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0034;
             offsetNtSetInformationThread=0x000b;
             offsetNtClose=0x000d;
+            offsetNtSetContextThread=0x0165;
 #else
             offsetNtQueryObject=0x00a2;
             offsetNtQueryInformationProcess=0x00b0;
             offsetNtQuerySystemInformation=0x0095;
             offsetNtSetInformationThread=0x0048;
             offsetNtClose=0x00173;
+            offsetNtSetContextThread=0x005b;
 #endif
             switch(sp)
             {
@@ -267,12 +286,14 @@ static int SSDTgetOffset(const wchar_t* apiname)
             offsetNtQuerySystemInformation=0x0035;
             offsetNtSetInformationThread=0x000c;
             offsetNtClose=0x000e;
+            offsetNtSetContextThread=0x0168;
 #else
             offsetNtQueryObject=0x00a5;
             offsetNtQueryInformationProcess=0x00b3;
             offsetNtQuerySystemInformation=0x0098;
             offsetNtSetInformationThread=0x004b;
             offsetNtClose=0x00178;
+            offsetNtSetContextThread=0x005e;
 #endif
             switch(sp)
             {
@@ -519,20 +540,20 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     1) change SSDT value
     */
     newValue=(ULONG)newfunc;
-    
+
     hHook=(HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
-    
+
     //update HOOK structure
     hHook->SSDToffset=apiOffset;
     hHook->SSDTold=oldValue;
     hHook->SSDTnew=newValue;
 
 #endif
-    
+
     InterlockedSet(&SSDT_Table[apiOffset], newValue);
 
     Log("[TITANHIDE] SSDThook(%ws:0x%p, 0x%p)\n", apiname, hHook->SSDTold, hHook->SSDTnew);
-    
+
     return hHook;
 }
 
