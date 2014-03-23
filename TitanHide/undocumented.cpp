@@ -155,9 +155,7 @@ NTSTATUS NTAPI NtSetContextThread(
     static NTSETCONTEXTTHREAD NtSCT=0;
     if(!NtSCT)
     {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtSetContextThread");
-        NtSCT=(NTSETCONTEXTTHREAD)MmGetSystemRoutineAddress(&routineName);
+        NtSCT=(NTSETCONTEXTTHREAD)SSDTgpa(L"NtSetContextThread");
         if(!NtSCT)
             return STATUS_UNSUCCESSFUL;
     }
