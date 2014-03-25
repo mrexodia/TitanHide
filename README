@@ -39,3 +39,6 @@ NOTE1: When on x64, you have to disable PatchGuard and driver signature
 
 NOTE2: When using x64_dbg, you can use the TitanHide plugin (available
        on the download page).
+
+NOTE3: When using EsetNod32 AV, disable "Realtime File Protection", to
+       prevent a BSOD when starting TitanHide. You can reenable it right afterwards
