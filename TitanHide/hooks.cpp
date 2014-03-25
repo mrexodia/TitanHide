@@ -38,7 +38,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
                 return status;
         }
     }
-    return NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
+    return Undocumented::NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
 }
 
 static NTSTATUS NTAPI HookNtClose(
@@ -53,7 +53,7 @@ static NTSTATUS NTAPI HookNtClose(
         if(NT_SUCCESS(ObReferenceObjectByHandle(Handle,GENERIC_READ,0,UserMode,&XObject,NULL)))
         {
         	ObDereferenceObject(pObject);
-            status = NtClose(Handle);
+            status = Undocumented::NtClose(Handle);
         }
         else
         {
@@ -62,13 +62,13 @@ static NTSTATUS NTAPI HookNtClose(
         return status;
         */
         PVOID OldDebugPort=SetDebugPort(PsGetCurrentProcess(), 0);
-        ret=NtClose(Handle);
+        ret=Undocumented::NtClose(Handle);
         if(!NT_SUCCESS(ret))
             Log("[TITANHIDE] NtClose(0x%p) by %d\n", Handle, pid);
         SetDebugPort(PsGetCurrentProcess(), OldDebugPort);
     }
     else
-        ret=NtClose(Handle);
+        ret=Undocumented::NtClose(Handle);
     return ret;
 }
 
@@ -78,7 +78,7 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    NTSTATUS ret=NtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
+    NTSTATUS ret=Undocumented::NtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && SystemInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
@@ -108,7 +108,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    NTSTATUS ret=Undocumented::NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
@@ -161,7 +161,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength)
 {
-    NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
+    NTSTATUS ret=Undocumented::NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ProcessInformation)
     {
         ULONG pid=GetProcessIDFromProcessHandle(ProcessHandle);
@@ -208,7 +208,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
         OriginalContextFlags=Context->ContextFlags;
         Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
     }
-    NTSTATUS ret=NtSetContextThread(ThreadHandle, Context);
+    NTSTATUS ret=Undocumented::NtSetContextThread(ThreadHandle, Context);
     if(Context && IsHidden)
         Context->ContextFlags=OriginalContextFlags;
     return ret;

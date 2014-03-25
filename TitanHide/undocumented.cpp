@@ -77,6 +77,14 @@ typedef NTSTATUS (NTAPI *NTSETINFORMATIONPROCESS) (
     IN ULONG ProcessInformationLength
 );
 
+typedef NTSTATUS (NTAPI *NTQUERYINFORMATIONPROCESS) (
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    OUT PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
 static ZWQUERYINFORMATIONPROCESS ZwQIP=0;
 static ZWQUERYINFORMATIONTHREAD ZwQIT=0;
 static NTQUERYOBJECT NtQO=0;
@@ -88,8 +96,9 @@ static NTDUPLICATEOBJECT NtDO=0;
 static KERAISEUSEREXCEPTION KeRUE=0;
 static NTSETINFORMATIONTHREAD NtSIT=0;
 static NTSETINFORMATIONPROCESS NtSIP=0;
+static NTQUERYINFORMATIONPROCESS NtQIP=0;
 
-NTSTATUS NTAPI ZwQueryInformationProcess(
+NTSTATUS NTAPI Undocumented::ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
     OUT PVOID ProcessInformation,
@@ -99,7 +108,7 @@ NTSTATUS NTAPI ZwQueryInformationProcess(
     return ZwQIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
 }
 
-NTSTATUS NTAPI ZwQueryInformationThread(
+NTSTATUS NTAPI Undocumented::ZwQueryInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN OUT PVOID ThreadInformation,
@@ -109,7 +118,7 @@ NTSTATUS NTAPI ZwQueryInformationThread(
     return ZwQIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
 }
 
-NTSTATUS NTAPI NtQueryObject(
+NTSTATUS NTAPI Undocumented::NtQueryObject(
     IN HANDLE Handle OPTIONAL,
     IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
     OUT PVOID ObjectInformation OPTIONAL,
@@ -119,7 +128,7 @@ NTSTATUS NTAPI NtQueryObject(
     return NtQO(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
 }
 
-NTSTATUS NTAPI ZwQuerySystemInformation(
+NTSTATUS NTAPI Undocumented::ZwQuerySystemInformation(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,
     IN ULONG SystemInformationLength,
@@ -128,7 +137,7 @@ NTSTATUS NTAPI ZwQuerySystemInformation(
     return ZwQSI(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
 }
 
-NTSTATUS NTAPI NtQuerySystemInformation(
+NTSTATUS NTAPI Undocumented::NtQuerySystemInformation(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,
     IN ULONG SystemInformationLength,
@@ -137,20 +146,20 @@ NTSTATUS NTAPI NtQuerySystemInformation(
     return NtQSI(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
 }
 
-NTSTATUS NTAPI NtClose(
+NTSTATUS NTAPI Undocumented::NtClose(
     IN HANDLE Handle)
 {
     return NtC(Handle);
 }
 
-NTSTATUS NTAPI NtSetContextThread(
+NTSTATUS NTAPI Undocumented::NtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
     return NtSCT(ThreadHandle, Context);
 }
 
-NTSTATUS NTAPI NtDuplicateObject(
+NTSTATUS NTAPI Undocumented::NtDuplicateObject(
     IN HANDLE SourceProcessHandle,
     IN HANDLE SourceHandle,
     IN HANDLE TargetProcessHandle,
@@ -162,13 +171,13 @@ NTSTATUS NTAPI NtDuplicateObject(
     return NtDO(SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes, Options);
 }
 
-NTSTATUS NTAPI KeRaiseUserException(
+NTSTATUS NTAPI Undocumented::KeRaiseUserException(
     IN NTSTATUS ExceptionCode)
 {
     return KeRUE(ExceptionCode);
 }
 
-NTSTATUS NTAPI NtSetInformationThread(
+NTSTATUS NTAPI Undocumented::NtSetInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN PVOID ThreadInformation,
@@ -177,7 +186,7 @@ NTSTATUS NTAPI NtSetInformationThread(
     return NtSIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
 }
 
-NTSTATUS NTAPI NtSetInformationProcess(
+NTSTATUS NTAPI Undocumented::NtSetInformationProcess(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
     IN PVOID ProcessInformation,
@@ -186,8 +195,17 @@ NTSTATUS NTAPI NtSetInformationProcess(
     return NtSIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
 }
 
+NTSTATUS NTAPI Undocumented::NtQueryInformationProcess(
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    OUT PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength,
+    OUT PULONG ReturnLength OPTIONAL)
+{
+    return NtQIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
+}
 
-bool UndocumentedInit()
+bool Undocumented::UndocumentedInit()
 {
     //Exported kernel functions after this
     if(!ZwQIP)
@@ -262,6 +280,14 @@ bool UndocumentedInit()
         if(!NtSIP)
             return false;
     }
+    if(!NtQIP)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtQueryInformationProcess");
+        NtQIP=(NTQUERYINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
+        if(!NtQIP)
+            return false;
+    }
     //SSDT-only functions after this
     if(!NtQO)
     {
@@ -309,10 +335,10 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
     ULONG    SystemInfoBufferSize = 0;
 
-    status = ZwQuerySystemInformation(SystemModuleInformation,
-                                      &SystemInfoBufferSize,
-                                      0,
-                                      &SystemInfoBufferSize);
+    status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
+             &SystemInfoBufferSize,
+             0,
+             &SystemInfoBufferSize);
 
     if (!SystemInfoBufferSize)
     {
@@ -330,10 +356,10 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
 
     memset(pSystemInfoBuffer, 0, SystemInfoBufferSize*2);
 
-    status = ZwQuerySystemInformation(SystemModuleInformation,
-                                      pSystemInfoBuffer,
-                                      SystemInfoBufferSize*2,
-                                      &SystemInfoBufferSize);
+    status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
+             pSystemInfoBuffer,
+             SystemInfoBufferSize*2,
+             &SystemInfoBufferSize);
 
     if(NT_SUCCESS(status))
     {
@@ -360,7 +386,7 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
     return pModuleBase;
 }
 
-PVOID GetKernelBase()
+PVOID Undocumented::GetKernelBase()
 {
     PVOID base=KernelGetModuleBase("ntoskrnl");
     if(!base)

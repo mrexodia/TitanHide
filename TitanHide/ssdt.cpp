@@ -375,7 +375,7 @@ static PVOID SSDTfind()
         if(!rvaSSDT)
             return 0;
         Log("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
-        PVOID base=GetKernelBase();
+        PVOID base=Undocumented::GetKernelBase();
         if(!base)
         {
 
@@ -499,7 +499,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
         ULONG_PTR Highest=Lowest+0x0FFFFFFF;
         Log("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
         CodeSize=0;
-        CodeStart=PeGetPageBase(GetKernelBase(), &CodeSize, (PVOID)((oldValue>>4)+SSDTbase));
+        CodeStart=PeGetPageBase(Undocumented::GetKernelBase(), &CodeSize, (PVOID)((oldValue>>4)+SSDTbase));
         if(!CodeStart || !CodeSize)
         {
             Log("[TITANHIDE] PeGetPageBase failed...\n");

@@ -33,76 +33,82 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemKernelDebuggerInformation=35
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
-//functions
-NTSTATUS NTAPI ZwQueryInformationProcess(
-    IN HANDLE ProcessHandle,
-    IN PROCESSINFOCLASS ProcessInformationClass,
-    OUT PVOID ProcessInformation,
-    IN ULONG ProcessInformationLength,
-    OUT PULONG ReturnLength OPTIONAL);
+class Undocumented
+{
+public:
+    static NTSTATUS NTAPI ZwQueryInformationProcess(
+        IN HANDLE ProcessHandle,
+        IN PROCESSINFOCLASS ProcessInformationClass,
+        OUT PVOID ProcessInformation,
+        IN ULONG ProcessInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NTAPI ZwQueryInformationThread(
-    IN HANDLE ThreadHandle,
-    IN THREADINFOCLASS ThreadInformationClass,
-    IN OUT PVOID ThreadInformation,
-    IN ULONG ThreadInformationLength,
-    OUT PULONG ReturnLength OPTIONAL);
+    static NTSTATUS NTAPI ZwQueryInformationThread(
+        IN HANDLE ThreadHandle,
+        IN THREADINFOCLASS ThreadInformationClass,
+        IN OUT PVOID ThreadInformation,
+        IN ULONG ThreadInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NTAPI NtQueryObject(
-    IN HANDLE Handle OPTIONAL,
-    IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
-    OUT PVOID ObjectInformation OPTIONAL,
-    IN ULONG ObjectInformationLength,
-    OUT PULONG ReturnLength OPTIONAL);
+    static NTSTATUS NTAPI NtQueryObject(
+        IN HANDLE Handle OPTIONAL,
+        IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
+        OUT PVOID ObjectInformation OPTIONAL,
+        IN ULONG ObjectInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NTAPI ZwQuerySystemInformation(
-    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    OUT PVOID SystemInformation,
-    IN ULONG SystemInformationLength,
-    OUT PULONG ReturnLength OPTIONAL);
+    static NTSTATUS NTAPI ZwQuerySystemInformation(
+        IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+        OUT PVOID SystemInformation,
+        IN ULONG SystemInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NTAPI NtQuerySystemInformation(
-    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
-    OUT PVOID SystemInformation,
-    IN ULONG SystemInformationLength,
-    OUT PULONG ReturnLength OPTIONAL);
+    static NTSTATUS NTAPI NtQuerySystemInformation(
+        IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+        OUT PVOID SystemInformation,
+        IN ULONG SystemInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
 
-NTSTATUS NTAPI NtClose(
-    IN HANDLE Handle);
+    static NTSTATUS NTAPI NtClose(
+        IN HANDLE Handle);
 
-NTSTATUS NTAPI NtSetContextThread(
-    IN HANDLE ThreadHandle,
-    IN PCONTEXT Context);
+    static NTSTATUS NTAPI NtSetContextThread(
+        IN HANDLE ThreadHandle,
+        IN PCONTEXT Context);
 
-NTSTATUS NTAPI NtDuplicateObject(
-    IN HANDLE SourceProcessHandle,
-    IN HANDLE SourceHandle,
-    IN HANDLE TargetProcessHandle,
-    OUT PHANDLE TargetHandle,
-    IN ACCESS_MASK DesiredAccess OPTIONAL,
-    IN ULONG HandleAttributes,
-    IN ULONG Options);
+    static NTSTATUS NTAPI NtDuplicateObject(
+        IN HANDLE SourceProcessHandle,
+        IN HANDLE SourceHandle,
+        IN HANDLE TargetProcessHandle,
+        OUT PHANDLE TargetHandle,
+        IN ACCESS_MASK DesiredAccess OPTIONAL,
+        IN ULONG HandleAttributes,
+        IN ULONG Options);
 
-NTSTATUS NTAPI KeRaiseUserException(
-    IN NTSTATUS ExceptionCode);
+    static NTSTATUS NTAPI KeRaiseUserException(
+        IN NTSTATUS ExceptionCode);
 
-NTSTATUS NTAPI NtSetInformationThread(
-    IN HANDLE ThreadHandle,
-    IN THREADINFOCLASS ThreadInformationClass,
-    IN PVOID ThreadInformation,
-    IN ULONG ThreadInformationLength);
+    static NTSTATUS NTAPI NtSetInformationThread(
+        IN HANDLE ThreadHandle,
+        IN THREADINFOCLASS ThreadInformationClass,
+        IN PVOID ThreadInformation,
+        IN ULONG ThreadInformationLength);
 
-NTSTATUS NTAPI NtSetInformationProcess(
-    IN HANDLE ProcessHandle,
-    IN PROCESSINFOCLASS ProcessInformationClass,
-    IN PVOID ProcessInformation,
-    IN ULONG ProcessInformationLength);
+    static NTSTATUS NTAPI NtSetInformationProcess(
+        IN HANDLE ProcessHandle,
+        IN PROCESSINFOCLASS ProcessInformationClass,
+        IN PVOID ProcessInformation,
+        IN ULONG ProcessInformationLength);
 
-NTSTATUS NTAPI NtSetContextThread(
-    IN HANDLE ThreadHandle,
-    IN PCONTEXT Context);
+    static NTSTATUS NTAPI NtQueryInformationProcess(
+        IN HANDLE ProcessHandle,
+        IN PROCESSINFOCLASS ProcessInformationClass,
+        OUT PVOID ProcessInformation,
+        IN ULONG ProcessInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
 
-bool UndocumentedInit();
-PVOID GetKernelBase();
+    static bool UndocumentedInit();
+    static PVOID GetKernelBase();
+};
 
 #endif

@@ -73,7 +73,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     DriverObject->MajorFunction[IRP_MJ_WRITE]=DriverWrite;
 
     //initialize undocumented APIs
-    if(!UndocumentedInit())
+    if(!Undocumented::UndocumentedInit())
     {
         Log("[TITANHIDE] UndocumentedInit() failed...\n");
         return STATUS_UNSUCCESSFUL;
