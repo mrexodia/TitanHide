@@ -102,6 +102,7 @@ NTSTATUS NTAPI NtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context);
 
+bool UndocumentedInit();
 PVOID GetKernelBase();
 
 #endif

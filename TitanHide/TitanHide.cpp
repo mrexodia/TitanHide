@@ -72,6 +72,14 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     DriverObject->MajorFunction[IRP_MJ_CLOSE]=DriverCreateClose;
     DriverObject->MajorFunction[IRP_MJ_WRITE]=DriverWrite;
 
+    //initialize undocumented APIs
+    if(!UndocumentedInit())
+    {
+        Log("[TITANHIDE] UndocumentedInit() failed...\n");
+        return STATUS_UNSUCCESSFUL;
+    }
+    Log("[TITANHIDE] UndocumentedInit() was successful!\n");
+
     //create io device
     RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");
     RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\TitanHide");
@@ -104,7 +112,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         return status;
     }
     Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\n", Win32Device.Length/sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length/sizeof(WCHAR), DeviceName.Buffer);
-
+    
     //initialize hooking
     Log("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
 

@@ -2,6 +2,93 @@
 #include "ssdt.h"
 #include "log.h"
 
+typedef NTSTATUS (NTAPI *ZWQUERYINFORMATIONPROCESS) (
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    OUT PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *ZWQUERYINFORMATIONTHREAD) (
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN OUT PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *NTQUERYOBJECT) (
+    IN HANDLE Handle OPTIONAL,
+    IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    OUT PVOID ObjectInformation OPTIONAL,
+    IN ULONG ObjectInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *ZWQUERYSYSTEMINFORMATION) (
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *NTQUERYSYSTEMINFORMATION) (
+    IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    OUT PVOID SystemInformation,
+    IN ULONG SystemInformationLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
+typedef NTSTATUS (NTAPI *NTCLOSE) (
+    IN HANDLE Handle
+);
+
+typedef NTSTATUS (NTAPI *NTSETCONTEXTTHREAD) (
+    IN HANDLE ThreadHandle,
+    IN PCONTEXT Context
+);
+
+typedef NTSTATUS (NTAPI *NTDUPLICATEOBJECT) (
+    IN HANDLE SourceProcessHandle,
+    IN HANDLE SourceHandle,
+    IN HANDLE TargetProcessHandle,
+    OUT PHANDLE TargetHandle,
+    IN ACCESS_MASK DesiredAccess OPTIONAL,
+    IN ULONG HandleAttributes,
+    IN ULONG Options
+);
+
+typedef NTSTATUS (NTAPI *KERAISEUSEREXCEPTION) (
+    IN NTSTATUS ExceptionCode
+);
+
+typedef NTSTATUS (NTAPI *NTSETINFORMATIONTHREAD) (
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength
+);
+
+typedef NTSTATUS (NTAPI *NTSETINFORMATIONPROCESS) (
+    IN HANDLE ProcessHandle,
+    IN PROCESSINFOCLASS ProcessInformationClass,
+    IN PVOID ProcessInformation,
+    IN ULONG ProcessInformationLength
+);
+
+static ZWQUERYINFORMATIONPROCESS ZwQIP=0;
+static ZWQUERYINFORMATIONTHREAD ZwQIT=0;
+static NTQUERYOBJECT NtQO=0;
+static ZWQUERYSYSTEMINFORMATION ZwQSI=0;
+static NTQUERYSYSTEMINFORMATION NtQSI=0;
+static NTCLOSE NtC=0;
+static NTSETCONTEXTTHREAD NtSCT=0;
+static NTDUPLICATEOBJECT NtDO=0;
+static KERAISEUSEREXCEPTION KeRUE=0;
+static NTSETINFORMATIONTHREAD NtSIT=0;
+static NTSETINFORMATIONPROCESS NtSIP=0;
+
 NTSTATUS NTAPI ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
@@ -9,22 +96,6 @@ NTSTATUS NTAPI ZwQueryInformationProcess(
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    typedef NTSTATUS (NTAPI *ZWQUERYINFORMATIONPROCESS) (
-        IN HANDLE ProcessHandle,
-        IN PROCESSINFOCLASS ProcessInformationClass,
-        OUT PVOID ProcessInformation,
-        IN ULONG ProcessInformationLength,
-        OUT PULONG ReturnLength OPTIONAL
-    );
-    static ZWQUERYINFORMATIONPROCESS ZwQIP=0;
-    if(!ZwQIP)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"ZwQueryInformationProcess");
-        ZwQIP=(ZWQUERYINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwQIP)
-            return STATUS_UNSUCCESSFUL;
-    }
     return ZwQIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
 }
 
@@ -35,22 +106,6 @@ NTSTATUS NTAPI ZwQueryInformationThread(
     IN ULONG ThreadInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    typedef NTSTATUS (NTAPI *ZWQUERYINFORMATIONTHREAD) (
-        IN HANDLE ThreadHandle,
-        IN THREADINFOCLASS ThreadInformationClass,
-        IN OUT PVOID ThreadInformation,
-        IN ULONG ThreadInformationLength,
-        OUT PULONG ReturnLength OPTIONAL
-    );
-    static ZWQUERYINFORMATIONTHREAD ZwQIT=0;
-    if(!ZwQIT)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"ZwQueryInformationThread");
-        ZwQIT=(ZWQUERYINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwQIT)
-            return STATUS_UNSUCCESSFUL;
-    }
     return ZwQIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
 }
 
@@ -61,20 +116,6 @@ NTSTATUS NTAPI NtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    typedef NTSTATUS (NTAPI *NTQUERYOBJECT) (
-        IN HANDLE Handle OPTIONAL,
-        IN OBJECT_INFORMATION_CLASS ObjectInformationClass,
-        OUT PVOID ObjectInformation OPTIONAL,
-        IN ULONG ObjectInformationLength,
-        OUT PULONG ReturnLength OPTIONAL
-    );
-    static NTQUERYOBJECT NtQO=0;
-    if(!NtQO)
-    {
-        NtQO=(NTQUERYOBJECT)SSDTgpa(L"NtQueryObject");
-        if(!NtQO)
-            return STATUS_UNSUCCESSFUL;
-    }
     return NtQO(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
 }
 
@@ -84,21 +125,6 @@ NTSTATUS NTAPI ZwQuerySystemInformation(
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    typedef NTSTATUS (NTAPI *ZWQUERYSYSTEMINFORMATION) (
-        IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
-        OUT PVOID SystemInformation,
-        IN ULONG SystemInformationLength,
-        OUT PULONG ReturnLength OPTIONAL
-    );
-    static ZWQUERYSYSTEMINFORMATION ZwQSI=0;
-    if(!ZwQSI)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"ZwQuerySystemInformation");
-        ZwQSI=(ZWQUERYSYSTEMINFORMATION)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwQSI)
-            return STATUS_UNSUCCESSFUL;
-    }
     return ZwQSI(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
 }
 
@@ -108,39 +134,12 @@ NTSTATUS NTAPI NtQuerySystemInformation(
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    typedef NTSTATUS (NTAPI *NTQUERYSYSTEMINFORMATION) (
-        IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
-        OUT PVOID SystemInformation,
-        IN ULONG SystemInformationLength,
-        OUT PULONG ReturnLength OPTIONAL
-    );
-    static NTQUERYSYSTEMINFORMATION NtQSI=0;
-    if(!NtQSI)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtQuerySystemInformation");
-        NtQSI=(NTQUERYSYSTEMINFORMATION)MmGetSystemRoutineAddress(&routineName);
-        if(!NtQSI)
-            return STATUS_UNSUCCESSFUL;
-    }
     return NtQSI(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
 }
 
 NTSTATUS NTAPI NtClose(
     IN HANDLE Handle)
 {
-    typedef NTSTATUS (NTAPI *NTCLOSE) (
-        IN HANDLE Handle
-    );
-    static NTCLOSE NtC=0;
-    if(!NtC)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtClose");
-        NtC=(NTCLOSE)MmGetSystemRoutineAddress(&routineName);
-        if(!NtC)
-            return STATUS_UNSUCCESSFUL;
-    }
     return NtC(Handle);
 }
 
@@ -148,17 +147,6 @@ NTSTATUS NTAPI NtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
-    typedef NTSTATUS (NTAPI *NTSETCONTEXTTHREAD) (
-        IN HANDLE ThreadHandle,
-        IN PCONTEXT Context
-    );
-    static NTSETCONTEXTTHREAD NtSCT=0;
-    if(!NtSCT)
-    {
-        NtSCT=(NTSETCONTEXTTHREAD)SSDTgpa(L"NtSetContextThread");
-        if(!NtSCT)
-            return STATUS_UNSUCCESSFUL;
-    }
     return NtSCT(ThreadHandle, Context);
 }
 
@@ -171,42 +159,12 @@ NTSTATUS NTAPI NtDuplicateObject(
     IN ULONG HandleAttributes,
     IN ULONG Options)
 {
-    typedef NTSTATUS (NTAPI *NTDUPLICATEOBJECT) (
-        IN HANDLE SourceProcessHandle,
-        IN HANDLE SourceHandle,
-        IN HANDLE TargetProcessHandle,
-        OUT PHANDLE TargetHandle,
-        IN ACCESS_MASK DesiredAccess OPTIONAL,
-        IN ULONG HandleAttributes,
-        IN ULONG Options
-    );
-    static NTDUPLICATEOBJECT NtDO=0;
-    if(!NtDO)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtDuplicateObject");
-        NtDO=(NTDUPLICATEOBJECT)MmGetSystemRoutineAddress(&routineName);
-        if(!NtDO)
-            return STATUS_UNSUCCESSFUL;
-    }
     return NtDO(SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes, Options);
 }
 
 NTSTATUS NTAPI KeRaiseUserException(
     IN NTSTATUS ExceptionCode)
 {
-    typedef NTSTATUS (NTAPI *KERAISEUSEREXCEPTION) (
-        IN NTSTATUS ExceptionCode
-    );
-    static KERAISEUSEREXCEPTION KeRUE=0;
-    if(!KeRUE)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"KeRaiseUserException");
-        KeRUE=(KERAISEUSEREXCEPTION)MmGetSystemRoutineAddress(&routineName);
-        if(!KeRUE)
-            return STATUS_UNSUCCESSFUL;
-    }
     return KeRUE(ExceptionCode);
 }
 
@@ -216,21 +174,6 @@ NTSTATUS NTAPI NtSetInformationThread(
     IN PVOID ThreadInformation,
     IN ULONG ThreadInformationLength)
 {
-    typedef NTSTATUS (NTAPI *NTSETINFORMATIONTHREAD) (
-        IN HANDLE ThreadHandle,
-        IN THREADINFOCLASS ThreadInformationClass,
-        IN PVOID ThreadInformation,
-        IN ULONG ThreadInformationLength
-    );
-    static NTSETINFORMATIONTHREAD NtSIT=0;
-    if(!NtSIT)
-    {
-        UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"NtSetInformationThread");
-        NtSIT=(NTSETINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
-        if(!NtSIT)
-            return STATUS_UNSUCCESSFUL;
-    }
     return NtSIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
 }
 
@@ -240,22 +183,99 @@ NTSTATUS NTAPI NtSetInformationProcess(
     IN PVOID ProcessInformation,
     IN ULONG ProcessInformationLength)
 {
-    typedef NTSTATUS (NTAPI *NTSETINFORMATIONPROCESS) (
-        IN HANDLE ProcessHandle,
-        IN PROCESSINFOCLASS ProcessInformationClass,
-        IN PVOID ProcessInformation,
-        IN ULONG ProcessInformationLength
-    );
-    static NTSETINFORMATIONPROCESS NtSIP=0;
+    return NtSIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
+}
+
+
+bool UndocumentedInit()
+{
+    //Exported kernel functions after this
+    if(!ZwQIP)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"ZwQueryInformationProcess");
+        ZwQIP=(ZWQUERYINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
+        if(!ZwQIP)
+            return false;
+    }
+    if(!ZwQIT)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"ZwQueryInformationThread");
+        ZwQIT=(ZWQUERYINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
+        if(!ZwQIT)
+            return false;
+    }
+    if(!ZwQSI)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"ZwQuerySystemInformation");
+        ZwQSI=(ZWQUERYSYSTEMINFORMATION)MmGetSystemRoutineAddress(&routineName);
+        if(!ZwQSI)
+            return false;
+    }
+    if(!NtQSI)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtQuerySystemInformation");
+        NtQSI=(NTQUERYSYSTEMINFORMATION)MmGetSystemRoutineAddress(&routineName);
+        if(!NtQSI)
+            return false;
+    }
+    if(!NtC)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtClose");
+        NtC=(NTCLOSE)MmGetSystemRoutineAddress(&routineName);
+        if(!NtC)
+            return false;
+    }
+    if(!NtDO)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtDuplicateObject");
+        NtDO=(NTDUPLICATEOBJECT)MmGetSystemRoutineAddress(&routineName);
+        if(!NtDO)
+            return false;
+    }
+    if(!KeRUE)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"KeRaiseUserException");
+        KeRUE=(KERAISEUSEREXCEPTION)MmGetSystemRoutineAddress(&routineName);
+        if(!KeRUE)
+            return false;
+    }
+    if(!NtSIT)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"NtSetInformationThread");
+        NtSIT=(NTSETINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
+        if(!NtSIT)
+            return false;
+    }
     if(!NtSIP)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtSetInformationProcess");
         NtSIP=(NTSETINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
         if(!NtSIP)
-            return STATUS_UNSUCCESSFUL;
+            return false;
     }
-    return NtSIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength);
+    //SSDT-only functions after this
+    if(!NtQO)
+    {
+        NtQO=(NTQUERYOBJECT)SSDTgpa(L"NtQueryObject");
+        if(!NtQO)
+            return false;
+    }
+    if(!NtSCT)
+    {
+        NtSCT=(NTSETCONTEXTTHREAD)SSDTgpa(L"NtSetContextThread");
+        if(!NtSCT)
+            return false;
+    }
+    return true;
 }
 
 //Based on: http://alter.org.ua/docs/nt_kernel/procaddr

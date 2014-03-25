@@ -38,16 +38,12 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
                 return status;
         }
     }
-    SSDTunhook(hNtSetInformationThread);
-    NTSTATUS ret=NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
-    SSDThook(hNtSetInformationThread);
-    return ret;
+    return NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
 }
 
 static NTSTATUS NTAPI HookNtClose(
     IN HANDLE Handle)
 {
-    SSDTunhook(hNtClose);
     ULONG pid=(ULONG)PsGetCurrentProcessId();
     NTSTATUS ret;
     if(HiderIsHidden(pid, HideNtClose))
@@ -73,7 +69,6 @@ static NTSTATUS NTAPI HookNtClose(
     }
     else
         ret=NtClose(Handle);
-    SSDThook(hNtClose);
     return ret;
 }
 
@@ -83,7 +78,6 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    SSDTunhook(hNtQuerySystemInformation);
     NTSTATUS ret=NtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && SystemInformation)
     {
@@ -104,7 +98,6 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
             }
         }
     }
-    SSDThook(hNtQuerySystemInformation);
     return ret;
 }
 
@@ -115,7 +108,6 @@ static NTSTATUS NTAPI HookNtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    SSDTunhook(hNtQueryObject);
     NTSTATUS ret=NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
@@ -159,7 +151,6 @@ static NTSTATUS NTAPI HookNtQueryObject(
             }
         }
     }
-    SSDThook(hNtQueryObject);
     return ret;
 }
 
@@ -170,7 +161,6 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength)
 {
-    SSDTunhook(hNtQueryInformationProcess);
     NTSTATUS ret=NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ProcessInformation)
     {
@@ -202,7 +192,6 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             }
         }
     }
-    SSDThook(hNtQueryInformationProcess);
     return ret;
 }
 
@@ -215,12 +204,11 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     DWORD OriginalContextFlags;
     if(Context && IsHidden)
     {
+        Log("[TITANHIDE] NtSetContextThread by %d\n", pid);
         OriginalContextFlags=Context->ContextFlags;
         Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
     }
-    SSDTunhook(hNtSetContextThread);
     NTSTATUS ret=NtSetContextThread(ThreadHandle, Context);
-    SSDThook(hNtSetContextThread);
     if(Context && IsHidden)
         Context->ContextFlags=OriginalContextFlags;
     return ret;
