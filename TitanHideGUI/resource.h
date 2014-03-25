@@ -14,3 +14,4 @@
 #define IDC_BTN_HIDE                            1019
 #define IDC_BTN_UNHIDEALL                       1021
 #define IDC_CHK_SYSTEMDEBUGGERINFORMATION       1022
+#define IDC_PROTECT_DRX                         40001
