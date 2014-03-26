@@ -13,6 +13,7 @@ static HOOK hNtQuerySystemInformation=0;
 static HOOK hNtClose=0;
 static HOOK hNtSetInformationThread=0;
 static HOOK hNtSetContextThread=0;
+static HOOK hNtContinue=0;
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -216,6 +217,25 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     return ret;
 }
 
+static NTSTATUS NTAPI HookNtContinue(
+    IN PCONTEXT Context,
+    BOOLEAN RaiseAlert)
+{
+    ULONG pid=(ULONG)PsGetCurrentProcessId();
+    bool IsHidden=HiderIsHidden(pid, HideNtContinue);
+    DWORD OriginalContextFlags;
+    if(Context && IsHidden)
+    {
+        Log("[TITANHIDE] HideNtContinue by %d\n", pid);
+        OriginalContextFlags=Context->ContextFlags;
+        Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
+    }
+    NTSTATUS ret=Undocumented::NtContinue(Context, FALSE);
+    if(Context && IsHidden)
+        Context->ContextFlags=OriginalContextFlags;
+    return ret;
+}
+
 int HooksInit()
 {
     int hook_count=0;
@@ -237,6 +257,9 @@ int HooksInit()
     hNtSetContextThread=SSDThook(L"NtSetContextThread", (void*)HookNtSetContextThread);
     if(hNtSetContextThread)
         hook_count++;
+    hNtContinue=SSDThook(L"NtContinue", (void*)HookNtContinue);
+    if(hNtContinue)
+        hook_count++;
     return hook_count;
 }
 
@@ -248,4 +271,5 @@ void HooksFree()
     SSDTunhook(hNtSetInformationThread, true);
     SSDTunhook(hNtClose, true);
     SSDTunhook(hNtSetContextThread, true);
+    SSDTunhook(hNtContinue, true);
 }

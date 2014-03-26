@@ -49,6 +49,11 @@ typedef NTSTATUS (NTAPI *NTSETCONTEXTTHREAD) (
     IN PCONTEXT Context
 );
 
+typedef NTSTATUS (NTAPI *NTCONTINUE) (
+    IN PCONTEXT Context,
+    BOOLEAN RaiseAlert
+);
+
 typedef NTSTATUS (NTAPI *NTDUPLICATEOBJECT) (
     IN HANDLE SourceProcessHandle,
     IN HANDLE SourceHandle,
@@ -92,6 +97,7 @@ static ZWQUERYSYSTEMINFORMATION ZwQSI=0;
 static NTQUERYSYSTEMINFORMATION NtQSI=0;
 static NTCLOSE NtC=0;
 static NTSETCONTEXTTHREAD NtSCT=0;
+static NTCONTINUE NtCon=0;
 static NTDUPLICATEOBJECT NtDO=0;
 static KERAISEUSEREXCEPTION KeRUE=0;
 static NTSETINFORMATIONTHREAD NtSIT=0;
@@ -158,6 +164,14 @@ NTSTATUS NTAPI Undocumented::NtSetContextThread(
 {
     return NtSCT(ThreadHandle, Context);
 }
+
+NTSTATUS NTAPI Undocumented::NtContinue(
+    IN PCONTEXT Context,
+    BOOLEAN RaiseAlert)
+{
+    return NtCon(Context, FALSE);
+}
+
 
 NTSTATUS NTAPI Undocumented::NtDuplicateObject(
     IN HANDLE SourceProcessHandle,
@@ -299,6 +313,12 @@ bool Undocumented::UndocumentedInit()
     {
         NtSCT=(NTSETCONTEXTTHREAD)SSDTgpa(L"NtSetContextThread");
         if(!NtSCT)
+            return false;
+    }
+    if(!NtCon)
+    {
+        NtCon=(NTCONTINUE)SSDTgpa(L"NtContinue");
+        if(!NtCon)
             return false;
     }
     return true;

@@ -76,6 +76,10 @@ public:
         IN HANDLE ThreadHandle,
         IN PCONTEXT Context);
 
+    static NTSTATUS NTAPI NtContinue(
+        IN PCONTEXT Context,
+        BOOLEAN RaiseAlert);
+
     static NTSTATUS NTAPI NtDuplicateObject(
         IN HANDLE SourceProcessHandle,
         IN HANDLE SourceHandle,
