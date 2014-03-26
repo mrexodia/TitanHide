@@ -223,12 +223,11 @@ static NTSTATUS NTAPI HookNtContinue(
 {
     ULONG pid=(ULONG)PsGetCurrentProcessId();
     bool IsHidden=HiderIsHidden(pid, HideNtContinue);
-    DWORD OriginalContextFlags;
     if(Context && IsHidden)
     {
         Log("[TITANHIDE] NtContinue by %d\n", pid);
-        OriginalContextFlags=Context->ContextFlags;
-        Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
+        //OriginalContextFlags=Context->ContextFlags;
+        //Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
     }
     return Undocumented::NtContinue(Context, RaiseAlert);
 }
