@@ -221,6 +221,7 @@ static NTSTATUS NTAPI HookNtContinue(
     IN PCONTEXT Context,
     BOOLEAN RaiseAlert)
 {
+    SSDTunhook(hNtContinue);
     ULONG pid=(ULONG)PsGetCurrentProcessId();
     bool IsHidden=HiderIsHidden(pid, HideNtContinue);
     DWORD OriginalContextFlags;
@@ -233,6 +234,7 @@ static NTSTATUS NTAPI HookNtContinue(
     NTSTATUS ret=Undocumented::NtContinue(Context, RaiseAlert);
     if(Context && IsHidden)
         Context->ContextFlags=OriginalContextFlags;
+    SSDThook(hNtContinue);
     return ret;
 }
 

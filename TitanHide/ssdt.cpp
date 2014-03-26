@@ -148,7 +148,6 @@ static int SSDTgetOffset(const wchar_t* apiname)
 #else
                 offsetNtSetContextThread=0x014f;
 #endif
-
                 Log("SP0 ");
             }
             break;
