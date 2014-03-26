@@ -20,7 +20,8 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     IN PVOID ThreadInformation,
     IN ULONG ThreadInformationLength)
 {
-    if(ThreadInformationClass==ThreadHideFromDebugger)
+    //Bug found by Aguila, thanks!
+    if(ThreadInformationClass==ThreadHideFromDebugger && !ThreadInformation && !ThreadInformationLength)
     {
         ULONG pid=(ULONG)PsGetCurrentProcessId();
         if(HiderIsHidden(pid, HideThreadHideFromDebugger))
