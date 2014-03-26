@@ -15,4 +15,3 @@
 #define IDC_CHK_PROCESSDEBUGPORT                1009
 #define IDC_CHK_DEBUGOBJECT                     1010
 #define IDC_CHK_SYSTEMDEBUGGERINFORMATION       1011
-#define IDC_CHK_NTCONTINUE                      1012

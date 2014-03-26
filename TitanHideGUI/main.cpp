@@ -25,8 +25,6 @@ static ULONG GetTypeDword(HWND hwndDlg)
         Option|=(ULONG)HideThreadHideFromDebugger;
     if(IsDlgButtonChecked(hwndDlg, IDC_CHK_NTSETCONTEXTTHREAD))
         Option|=(ULONG)HideNtSetContextThread;
-    if(IsDlgButtonChecked(hwndDlg, IDC_CHK_NTCONTINUE))
-        Option|=(ULONG)HideNtContinue;
     return Option;
 }
 
