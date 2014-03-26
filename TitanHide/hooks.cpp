@@ -217,17 +217,6 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     return ret;
 }
 
-static NTSTATUS NTAPI HookNtContinue(
-    IN PCONTEXT Context,
-    BOOLEAN RaiseAlert)
-{
-    typedef NTSTATUS (NTAPI *NTCONTINUE) (
-        IN PCONTEXT Context,
-        BOOLEAN RaiseAlert
-    );
-    return ((NTCONTINUE)hNtContinue->SSDTaddress)(Context, RaiseAlert);
-}
-
 int HooksInit()
 {
     int hook_count=0;
@@ -249,9 +238,6 @@ int HooksInit()
     hNtSetContextThread=SSDThook(L"NtSetContextThread", (void*)HookNtSetContextThread);
     if(hNtSetContextThread)
         hook_count++;
-    hNtContinue=SSDThook(L"NtContinue", (void*)HookNtContinue);
-    if(hNtContinue)
-        hook_count++;
     return hook_count;
 }
 
@@ -263,5 +249,4 @@ void HooksFree()
     SSDTunhook(hNtSetInformationThread, true);
     SSDTunhook(hNtClose, true);
     SSDTunhook(hNtSetContextThread, true);
-    SSDTunhook(hNtContinue, true);
 }
