@@ -226,11 +226,11 @@ static NTSTATUS NTAPI HookNtContinue(
     DWORD OriginalContextFlags;
     if(Context && IsHidden)
     {
-        Log("[TITANHIDE] HideNtContinue by %d\n", pid);
+        Log("[TITANHIDE] NtContinue by %d\n", pid);
         OriginalContextFlags=Context->ContextFlags;
         Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
     }
-    NTSTATUS ret=Undocumented::NtContinue(Context, FALSE);
+    NTSTATUS ret=Undocumented::NtContinue(Context, RaiseAlert);
     if(Context && IsHidden)
         Context->ContextFlags=OriginalContextFlags;
     return ret;

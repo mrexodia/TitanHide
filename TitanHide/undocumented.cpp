@@ -95,7 +95,7 @@ static ZWQUERYINFORMATIONTHREAD ZwQIT=0;
 static NTQUERYOBJECT NtQO=0;
 static ZWQUERYSYSTEMINFORMATION ZwQSI=0;
 static NTQUERYSYSTEMINFORMATION NtQSI=0;
-static NTCLOSE NtC=0;
+static NTCLOSE NtClo=0;
 static NTSETCONTEXTTHREAD NtSCT=0;
 static NTCONTINUE NtCon=0;
 static NTDUPLICATEOBJECT NtDO=0;
@@ -155,7 +155,7 @@ NTSTATUS NTAPI Undocumented::NtQuerySystemInformation(
 NTSTATUS NTAPI Undocumented::NtClose(
     IN HANDLE Handle)
 {
-    return NtC(Handle);
+    return NtClo(Handle);
 }
 
 NTSTATUS NTAPI Undocumented::NtSetContextThread(
@@ -169,9 +169,8 @@ NTSTATUS NTAPI Undocumented::NtContinue(
     IN PCONTEXT Context,
     BOOLEAN RaiseAlert)
 {
-    return NtCon(Context, FALSE);
+    return NtCon(Context, RaiseAlert);
 }
-
 
 NTSTATUS NTAPI Undocumented::NtDuplicateObject(
     IN HANDLE SourceProcessHandle,
@@ -254,12 +253,12 @@ bool Undocumented::UndocumentedInit()
         if(!NtQSI)
             return false;
     }
-    if(!NtC)
+    if(!NtClo)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtClose");
-        NtC=(NTCLOSE)MmGetSystemRoutineAddress(&routineName);
-        if(!NtC)
+        NtClo=(NTCLOSE)MmGetSystemRoutineAddress(&routineName);
+        if(!NtClo)
             return false;
     }
     if(!NtDO)
