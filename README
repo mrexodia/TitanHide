@@ -1,8 +1,8 @@
 Overview:
 
 TitanHide is a driver intended to hide debuggers from certain processes.
-The driver hooks various Nt* kernel functions (using inline hooks at the
-moment) and modifies the return values of the original functions.
+The driver hooks various Nt* kernel functions (using SSDT table hooks)
+and modifies the return values of the original functions.
 To hide a process, you must pass a simple structure with a ProcessID and
 the hiding option(s) to enable, to the driver. The internal API is
 designed to add hooks with little effort, which means adding features
