@@ -237,7 +237,7 @@ bool CheckObjectList()
         VirtualFree(pMemory, 0, MEM_RELEASE);
         return false;
     }
-    __except(1)
+    __except(EXCEPTION_EXECUTE_HANDLER)
     {
         puts("exception!");
         return false;

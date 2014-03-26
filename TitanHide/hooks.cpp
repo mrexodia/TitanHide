@@ -221,15 +221,11 @@ static NTSTATUS NTAPI HookNtContinue(
     IN PCONTEXT Context,
     BOOLEAN RaiseAlert)
 {
-    ULONG pid=(ULONG)PsGetCurrentProcessId();
-    bool IsHidden=HiderIsHidden(pid, HideNtContinue);
-    if(Context && IsHidden)
-    {
-        Log("[TITANHIDE] NtContinue by %d\n", pid);
-        //OriginalContextFlags=Context->ContextFlags;
-        //Context->ContextFlags&=~CONTEXT_DEBUG_REGISTERS;
-    }
-    return Undocumented::NtContinue(Context, RaiseAlert);
+    typedef NTSTATUS (NTAPI *NTCONTINUE) (
+        IN PCONTEXT Context,
+        BOOLEAN RaiseAlert
+    );
+    return ((NTCONTINUE)hNtContinue->SSDTaddress)(Context, RaiseAlert);
 }
 
 int HooksInit()

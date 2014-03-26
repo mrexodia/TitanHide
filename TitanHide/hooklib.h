@@ -26,6 +26,7 @@ struct hookstruct
     int SSDToffset;
     ULONG SSDTold;
     ULONG SSDTnew;
+    ULONG_PTR SSDTaddress;
 };
 
 typedef hookstruct* HOOK;

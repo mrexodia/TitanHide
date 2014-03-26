@@ -551,6 +551,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     hHook->SSDToffset=apiOffset;
     hHook->SSDTold=oldValue;
     hHook->SSDTnew=newValue;
+    hHook->SSDTaddress=(oldValue>>4)+SSDTbase;
 
 #else
     /*
@@ -565,6 +566,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
     hHook->SSDToffset=apiOffset;
     hHook->SSDTold=oldValue;
     hHook->SSDTnew=newValue;
+    hHook->SSDTaddress=oldValue;
 
 #endif
 
