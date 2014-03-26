@@ -13,7 +13,6 @@ static HOOK hNtQuerySystemInformation=0;
 static HOOK hNtClose=0;
 static HOOK hNtSetInformationThread=0;
 static HOOK hNtSetContextThread=0;
-static HOOK hNtContinue=0;
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
