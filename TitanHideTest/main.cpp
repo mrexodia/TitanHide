@@ -205,7 +205,7 @@ bool CheckObjectList()
             if(pObjectTypeInfo->TypeName.Length==DebugObjectLength && !memcmp(pObjectTypeInfo->TypeName.Buffer, DebugObject, DebugObjectLength)) //UNICODE_STRING is not NULL-terminated (pointed to by deepzero!)
             {
                 // Are there any objects?
-                if (pObjectTypeInfo->TotalNumberOfObjects)
+                if(pObjectTypeInfo->TotalNumberOfObjects || pObjectTypeInfo->TotalNumberOfHandles)
                 {
                     VirtualFree(pMemory, 0, MEM_RELEASE);
                     return true;

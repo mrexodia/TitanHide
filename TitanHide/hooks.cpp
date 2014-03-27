@@ -124,6 +124,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
                 {
                     Log("[TITANHIDE] DebugObject by %d\n", pid);
                     type->TotalNumberOfObjects=0;
+                    type->TotalNumberOfHandles=0;
                 }
             }
         }
@@ -141,6 +142,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
                     {
                         Log("[TITANHIDE] DebugObject by %d\n", pid);
                         pObjectTypeInfo->TotalNumberOfObjects=0;
+                        //Bug found by Aguila, thanks!
+                        pObjectTypeInfo->TotalNumberOfHandles=0;
                     }
                 }
                 pObjInfoLocation=(unsigned char*)pObjectTypeInfo->TypeName.Buffer;
