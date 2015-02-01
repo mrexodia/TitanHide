@@ -11,7 +11,7 @@
 bool CheckProcessDebugFlags()
 {
 	// Much easier in ASM but C/C++ looks so much better
-	typedef int (WINAPI *pNtQueryInformationProcess)
+	typedef int (WINAPI* pNtQueryInformationProcess)
 		(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 	DWORD NoDebugInherit = 0;
@@ -42,7 +42,7 @@ bool CheckProcessDebugFlags()
 bool CheckProcessDebugPort()
 {
 	// Much easier in ASM but C/C++ looks so much better
-	typedef int (WINAPI *pNtQueryInformationProcess)
+	typedef int (WINAPI* pNtQueryInformationProcess)
 		(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 	DWORD_PTR DebugPort = 0;
@@ -73,7 +73,7 @@ bool CheckProcessDebugPort()
 bool CheckProcessDebugObjectHandle()
 {
 	// Much easier in ASM but C/C++ looks so much better
-	typedef int (WINAPI *pNtQueryInformationProcess)
+	typedef int (WINAPI* pNtQueryInformationProcess)
 		(HANDLE, UINT, PVOID, ULONG, PULONG);
 
 	DWORD_PTR DebugHandle = 0;
@@ -109,7 +109,7 @@ bool CheckProcessDebugObjectHandle()
 
 bool HideFromDebugger()
 {
-	typedef NTSTATUS(NTAPI *NT_SET_INFORMATION_THREAD) (
+	typedef NTSTATUS(NTAPI* NT_SET_INFORMATION_THREAD)(
 		IN HANDLE ThreadHandle,
 		IN ULONG ThreadInformationClass,
 		IN PVOID ThreadInformation,
@@ -155,10 +155,10 @@ bool CheckObjectList()
 {
 	__try
 	{
-		typedef NTSTATUS(NTAPI *pNtQueryObject)(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+		typedef NTSTATUS(NTAPI* pNtQueryObject)(HANDLE, OBJECT_INFORMATION_CLASS, PVOID, ULONG, PULONG);
 
 		POBJECT_ALL_INFORMATION pObjectAllInfo = NULL;
-		void *pMemory = NULL;
+		void* pMemory = NULL;
 		NTSTATUS Status;
 		ULONG Size = 0;
 
@@ -191,7 +191,7 @@ bool CheckObjectList()
 		// We have the information we need
 		pObjectAllInfo = (POBJECT_ALL_INFORMATION)pMemory;
 
-		unsigned char *pObjInfoLocation = (unsigned char*)pObjectAllInfo->ObjectTypeInformation;
+		unsigned char* pObjInfoLocation = (unsigned char*)pObjectAllInfo->ObjectTypeInformation;
 
 		ULONG NumObjects = pObjectAllInfo->NumberOfObjects;
 
@@ -201,7 +201,7 @@ bool CheckObjectList()
 
 			// The debug object will always be present
 			wchar_t DebugObject[] = L"DebugObject";
-			int DebugObjectLength = lstrlenW(DebugObject)*sizeof(wchar_t);
+			int DebugObjectLength = lstrlenW(DebugObject) * sizeof(wchar_t);
 			if (pObjectTypeInfo->TypeName.Length == DebugObjectLength && !memcmp(pObjectTypeInfo->TypeName.Buffer, DebugObject, DebugObjectLength)) //UNICODE_STRING is not NULL-terminated (pointed to by deepzero!)
 			{
 				// Are there any objects?
@@ -225,7 +225,7 @@ bool CheckObjectList()
 			pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
 
 			// Skip the trailing null and alignment bytes
-			ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-(int)sizeof(void*);
+			ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation) & -(int)sizeof(void*);
 
 			// Not pretty but it works
 			if ((ULONG_PTR)tmp != (ULONG_PTR)pObjInfoLocation)
@@ -313,7 +313,7 @@ bool NTAPI NtSetInformationProcess(
 	IN ULONG ProcessInformationLength
 	)
 {
-	typedef NTSTATUS(NTAPI *NTSETINFORMATIONPROCESS)
+	typedef NTSTATUS(NTAPI* NTSETINFORMATIONPROCESS)
 		(
 		IN HANDLE ProcessHandle,
 		IN PROCESSINFOCLASS ProcessInformationClass,
@@ -338,7 +338,7 @@ bool CheckSystemDebugger()
 		BOOLEAN DebuggerNotPresent;
 	} SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
 	enum SYSTEM_INFORMATION_CLASS { SystemKernelDebuggerInformation = 35 };
-	typedef NTSTATUS(__stdcall *ZW_QUERY_SYSTEM_INFORMATION)(IN SYSTEM_INFORMATION_CLASS SystemInformationClass, IN OUT PVOID SystemInformation, IN ULONG SystemInformationLength, OUT PULONG ReturnLength);
+	typedef NTSTATUS(__stdcall * ZW_QUERY_SYSTEM_INFORMATION)(IN SYSTEM_INFORMATION_CLASS SystemInformationClass, IN OUT PVOID SystemInformation, IN ULONG SystemInformationLength, OUT PULONG ReturnLength);
 	ZW_QUERY_SYSTEM_INFORMATION ZwQuerySystemInformation;
 	SYSTEM_KERNEL_DEBUGGER_INFORMATION Info;
 	ZwQuerySystemInformation = (ZW_QUERY_SYSTEM_INFORMATION)GetProcAddress(GetModuleHandleA("ntdll.dll"), "ZwQuerySystemInformation");

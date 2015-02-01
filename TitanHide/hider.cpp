@@ -32,7 +32,7 @@ static void EntryDel(int EntryIndex)
 			return;
 		}
 		if (!EntryIndex)
-			RtlCopyMemory(&HideEntries[0], &HideEntries[1], NewTotalHideEntries*sizeof(HIDE_ENTRY));
+			RtlCopyMemory(&HideEntries[0], &HideEntries[1], NewTotalHideEntries * sizeof(HIDE_ENTRY));
 		else
 		{
 			RtlCopyMemory(&HideEntries[EntryIndex], &HideEntries[EntryIndex + 1], (NewTotalHideEntries - EntryIndex)*sizeof(HIDE_ENTRY));
@@ -82,7 +82,7 @@ static void EntryUnset(int EntryIndex, ULONG Type)
 //usable functions
 bool HiderProcessData(PVOID Buffer, ULONG Size)
 {
-	if (Size%sizeof(HIDE_INFO))
+	if (Size % sizeof(HIDE_INFO))
 		return false;
 	int HideInfoCount = Size / sizeof(HIDE_INFO);
 	HIDE_INFO* HideInfo = (HIDE_INFO*)Buffer;

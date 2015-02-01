@@ -5,7 +5,7 @@
 
 //Based on: http://leguanyuan.blogspot.nl/2013/09/x64-inline-hook-zwcreatesection.html
 
-static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED *Destination, IN CONST VOID UNALIGNED *Source, IN SIZE_T Length)
+static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED* Destination, IN CONST VOID UNALIGNED* Source, IN SIZE_T Length)
 {
 	//Change memory properties.
 	PMDL g_pmdl = IoAllocateMdl(Destination, sizeof(opcode), 0, 0, NULL);
