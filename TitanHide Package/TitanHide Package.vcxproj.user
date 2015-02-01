@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|x64'">
+    <EnableDeployment>True</EnableDeployment>
+    <RemoveDriver>True</RemoveDriver>
+    <InstallMode>DriverTest</InstallMode>
+    <HardwareIdString />
+    <CommandLine />
+    <ScriptPath>C:\Program Files (x86)\Windows Kits\8.1\Testing\Tests\Utilities\DefaultDriverPackageInstallationTask.dll</ScriptPath>
+    <DbgengRemoteMachineName>PatchGuard</DbgengRemoteMachineName>
+    <DbgengKernelMachineName>PatchGuard</DbgengKernelMachineName>
+    <DeployFiles />
+    <ScriptName>Microsoft.DriverKit.DefaultDriverPackageInstallationClass.PerformDefaultDriverPackageInstallation</ScriptName>
+    <ScriptDeviceQuery />
+    <DebugDeployment>False</DebugDeployment>
+  </PropertyGroup>
+</Project>
