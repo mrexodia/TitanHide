@@ -165,9 +165,10 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 	IN ULONG ProcessInformationLength,
 	OUT PULONG ReturnLength)
 {
-	SSDTunhook(hNtQueryInformationProcess);
 	NTSTATUS ret = Undocumented::NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
-	if (NT_SUCCESS(ret) && ProcessInformation)
+	if (NT_SUCCESS(ret) &&
+		ProcessInformation &&
+		ProcessInformationClass != ProcessBasicInformation) //prevent stack overflow
 	{
 		ULONG pid = GetProcessIDFromProcessHandle(ProcessHandle);
 
@@ -197,7 +198,6 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 			}
 		}
 	}
-	SSDThook(hNtQueryInformationProcess);
 	return ret;
 }
 
