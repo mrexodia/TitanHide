@@ -207,7 +207,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 {
     ULONG pid=(ULONG)PsGetCurrentProcessId();
     bool IsHidden=HiderIsHidden(pid, HideNtSetContextThread);
-    DWORD OriginalContextFlags;
+    ULONG OriginalContextFlags = 0;
     if(Context && IsHidden)
     {
         Log("[TITANHIDE] NtSetContextThread by %d\n", pid);

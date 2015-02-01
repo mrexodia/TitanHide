@@ -1,6 +1,5 @@
 #include "eprocess.h"
 #include "log.h"
-#include <windef.h>
 
 static int GetDebugPortOffset()
 {

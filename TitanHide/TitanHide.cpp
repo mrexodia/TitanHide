@@ -16,6 +16,7 @@ static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 
 static NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
+	UNREFERENCED_PARAMETER(DeviceObject);
     Irp->IoStatus.Status=STATUS_SUCCESS;
     Irp->IoStatus.Information=0;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
@@ -24,6 +25,7 @@ static NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
 static NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
+	UNREFERENCED_PARAMETER(DeviceObject);
     Irp->IoStatus.Status=STATUS_NOT_SUPPORTED;
     Irp->IoStatus.Information=0;
     IoCompleteRequest(Irp, IO_NO_INCREMENT);
@@ -32,6 +34,7 @@ static NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp
 
 static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
+	UNREFERENCED_PARAMETER(DeviceObject);
     NTSTATUS RetStatus=STATUS_SUCCESS;
     PIO_STACK_LOCATION pIoStackIrp=IoGetCurrentIrpStackLocation(Irp);
     if(pIoStackIrp)
@@ -61,6 +64,7 @@ static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 
 extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING  RegistryPath)
 {
+	UNREFERENCED_PARAMETER(RegistryPath);
     PDEVICE_OBJECT DeviceObject=NULL;
     NTSTATUS status;
 

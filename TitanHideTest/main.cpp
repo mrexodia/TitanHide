@@ -372,7 +372,7 @@ bool CheckNtClose()
 int main(int argc, char* argv[])
 {
     char title[256]="";
-    sprintf(title, "pid: %d", (int)GetCurrentProcessId());
+    sprintf_s(title, "pid: %d", (int)GetCurrentProcessId());
     SetConsoleTitleA(title);
     while(1)
     {

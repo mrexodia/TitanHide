@@ -1,9 +1,9 @@
 #include "pe.h"
-#include <winnt.h>
+#include <ntimage.h>
 
-static DWORD RvaToSection(IMAGE_NT_HEADERS* pNtHdr, DWORD dwRVA)
+static ULONG RvaToSection(IMAGE_NT_HEADERS* pNtHdr, ULONG dwRVA)
 {
-    WORD wSections;
+    USHORT wSections;
     PIMAGE_SECTION_HEADER pSectionHdr;
     pSectionHdr=IMAGE_FIRST_SECTION(pNtHdr);
     wSections=pNtHdr->FileHeader.NumberOfSections;
@@ -15,7 +15,7 @@ static DWORD RvaToSection(IMAGE_NT_HEADERS* pNtHdr, DWORD dwRVA)
                 return i;
             }
     }
-    return -1;
+    return (ULONG)-1;
 }
 
 PVOID PeGetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr)

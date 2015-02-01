@@ -420,7 +420,7 @@ PVOID SSDTgpa(const wchar_t* apiname)
         Log("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
-    int readOffset=SSDTgetOffset(apiname);
+    ULONG readOffset=SSDTgetOffset(apiname);
     if(readOffset==-1)
         return 0;
     if(readOffset>=SSDT->NumberOfServices)
@@ -454,7 +454,8 @@ static void InterlockedSet(LONG* Destination, LONG Source)
     IoFreeMdl(g_pmdl);
 }
 
-static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
+#ifdef _WIN64
+static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, ULONG CaveSize)
 {
     unsigned char* Code=(unsigned char*)CodeStart;
 
@@ -469,6 +470,7 @@ static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, int CaveSize)
     }
     return 0;
 }
+#endif //_WIN64
 
 HOOK SSDThook(const wchar_t* apiname, void* newfunc)
 {
@@ -484,7 +486,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
         Log("[TITANHIDE] ServiceTable not found...\n");
         return 0;
     }
-    int apiOffset=SSDTgetOffset(apiname);
+    ULONG apiOffset=SSDTgetOffset(apiname);
     if(apiOffset==-1)
         return 0;
     if(apiOffset>=SSDT->NumberOfServices)
@@ -616,6 +618,8 @@ void SSDTunhook(HOOK hHook, bool free)
 #ifdef _WIN64
     if(free)
         unhook(hHook, true);
+#else
+	UNREFERENCED_PARAMETER(free);
 #endif
 }
 

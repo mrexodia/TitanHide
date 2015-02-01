@@ -10,7 +10,6 @@ extern "C"
 {
 #endif
 
-#include "VisualDDKHelpers.h"
 #include <ntddk.h>
 #include <ntddstor.h>
 #include <mountdev.h>
