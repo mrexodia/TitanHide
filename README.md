@@ -41,8 +41,17 @@ TitanHide is a driver intended to hide debuggers from certain processes. The dri
 3. Run the command `sc start TitanHide` to start the TitanHide service.
 4. Run the command `sc query TitanHide` to check if TitanHide is running.
 
+#Testsigning & PatchGuard
+
+A simple way to 'bypass' PatchGuard on x64 systems is by enabling a local kernel debugger. This can be done by executing the following commands in an Administrator Console:
+
+```
+bcdedit /set testsigning on
+bcdedit /debug on
+bcdedit /dbgsettings local
+```
+
 #Remarks
 
-- When on x64, you have to disable PatchGuard and driver signature enforcement yourself. Google is your friend :)
 - When using x64_dbg, you can use the TitanHide plugin (available on the download page).
 - When using EsetNod32 AV, disable "Realtime File Protection", to prevent a BSOD when starting TitanHide. You can re-enable it right afterwards
