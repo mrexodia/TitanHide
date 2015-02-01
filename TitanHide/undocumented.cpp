@@ -342,6 +342,7 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
 		CHAR ImageName[256];
 	} SYSTEM_MODULE_ENTRY, *PSYSTEM_MODULE_ENTRY;
 
+#pragma warning(disable:4200)
 	typedef struct _SYSTEM_MODULE_INFORMATION
 	{
 		ULONG Count;
@@ -383,9 +384,8 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
 	if (NT_SUCCESS(status))
 	{
 		PSYSTEM_MODULE_ENTRY pSysModuleEntry = ((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Module;
-		ULONG i;
-		int len = strlen(pModuleName);
-		for (i = 0; i < ((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Count; i++)
+		ULONG len = (ULONG)strlen(pModuleName);
+		for (ULONG i = 0; i < ((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Count; i++)
 		{
 			if (_strnicmp(pSysModuleEntry[i].ImageName + pSysModuleEntry[i].ModuleNameOffset, pModuleName, len) == 0)
 			{

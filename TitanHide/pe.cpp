@@ -22,7 +22,7 @@ PVOID PeGetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr)
 {
 	if ((unsigned char*)ptr < (unsigned char*)lpHeader)
 		return 0;
-	ULONG dwRva = (unsigned char*)ptr - (unsigned char*)lpHeader;
+	ULONG dwRva = (ULONG)((unsigned char*)ptr - (unsigned char*)lpHeader);
 	IMAGE_DOS_HEADER* pdh = (IMAGE_DOS_HEADER*)lpHeader;
 	if (pdh->e_magic != IMAGE_DOS_SIGNATURE)
 		return 0;

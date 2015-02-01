@@ -148,7 +148,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
 				}
 				pObjInfoLocation = (unsigned char*)pObjectTypeInfo->TypeName.Buffer;
 				pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
-				ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-sizeof(void*);
+				ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation)&-(LONG_PTR)sizeof(void*);
 				if ((ULONG_PTR)tmp != (ULONG_PTR)pObjInfoLocation)
 					tmp += sizeof(void*);
 				pObjInfoLocation = ((unsigned char*)tmp);

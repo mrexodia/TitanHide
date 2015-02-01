@@ -40,7 +40,7 @@ void Log(const char* format, ...)
 		size_t cb;
 		ntstatus = RtlStringCbLengthA(msg, sizeof(msg), &cb);
 		if (NT_SUCCESS(ntstatus))
-			ZwWriteFile(handle, NULL, NULL, NULL, &ioStatusBlock, msg, cb, NULL, NULL);
+			ZwWriteFile(handle, NULL, NULL, NULL, &ioStatusBlock, msg, (ULONG)cb, NULL, NULL);
 		ZwClose(handle);
 	}
 }

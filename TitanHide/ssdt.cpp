@@ -527,7 +527,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
 		Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
 		if ((ULONG_PTR)CodeStart < Lowest) //start of the page is out of range (impossible, but whatever)
 		{
-			CodeSize -= Lowest - (ULONG_PTR)CodeStart;
+			CodeSize -= (ULONG)(Lowest - (ULONG_PTR)CodeStart);
 			CodeStart = (PVOID)Lowest;
 			Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
 		}
@@ -546,7 +546,7 @@ HOOK SSDThook(const wchar_t* apiname, void* newfunc)
 	if (!hHook)
 		return 0;
 
-	newValue = (ULONG_PTR)CaveAddress - SSDTbase;
+	newValue = (ULONG)((ULONG_PTR)CaveAddress - SSDTbase);
 	newValue = (newValue << 4) | oldValue & 0xF;
 
 	//update HOOK structure

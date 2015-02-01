@@ -18,7 +18,7 @@ ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
 {
 	PROCESS_BASIC_INFORMATION PBI;
 	if (NT_SUCCESS(Undocumented::ZwQueryInformationProcess(ProcessHandle, ProcessBasicInformation, &PBI, sizeof(PBI), NULL)))
-		return PBI.UniqueProcessId;
+		return (ULONG)PBI.UniqueProcessId;
 	else
 		return 0;
 }
