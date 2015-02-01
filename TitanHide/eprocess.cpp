@@ -109,7 +109,7 @@ static int GetDebugPortOffset()
 #ifdef _WIN64
 			DebugPortOffset = 0x410;
 #else
-			//TODO: add Windows 8.1 x86
+			DebugPortOffset = 0x154;
 #endif
 		}
 	}
