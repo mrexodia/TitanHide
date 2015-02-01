@@ -7,8 +7,8 @@
     <HardwareIdString />
     <CommandLine />
     <ScriptPath>C:\Program Files (x86)\Windows Kits\8.1\Testing\Tests\Utilities\DefaultDriverPackageInstallationTask.dll</ScriptPath>
-    <DbgengRemoteMachineName>PatchGuard</DbgengRemoteMachineName>
-    <DbgengKernelMachineName>PatchGuard</DbgengKernelMachineName>
+    <DbgengRemoteMachineName>TitanHide</DbgengRemoteMachineName>
+    <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
     <DeployFiles />
     <ScriptName>Microsoft.DriverKit.DefaultDriverPackageInstallationClass.PerformDefaultDriverPackageInstallation</ScriptName>
     <ScriptDeviceQuery />
