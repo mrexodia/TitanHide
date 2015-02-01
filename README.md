@@ -25,9 +25,7 @@ TitanHide is a driver intended to hide debuggers from certain processes. The dri
 2. Install the [WDK](https://msdn.microsoft.com/en-us/windows/hardware/gg454513.aspx).
 3. Open `TitanHide.sln` and hit compile!
 
-#Installation
-
-## Method 1
+#Installation Method 1
 
 1. Copy `TitanHide.sys` to `%systemroot%\system32\drivers`.
 2. Start `ServiceManager.exe` (available on the download page).
@@ -36,7 +34,8 @@ TitanHide is a driver intended to hide debuggers from certain processes. The dri
 5. Start the service you just created.
 6. Use `TitanHideGUI.exe` to set hide options for a PID.
 
-## Method 2
+#Installation Method 2
+
 1. Copy `TitanHide.sys` to `%systemroot%\system32\drivers`.
 2. Run the command `sc create TitanHide binPath=%systemroot%\system32\drivers\TitanHide.sys type=kernel` to create the TitanHide service.
 3. Run the command `sc start TitanHide` to start the TitanHide service.
