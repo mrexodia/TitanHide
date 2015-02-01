@@ -6,8 +6,8 @@
 
 struct HIDE_ENTRY
 {
-    ULONG Type;
-    ULONG Pid;
+	ULONG Type;
+	ULONG Pid;
 };
 
 bool HiderProcessData(PVOID Buffer, ULONG Size);

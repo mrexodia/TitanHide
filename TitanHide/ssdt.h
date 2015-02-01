@@ -6,15 +6,15 @@
 
 //structures
 struct SSDTStruct
-{ 
-    PVOID pServiceTable;
-    PVOID pCounterTable;
+{
+	PVOID pServiceTable;
+	PVOID pCounterTable;
 #ifdef _WIN64
-    ULONGLONG NumberOfServices;
+	ULONGLONG NumberOfServices;
 #else
-    ULONG NumberOfServices;
+	ULONG NumberOfServices;
 #endif
-    PCHAR pArgumentTable;
+	PCHAR pArgumentTable;
 };
 
 //functions

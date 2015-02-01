@@ -9,116 +9,116 @@ static UNICODE_STRING Win32Device;
 
 static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
-    IoDeleteSymbolicLink(&Win32Device);
-    IoDeleteDevice(DriverObject->DeviceObject);
-    HooksFree();
+	IoDeleteSymbolicLink(&Win32Device);
+	IoDeleteDevice(DriverObject->DeviceObject);
+	HooksFree();
 }
 
 static NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
-    Irp->IoStatus.Status=STATUS_SUCCESS;
-    Irp->IoStatus.Information=0;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-    return STATUS_SUCCESS;
+	Irp->IoStatus.Status = STATUS_SUCCESS;
+	Irp->IoStatus.Information = 0;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return STATUS_SUCCESS;
 }
 
 static NTSTATUS DriverDefaultHandler(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
-    Irp->IoStatus.Status=STATUS_NOT_SUPPORTED;
-    Irp->IoStatus.Information=0;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-    return Irp->IoStatus.Status;
+	Irp->IoStatus.Status = STATUS_NOT_SUPPORTED;
+	Irp->IoStatus.Information = 0;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return Irp->IoStatus.Status;
 }
 
 static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 {
 	UNREFERENCED_PARAMETER(DeviceObject);
-    NTSTATUS RetStatus=STATUS_SUCCESS;
-    PIO_STACK_LOCATION pIoStackIrp=IoGetCurrentIrpStackLocation(Irp);
-    if(pIoStackIrp)
-    {
-        PVOID pInBuffer=(PVOID)Irp->AssociatedIrp.SystemBuffer;
-        if(pInBuffer)
-        {
-            if(HiderProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
-                Log("[TITANHIDE] HiderProcessData OK!\n");
-            else
-            {
-                Log("[TITANHIDE] HiderProcessData failed...\n");
-                RetStatus=STATUS_UNSUCCESSFUL;
-            }
-        }
-    }
-    else
-    {
-        Log("[TITANHIDE] Invalid IRP stack pointer...\n");
-        RetStatus=STATUS_UNSUCCESSFUL;
-    }
-    Irp->IoStatus.Status=RetStatus;
-    Irp->IoStatus.Information=0;
-    IoCompleteRequest(Irp, IO_NO_INCREMENT);
-    return Irp->IoStatus.Status;
+	NTSTATUS RetStatus = STATUS_SUCCESS;
+	PIO_STACK_LOCATION pIoStackIrp = IoGetCurrentIrpStackLocation(Irp);
+	if (pIoStackIrp)
+	{
+		PVOID pInBuffer = (PVOID)Irp->AssociatedIrp.SystemBuffer;
+		if (pInBuffer)
+		{
+			if (HiderProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
+				Log("[TITANHIDE] HiderProcessData OK!\n");
+			else
+			{
+				Log("[TITANHIDE] HiderProcessData failed...\n");
+				RetStatus = STATUS_UNSUCCESSFUL;
+			}
+		}
+	}
+	else
+	{
+		Log("[TITANHIDE] Invalid IRP stack pointer...\n");
+		RetStatus = STATUS_UNSUCCESSFUL;
+	}
+	Irp->IoStatus.Status = RetStatus;
+	Irp->IoStatus.Information = 0;
+	IoCompleteRequest(Irp, IO_NO_INCREMENT);
+	return Irp->IoStatus.Status;
 }
 
 extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING  RegistryPath)
 {
 	UNREFERENCED_PARAMETER(RegistryPath);
-    PDEVICE_OBJECT DeviceObject=NULL;
-    NTSTATUS status;
+	PDEVICE_OBJECT DeviceObject = NULL;
+	NTSTATUS status;
 
-    //set callback functions
-    DriverObject->DriverUnload=DriverUnload;
-    for (unsigned int i=0; i<=IRP_MJ_MAXIMUM_FUNCTION; i++)
-        DriverObject->MajorFunction[i]=DriverDefaultHandler;
-    DriverObject->MajorFunction[IRP_MJ_CREATE]=DriverCreateClose;
-    DriverObject->MajorFunction[IRP_MJ_CLOSE]=DriverCreateClose;
-    DriverObject->MajorFunction[IRP_MJ_WRITE]=DriverWrite;
+	//set callback functions
+	DriverObject->DriverUnload = DriverUnload;
+	for (unsigned int i = 0; i <= IRP_MJ_MAXIMUM_FUNCTION; i++)
+		DriverObject->MajorFunction[i] = DriverDefaultHandler;
+	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateClose;
+	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateClose;
+	DriverObject->MajorFunction[IRP_MJ_WRITE] = DriverWrite;
 
-    //initialize undocumented APIs
-    if(!Undocumented::UndocumentedInit())
-    {
-        Log("[TITANHIDE] UndocumentedInit() failed...\n");
-        return STATUS_UNSUCCESSFUL;
-    }
-    Log("[TITANHIDE] UndocumentedInit() was successful!\n");
+	//initialize undocumented APIs
+	if (!Undocumented::UndocumentedInit())
+	{
+		Log("[TITANHIDE] UndocumentedInit() failed...\n");
+		return STATUS_UNSUCCESSFUL;
+	}
+	Log("[TITANHIDE] UndocumentedInit() was successful!\n");
 
-    //create io device
-    RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");
-    RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\TitanHide");
-    status=IoCreateDevice(DriverObject,
-                          0,
-                          &DeviceName,
-                          FILE_DEVICE_UNKNOWN,
-                          FILE_DEVICE_SECURE_OPEN,
-                          FALSE,
-                          &DeviceObject);
-    if(!NT_SUCCESS(status))
-    {
-        Log("[TITANHIDE] IoCreateDevice Error...\n");
-        return status;
-    }
-    if(!DeviceObject)
-    {
-        Log("[TITANHIDE] Unexpected I/O Error...\n");
-        return STATUS_UNEXPECTED_IO_ERROR;
-    }
-    Log("[TITANHIDE] Device %.*ws created successfully!\n", DeviceName.Length/sizeof(WCHAR), DeviceName.Buffer);
+	//create io device
+	RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");
+	RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\TitanHide");
+	status = IoCreateDevice(DriverObject,
+		0,
+		&DeviceName,
+		FILE_DEVICE_UNKNOWN,
+		FILE_DEVICE_SECURE_OPEN,
+		FALSE,
+		&DeviceObject);
+	if (!NT_SUCCESS(status))
+	{
+		Log("[TITANHIDE] IoCreateDevice Error...\n");
+		return status;
+	}
+	if (!DeviceObject)
+	{
+		Log("[TITANHIDE] Unexpected I/O Error...\n");
+		return STATUS_UNEXPECTED_IO_ERROR;
+	}
+	Log("[TITANHIDE] Device %.*ws created successfully!\n", DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
 
-    //create symbolic link
-    DeviceObject->Flags|=DO_BUFFERED_IO;
-    DeviceObject->Flags&=(~DO_DEVICE_INITIALIZING);
-    status=IoCreateSymbolicLink(&Win32Device, &DeviceName);
-    if(!NT_SUCCESS(status))
-    {
-        Log("[TITANHIDE] IoCreateSymbolicLink Error...\n");
-        return status;
-    }
-    Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\n", Win32Device.Length/sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length/sizeof(WCHAR), DeviceName.Buffer);
-    
-    //initialize hooking
-    Log("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
+	//create symbolic link
+	DeviceObject->Flags |= DO_BUFFERED_IO;
+	DeviceObject->Flags &= (~DO_DEVICE_INITIALIZING);
+	status = IoCreateSymbolicLink(&Win32Device, &DeviceName);
+	if (!NT_SUCCESS(status))
+	{
+		Log("[TITANHIDE] IoCreateSymbolicLink Error...\n");
+		return status;
+	}
+	Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\n", Win32Device.Length / sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
 
-    return STATUS_SUCCESS;
+	//initialize hooking
+	Log("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
+
+	return STATUS_SUCCESS;
 }

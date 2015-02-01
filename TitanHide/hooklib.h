@@ -7,26 +7,26 @@
 struct opcode
 {
 #ifdef _WIN64
-    unsigned short int mov;
+	unsigned short int mov;
 #else
-    unsigned char mov;
+	unsigned char mov;
 #endif
-    ULONG_PTR addr;
-    unsigned char push;
-    unsigned char ret;
+	ULONG_PTR addr;
+	unsigned char push;
+	unsigned char ret;
 };
 #pragma pack(pop)
 
 struct hookstruct
 {
-    ULONG_PTR addr;
-    opcode hook;
-    unsigned char orig[sizeof(opcode)];
-    //SSDT extension
-    int SSDToffset;
-    ULONG SSDTold;
-    ULONG SSDTnew;
-    ULONG_PTR SSDTaddress;
+	ULONG_PTR addr;
+	opcode hook;
+	unsigned char orig[sizeof(opcode)];
+	//SSDT extension
+	int SSDToffset;
+	ULONG SSDTold;
+	ULONG SSDTnew;
+	ULONG_PTR SSDTaddress;
 };
 
 typedef hookstruct* HOOK;
