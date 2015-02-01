@@ -27,12 +27,12 @@ Test environments:
 
 Installation:
 
-1) Copy TitanHide.sys to %systemroot%\system32\drivers
-2) Start 'ServiceManager.exe' (available on the download page)
-3) Delete the old service (when present)
-4) Install a new service (specify the full path to TitanHide.sys)
-5) Start the service you just created
-6) Use 'TitanHideGUI.exe' to set hide options for a PID
+1. Copy TitanHide.sys to %systemroot%\system32\drivers
+2. Start 'ServiceManager.exe' (available on the download page)
+3. Delete the old service (when present)
+4. Install a new service (specify the full path to TitanHide.sys)
+5. Start the service you just created
+6. Use 'TitanHideGUI.exe' to set hide options for a PID
 
 NOTE1: When on x64, you have to disable PatchGuard and driver signature
        enforcement yourself. Google is your friend :)
