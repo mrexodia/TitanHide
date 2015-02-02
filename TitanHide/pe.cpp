@@ -18,6 +18,75 @@ static ULONG RvaToSection(IMAGE_NT_HEADERS* pNtHdr, ULONG dwRVA)
 	return (ULONG)-1;
 }
 
+static ULONG_PTR RvaToOffset(PIMAGE_NT_HEADERS pnth, ULONG_PTR Rva, ULONG_PTR FileSize)
+{
+	PIMAGE_SECTION_HEADER psh = IMAGE_FIRST_SECTION(pnth);
+	USHORT NumberOfSections = pnth->FileHeader.NumberOfSections;
+	for (int i = 0; i<NumberOfSections; i++)
+	{
+		if (psh->VirtualAddress <= Rva)
+			if ((psh->VirtualAddress + psh->Misc.VirtualSize)>Rva)
+			{
+			Rva -= psh->VirtualAddress;
+			Rva += psh->PointerToRawData;
+			return Rva < FileSize ? Rva : PE_ERROR_VALUE;
+			}
+		psh++;
+	}
+	return PE_ERROR_VALUE;
+}
+
+ULONG_PTR GetExportOffset(const unsigned char* FileData, ULONG_PTR FileSize, const char* ExportName)
+{
+	//Verify DOS Header
+	PIMAGE_DOS_HEADER pdh = (PIMAGE_DOS_HEADER)FileData;
+	if (pdh->e_magic != IMAGE_DOS_SIGNATURE)
+		return PE_ERROR_VALUE;
+
+	//Verify PE Header
+	PIMAGE_NT_HEADERS pnth = (PIMAGE_NT_HEADERS)(FileData + pdh->e_lfanew);
+	if (pnth->Signature != IMAGE_NT_SIGNATURE)
+		return PE_ERROR_VALUE;
+
+	//Verify Export Directory
+	PIMAGE_DATA_DIRECTORY pdd = pnth->OptionalHeader.DataDirectory;
+	ULONG_PTR ExportDirRva = pdd[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+	ULONG_PTR ExportDirSize = pdd[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
+	ULONG_PTR ExportDirOffset = RvaToOffset(pnth, ExportDirRva, FileSize);
+	if (ExportDirOffset == PE_ERROR_VALUE)
+		return PE_ERROR_VALUE;
+
+	//Read Export Directory
+	PIMAGE_EXPORT_DIRECTORY ExportDir = (PIMAGE_EXPORT_DIRECTORY)(FileData + ExportDirOffset);
+	ULONG_PTR NumberOfNames = ExportDir->NumberOfNames;
+	ULONG_PTR AddressOfFunctionsOffset = RvaToOffset(pnth, ExportDir->AddressOfFunctions, FileSize);
+	ULONG_PTR AddressOfNameOrdinalsOffset = RvaToOffset(pnth, ExportDir->AddressOfNameOrdinals, FileSize);
+	ULONG_PTR AddressOfNamesOffset = RvaToOffset(pnth, ExportDir->AddressOfNames, FileSize);
+	if (AddressOfFunctionsOffset == PE_ERROR_VALUE ||
+		AddressOfNameOrdinalsOffset == PE_ERROR_VALUE ||
+		AddressOfNamesOffset == PE_ERROR_VALUE)
+		return PE_ERROR_VALUE;
+	ULONG_PTR* AddressOfFunctions = (ULONG_PTR*)(FileData + AddressOfFunctionsOffset);
+	USHORT* AddressOfNameOrdinals = (USHORT*)(FileData + AddressOfNameOrdinalsOffset);
+	ULONG_PTR* AddressOfNames = (ULONG_PTR*)(FileData + AddressOfNamesOffset);
+
+	//Find Export
+	for (ULONG_PTR i = 0; i < NumberOfNames; i++)
+	{
+		ULONG_PTR CurrentNameOffset = RvaToOffset(pnth, AddressOfNames[i], FileSize);
+		if (CurrentNameOffset == PE_ERROR_VALUE)
+			continue;
+		const char* CurrentName = (const char*)(FileData + CurrentNameOffset);
+		ULONG_PTR CurrentFunctionRva = AddressOfFunctions[AddressOfNameOrdinals[i]];
+		if (CurrentFunctionRva >= ExportDirRva && CurrentFunctionRva < ExportDirRva + ExportDirSize)
+			continue; //we ignore forwarded exports
+		if (!strcmp(CurrentName, ExportName)) //compare the export name to the requested export
+			return RvaToOffset(pnth, CurrentFunctionRva, FileSize);
+	}
+
+	return PE_ERROR_VALUE;
+}
+
 PVOID PeGetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr)
 {
 	if ((unsigned char*)ptr < (unsigned char*)lpHeader)
