@@ -10,3 +10,4 @@ signed/
 *.vddklaunch
 *.reg
 *.TMP
+!BreakOnSysRq.reg

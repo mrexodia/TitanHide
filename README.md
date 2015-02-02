@@ -48,8 +48,10 @@ A simple way to 'bypass' PatchGuard on x64 systems is by enabling a local kernel
 ```
 bcdedit /set testsigning on
 bcdedit /debug on
-bcdedit /dbgsettings local
+bcdedit /dbgsettings local /noumex
 ```
+
+In addition to the commands above you need to set `BreakOnSysRq` if you want to use the PrntScr button. Read [this article](http://blogs.msdn.com/b/windowsvistanow/archive/2008/05/14/breakonsysrq-applies-to-usb-kbdhid-keyboards-as-well.aspx) for more information. You can also import `BreakOnSysRq.reg` to automatically fix this problem.
 
 #Remarks
 
