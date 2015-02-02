@@ -13,9 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Driver Files">
-      <UniqueIdentifier>{b904f0cc-0336-4d18-a4c8-6eba105fa5ce}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="_global.h">
@@ -92,10 +89,5 @@
     <ClCompile Include="ntdll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Inf Include="TitanHide.inf">
-      <Filter>Driver Files</Filter>
-    </Inf>
   </ItemGroup>
 </Project>

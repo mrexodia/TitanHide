@@ -14,9 +14,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|x64'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
+    <SignMode>TestSign</SignMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win7 Release|Win32'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
+    <SignMode>TestSign</SignMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Debug|x64'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
@@ -26,14 +28,18 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|Win32'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
+    <SignMode>TestSign</SignMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8 Release|x64'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
+    <SignMode>TestSign</SignMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|Win32'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
+    <SignMode>TestSign</SignMode>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Win8.1 Release|x64'">
     <DbgengKernelMachineName>TitanHide</DbgengKernelMachineName>
+    <SignMode>TestSign</SignMode>
   </PropertyGroup>
 </Project>

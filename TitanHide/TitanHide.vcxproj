@@ -322,9 +322,6 @@
     <ClCompile Include="undocumented.cpp" />
     <ClCompile Include="_global.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <Inf Include="TitanHide.inf" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
