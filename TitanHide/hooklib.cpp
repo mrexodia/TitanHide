@@ -97,11 +97,6 @@ bool unhook(HOOK hook, bool free)
 	return false;
 }
 
-bool unhook(HOOK hook)
-{
-	return unhook(hook, false);
-}
-
 bool hook(HOOK hook)
 {
 	if (!hook)

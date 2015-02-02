@@ -301,6 +301,7 @@
     <ClInclude Include="hooks.h" />
     <ClInclude Include="log.h" />
     <ClInclude Include="misc.h" />
+    <ClInclude Include="ntdll.h" />
     <ClInclude Include="pe.h" />
     <ClInclude Include="ssdt.h" />
     <ClInclude Include="TitanHide.h" />
@@ -314,6 +315,7 @@
     <ClCompile Include="hooks.cpp" />
     <ClCompile Include="log.cpp" />
     <ClCompile Include="misc.cpp" />
+    <ClCompile Include="ntdll.cpp" />
     <ClCompile Include="pe.cpp" />
     <ClCompile Include="ssdt.cpp" />
     <ClCompile Include="TitanHide.cpp" />

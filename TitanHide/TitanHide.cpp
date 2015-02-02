@@ -3,6 +3,7 @@
 #include "ssdt.h"
 #include "hider.h"
 #include "log.h"
+#include "ntdll.h"
 
 static UNICODE_STRING DeviceName;
 static UNICODE_STRING Win32Device;
@@ -12,6 +13,7 @@ static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 	IoDeleteSymbolicLink(&Win32Device);
 	IoDeleteDevice(DriverObject->DeviceObject);
 	HooksFree();
+	Ntdll::Deinitialize();
 }
 
 static NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
@@ -75,6 +77,13 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 	DriverObject->MajorFunction[IRP_MJ_CREATE] = DriverCreateClose;
 	DriverObject->MajorFunction[IRP_MJ_CLOSE] = DriverCreateClose;
 	DriverObject->MajorFunction[IRP_MJ_WRITE] = DriverWrite;
+
+	//read ntdll.dll from disk so we can use it for exports
+	if (!NT_SUCCESS(Ntdll::Initialize()))
+	{
+		Log("[TITANHIDE] Ntdll::Initialize() failed...\n");
+		return STATUS_UNSUCCESSFUL;
+	}
 
 	//initialize undocumented APIs
 	if (!Undocumented::UndocumentedInit())

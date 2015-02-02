@@ -21,7 +21,6 @@ struct SSDTStruct
 PVOID SSDTgpa(const wchar_t* apiname);
 HOOK SSDThook(const wchar_t* apiname, void* newfunc);
 void SSDThook(HOOK hHook);
-void SSDTunhook(HOOK hHook, bool free);
-void SSDTunhook(HOOK hHook);
+void SSDTunhook(HOOK hHook, bool free = false);
 
 #endif

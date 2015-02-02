@@ -622,8 +622,3 @@ void SSDTunhook(HOOK hHook, bool free)
 	UNREFERENCED_PARAMETER(free);
 #endif
 }
-
-void SSDTunhook(HOOK hHook)
-{
-	SSDTunhook(hHook, false);
-}
