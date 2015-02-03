@@ -223,22 +223,22 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 int HooksInit()
 {
 	int hook_count = 0;
-	hNtQueryInformationProcess = SSDThook(L"NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
+	hNtQueryInformationProcess = SSDThook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
 	if (hNtQueryInformationProcess)
 		hook_count++;
-	hNtQueryObject = SSDThook(L"NtQueryObject", (void*)HookNtQueryObject);
+	hNtQueryObject = SSDThook("NtQueryObject", (void*)HookNtQueryObject);
 	if (hNtQueryObject)
 		hook_count++;
-	hNtQuerySystemInformation = SSDThook(L"NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
+	hNtQuerySystemInformation = SSDThook("NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
 	if (hNtQuerySystemInformation)
 		hook_count++;
-	hNtSetInformationThread = SSDThook(L"NtSetInformationThread", (void*)HookNtSetInformationThread);
+	hNtSetInformationThread = SSDThook("NtSetInformationThread", (void*)HookNtSetInformationThread);
 	if (hNtSetInformationThread)
 		hook_count++;
-	hNtClose = SSDThook(L"NtClose", (void*)HookNtClose);
+	hNtClose = SSDThook("NtClose", (void*)HookNtClose);
 	if (hNtClose)
 		hook_count++;
-	hNtSetContextThread = SSDThook(L"NtSetContextThread", (void*)HookNtSetContextThread);
+	hNtSetContextThread = SSDThook("NtSetContextThread", (void*)HookNtSetContextThread);
 	if (hNtSetContextThread)
 		hook_count++;
 	return hook_count;

@@ -1,6 +1,7 @@
 #include "ntdll.h"
 #include "log.h"
 #include "misc.h"
+#include "pe.h"
 
 unsigned char* Ntdll::FileData = 0;
 ULONG Ntdll::FileSize = 0;
@@ -42,7 +43,7 @@ NTSTATUS Ntdll::Initialize()
 			FileSize = StandardInformation.EndOfFile.LowPart;
 			Log("[TITANHIDE] FileSize of ntdll.dll is %08X!\n", StandardInformation.EndOfFile.LowPart);
 			FileData = (unsigned char*)RtlAllocateMemory(true, FileSize);
-			
+
 			LARGE_INTEGER ByteOffset;
 			ByteOffset.LowPart = ByteOffset.HighPart = 0;
 			NtStatus = ZwReadFile(FileHandle,
@@ -70,4 +71,31 @@ NTSTATUS Ntdll::Initialize()
 void Ntdll::Deinitialize()
 {
 	RtlFreeMemory(FileData);
+}
+
+int Ntdll::GetSsdtOffset(const char* ExportName)
+{
+	ULONG_PTR ExportOffset = GetExportOffset(FileData, FileSize, ExportName);
+	if (ExportOffset == PE_ERROR_VALUE)
+		return -1;
+
+	int SsdtOffset = -1;
+	unsigned char* ExportData = FileData + ExportOffset;
+	for (int i = 0; i < 32 && ExportOffset + i < FileSize; i++)
+	{
+		if (ExportData[i] == 0xC2 || ExportData[i] == 0xC3) //RET
+			break;
+		if (ExportData[i] == 0xB8) //mov eax,X
+		{
+			SsdtOffset = *(int*)(ExportData + i + 1);
+			break;
+		}
+	}
+
+	if (SsdtOffset == -1)
+	{
+		Log("[TITANHIDE] SSDT Offset for %s not found...\n", ExportName);
+	}
+
+	return SsdtOffset;
 }

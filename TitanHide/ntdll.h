@@ -8,7 +8,9 @@ class Ntdll
 public:
 	static NTSTATUS Initialize();
 	static void Deinitialize();
+	static int GetSsdtOffset(const char* ExportName);
 
+private:
 	static unsigned char* FileData;
 	static ULONG FileSize;
 };

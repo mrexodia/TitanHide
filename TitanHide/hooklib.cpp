@@ -27,20 +27,6 @@ static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED* Destination, IN CONST VOID
 	return STATUS_SUCCESS;
 }
 
-static void* gpa(const wchar_t* proc)
-{
-	if (!proc)
-		return 0;
-	UNICODE_STRING routineName;
-	RtlInitUnicodeString(&routineName, proc);
-	PVOID addr = MmGetSystemRoutineAddress(&routineName);
-	if (!addr)
-		addr = SSDTgpa(proc);
-	if (!addr)
-		Log("[TITANHIDE] No such procedure %ws...\n", proc);
-	return addr;
-}
-
 static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 {
 	//allocate structure
@@ -72,15 +58,6 @@ HOOK hook(PVOID api, void* newfunc)
 	if (!addr)
 		return 0;
 	Log("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
-	return hook_internal(addr, newfunc);
-}
-
-HOOK hook(const wchar_t* api, void* newfunc)
-{
-	ULONG_PTR addr = (ULONG_PTR)gpa(api);
-	if (!addr)
-		return 0;
-	Log("[TITANHIDE] hook(%ws:0x%p, 0x%p)\n", api, addr, newfunc);
 	return hook_internal(addr, newfunc);
 }
 
