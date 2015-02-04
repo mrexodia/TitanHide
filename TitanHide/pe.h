@@ -5,7 +5,11 @@
 
 #define PE_ERROR_VALUE (ULONG)-1
 
-PVOID PeGetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr);
-ULONG_PTR PeGetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName);
+class PE
+{
+public:
+	static PVOID GetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr);
+	static ULONG GetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName);
+};
 
 #endif

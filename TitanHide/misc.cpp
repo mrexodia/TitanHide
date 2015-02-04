@@ -1,20 +1,7 @@
 #include "misc.h"
 #include "undocumented.h"
 
-void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize)
-{
-	void* Result = ExAllocatePoolWithTag(NonPagedPool, InSize, 'HIDE');
-	if (InZeroMemory && (Result != NULL))
-		RtlZeroMemory(Result, InSize);
-	return Result;
-}
-
-void RtlFreeMemory(void* InPointer)
-{
-	ExFreePool(InPointer);
-}
-
-ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
+ULONG Misc::GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
 {
 	PROCESS_BASIC_INFORMATION PBI;
 	if (NT_SUCCESS(Undocumented::ZwQueryInformationProcess(ProcessHandle, ProcessBasicInformation, &PBI, sizeof(PBI), NULL)))
@@ -23,7 +10,7 @@ ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
 		return 0;
 }
 
-ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle)
+ULONG Misc::GetProcessIDFromThreadHandle(HANDLE ThreadHandle)
 {
 	typedef struct _THREAD_BASIC_INFORMATION
 	{

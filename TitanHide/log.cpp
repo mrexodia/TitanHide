@@ -1,6 +1,4 @@
 #include "log.h"
-#include <ntddk.h>
-#include <ntstrsafe.h>
 
 void Log(const char* format, ...)
 {

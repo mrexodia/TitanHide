@@ -1,6 +1,5 @@
 #include "pe.h"
 #include "log.h"
-#include <ntimage.h>
 
 static ULONG RvaToSection(IMAGE_NT_HEADERS* pNtHdr, ULONG dwRVA)
 {
@@ -39,7 +38,7 @@ static ULONG RvaToOffset(PIMAGE_NT_HEADERS pnth, ULONG Rva, ULONG FileSize)
 	return PE_ERROR_VALUE;
 }
 
-ULONG_PTR PeGetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName)
+ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName)
 {
 	//Verify DOS Header
 	PIMAGE_DOS_HEADER pdh = (PIMAGE_DOS_HEADER)FileData;
@@ -111,7 +110,7 @@ ULONG_PTR PeGetExportOffset(const unsigned char* FileData, ULONG FileSize, const
 	return ExportOffset;
 }
 
-PVOID PeGetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr)
+PVOID PE::GetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr)
 {
 	if ((unsigned char*)ptr < (unsigned char*)lpHeader)
 		return 0;

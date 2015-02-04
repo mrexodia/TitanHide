@@ -157,7 +157,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 		ProcessInformation &&
 		ProcessInformationClass != ProcessBasicInformation) //prevent stack overflow
 	{
-		ULONG pid = GetProcessIDFromProcessHandle(ProcessHandle);
+		ULONG pid = Misc::GetProcessIDFromProcessHandle(ProcessHandle);
 
 		if (ProcessInformationClass == ProcessDebugFlags)
 		{
@@ -207,7 +207,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 	return ret;
 }
 
-int HooksInit()
+int Hooks::Initialize()
 {
 	int hook_count = 0;
 	hNtQueryInformationProcess = SSDT::Hook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
@@ -231,7 +231,7 @@ int HooksInit()
 	return hook_count;
 }
 
-void HooksFree()
+void Hooks::Deinitialize()
 {
 	SSDT::Unhook(hNtQueryInformationProcess, true);
 	SSDT::Unhook(hNtQueryObject, true);

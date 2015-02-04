@@ -1,6 +1,5 @@
 #include "ntdll.h"
 #include "log.h"
-#include "misc.h"
 #include "pe.h"
 
 unsigned char* NTDLL::FileData = 0;
@@ -73,9 +72,9 @@ void NTDLL::Deinitialize()
 	RtlFreeMemory(FileData);
 }
 
-int NTDLL::GetSsdtIndex(const char* ExportName)
+int NTDLL::GetExportSsdtIndex(const char* ExportName)
 {
-	ULONG_PTR ExportOffset = PeGetExportOffset(FileData, FileSize, ExportName);
+	ULONG_PTR ExportOffset = PE::GetExportOffset(FileData, FileSize, ExportName);
 	if (ExportOffset == PE_ERROR_VALUE)
 		return -1;
 

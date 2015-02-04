@@ -1,6 +1,5 @@
 #include "ssdt.h"
 #include "undocumented.h"
-#include "misc.h"
 #include "pe.h"
 #include "log.h"
 #include "ntdll.h"
@@ -88,7 +87,7 @@ PVOID SSDT::GetFunctionAddress(const char* apiname)
 		Log("[TITANHIDE] ServiceTable not found...\n");
 		return 0;
 	}
-	ULONG readOffset = NTDLL::GetSsdtIndex(apiname);
+	ULONG readOffset = NTDLL::GetExportSsdtIndex(apiname);
 	if (readOffset == -1)
 		return 0;
 	if (readOffset >= SSDT->NumberOfServices)
@@ -154,7 +153,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
 		Log("[TITANHIDE] ServiceTable not found...\n");
 		return 0;
 	}
-	ULONG FunctionIndex = NTDLL::GetSsdtIndex(apiname);
+	ULONG FunctionIndex = NTDLL::GetExportSsdtIndex(apiname);
 	if (FunctionIndex == -1)
 		return 0;
 	if (FunctionIndex >= SSDT->NumberOfServices)
@@ -185,7 +184,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
 		ULONG_PTR Highest = Lowest + 0x0FFFFFFF;
 		Log("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
 		CodeSize = 0;
-		CodeStart = PeGetPageBase(Undocumented::GetKernelBase(), &CodeSize, (PVOID)((oldValue >> 4) + SSDTbase));
+		CodeStart = PE::GetPageBase(Undocumented::GetKernelBase(), &CodeSize, (PVOID)((oldValue >> 4) + SSDTbase));
 		if (!CodeStart || !CodeSize)
 		{
 			Log("[TITANHIDE] PeGetPageBase failed...\n");

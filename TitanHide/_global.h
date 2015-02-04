@@ -14,9 +14,15 @@ extern "C"
 #include <ntddstor.h>
 #include <mountdev.h>
 #include <ntddvol.h>
+#include <ntstrsafe.h>
+#include <ntimage.h>
 
 #ifdef __cplusplus
 }
 #endif
+
+void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize);
+void RtlFreeMemory(void* InPointer);
+NTSTATUS RtlSuperCopyMemory(IN VOID UNALIGNED* Destination, IN CONST VOID UNALIGNED* Source, IN ULONG Length);
 
 #endif

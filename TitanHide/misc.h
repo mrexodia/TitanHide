@@ -3,9 +3,11 @@
 
 #include "_global.h"
 
-void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize);
-void RtlFreeMemory(void* InPointer);
-ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle);
-ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle);
+class Misc
+{
+public:
+	static ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle);
+	static ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle);
+};
 
 #endif

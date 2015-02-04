@@ -12,7 +12,7 @@ static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
 	IoDeleteSymbolicLink(&Win32Device);
 	IoDeleteDevice(DriverObject->DeviceObject);
-	HooksFree();
+	Hooks::Deinitialize();
 	NTDLL::Deinitialize();
 }
 
@@ -127,7 +127,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 	Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\n", Win32Device.Length / sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
 
 	//initialize hooking
-	Log("[TITANHIDE] HooksInit() returned %d\n", HooksInit());
+	Log("[TITANHIDE] Hooks::Initialize() returned %d\n", Hooks::Initialize());
 
 	return STATUS_SUCCESS;
 }

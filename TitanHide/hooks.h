@@ -3,7 +3,11 @@
 
 #include "_global.h"
 
-int HooksInit();
-void HooksFree();
+class Hooks
+{
+public:
+	static int Initialize();
+	static void Deinitialize();
+};
 
 #endif

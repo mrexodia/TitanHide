@@ -1,5 +1,4 @@
 #include "hider.h"
-#include "misc.h"
 
 struct HIDE_ENTRY
 {

@@ -1,31 +1,5 @@
 #include "hooklib.h"
-#include "misc.h"
-#include "ssdt.h"
 #include "log.h"
-
-//Based on: http://leguanyuan.blogspot.nl/2013/09/x64-inline-hook-zwcreatesection.html
-
-static NTSTATUS SuperRtlCopyMemory(IN VOID UNALIGNED* Destination, IN CONST VOID UNALIGNED* Source, IN ULONG Length)
-{
-	//Change memory properties.
-	PMDL g_pmdl = IoAllocateMdl(Destination, Length, 0, 0, NULL);
-	if (!g_pmdl)
-		return STATUS_UNSUCCESSFUL;
-	MmBuildMdlForNonPagedPool(g_pmdl);
-	unsigned int* Mapped = (unsigned int*)MmMapLockedPages(g_pmdl, KernelMode);
-	if (!Mapped)
-	{
-		IoFreeMdl(g_pmdl);
-		return STATUS_UNSUCCESSFUL;
-	}
-	KIRQL kirql = KeRaiseIrqlToDpcLevel();
-	RtlCopyMemory(Mapped, Source, Length);
-	KeLowerIrql(kirql);
-	//Restore memory properties.
-	MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
-	IoFreeMdl(g_pmdl);
-	return STATUS_SUCCESS;
-}
 
 static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 {
@@ -44,7 +18,7 @@ static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 	hook->hook.ret = 0xc3;
 	//set original data
 	RtlCopyMemory(&hook->orig, (const void*)addr, sizeof(opcode));
-	if (!NT_SUCCESS(SuperRtlCopyMemory((void*)addr, &hook->hook, sizeof(opcode))))
+	if (!NT_SUCCESS(RtlSuperCopyMemory((void*)addr, &hook->hook, sizeof(opcode))))
 	{
 		RtlFreeMemory(hook);
 		return 0;
@@ -65,7 +39,7 @@ bool unhook(HOOK hook, bool free)
 {
 	if (!hook || !hook->addr)
 		return false;
-	if (NT_SUCCESS(SuperRtlCopyMemory((void*)hook->addr, hook->orig, sizeof(opcode))))
+	if (NT_SUCCESS(RtlSuperCopyMemory((void*)hook->addr, hook->orig, sizeof(opcode))))
 	{
 		if (free)
 			RtlFreeMemory(hook);
@@ -78,5 +52,5 @@ bool hook(HOOK hook)
 {
 	if (!hook)
 		return false;
-	return (NT_SUCCESS(SuperRtlCopyMemory((void*)hook->addr, &hook->hook, sizeof(opcode))));
+	return (NT_SUCCESS(RtlSuperCopyMemory((void*)hook->addr, &hook->hook, sizeof(opcode))));
 }
