@@ -39,7 +39,7 @@ static SSDTStruct* SSDTfind()
 		RtlCopyMemory(function, KeASST, sizeof(function));
 		for (unsigned int i = 0; i < sizeof(function); i++)
 		{
-			if (function[i] == 0xC3)
+			if (function[i] == 0xC3) //ret
 			{
 				function_size = i + 1;
 				break;
@@ -47,10 +47,20 @@ static SSDTStruct* SSDTfind()
 		}
 		if (!function_size)
 			return 0;
+
+		/*
+		000000014050EA4A 48 C1 E0 05                shl rax, 5
+		000000014050EA4E 48 83 BC 18 80 3A 36 00 00 cmp qword ptr [rax+rbx+363A80h], 0 <- we are looking for this instruction
+		000000014050EA57 0F 85 B2 5C 0A 00          jnz loc_1405B470F
+		000000014050EA5D 48 8D 8B C0 3A 36 00       lea rcx, rva KeServiceDescriptorTableShadow[rbx]
+		000000014050EA64 48 03 C8                   add rcx, rax
+		000000014050EA67 48 83 39 00                cmp qword ptr [rcx], 0
+		*/
 		unsigned int rvaSSDT = 0;
 		for (unsigned int i = 0; i < function_size; i++)
 		{
-			if (((*(unsigned int*)(function + i)) & 0xFFFFF0) == 0xBC8340 && !*(unsigned char*)(function + i + 8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
+			if (((*(unsigned int*)(function + i)) & 0x00FFFFF0) == 0xBC8340 &&
+				!*(unsigned char*)(function + i + 8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
 			{
 				rvaSSDT = *(unsigned int*)(function + i + 4);
 				break;
@@ -62,7 +72,7 @@ static SSDTStruct* SSDTfind()
 		PVOID base = Undocumented::GetKernelBase();
 		if (!base)
 		{
-
+			Log("[TITANHIDE] GetKernelBase() failed!\n");
 			return 0;
 		}
 		Log("[TITANHIDE] GetKernelBase()->0x%p\n", base);
@@ -128,7 +138,7 @@ static PVOID FindCaveAddress(PVOID CodeStart, ULONG CodeSize, ULONG CaveSize)
 
 	for (unsigned int i = 0, j = 0; i < CodeSize; i++)
 	{
-		if (Code[i] == 0x90 || Code[i] == 0xCC)
+		if (Code[i] == 0x90 || Code[i] == 0xCC) //NOP or INT3
 			j++;
 		else
 			j = 0;
