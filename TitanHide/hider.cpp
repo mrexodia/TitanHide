@@ -1,6 +1,12 @@
 #include "hider.h"
 #include "misc.h"
 
+struct HIDE_ENTRY
+{
+	ULONG Type;
+	ULONG Pid;
+};
+
 #define MAX_HIDE_ENTRIES 65536
 
 static HIDE_ENTRY HideEntries[MAX_HIDE_ENTRIES];
@@ -80,7 +86,7 @@ static void EntryUnset(int EntryIndex, ULONG Type)
 }
 
 //usable functions
-bool HiderProcessData(PVOID Buffer, ULONG Size)
+bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 {
 	if (Size % sizeof(HIDE_INFO))
 		return false;
@@ -129,7 +135,7 @@ bool HiderProcessData(PVOID Buffer, ULONG Size)
 	return true;
 }
 
-bool HiderIsHidden(ULONG Pid, HIDE_TYPE Type)
+bool Hider::IsHidden(ULONG Pid, HIDE_TYPE Type)
 {
 	int FoundEntry = EntryFind(Pid);
 	if (FoundEntry == -1)

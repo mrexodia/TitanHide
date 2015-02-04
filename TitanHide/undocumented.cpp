@@ -304,19 +304,19 @@ bool Undocumented::UndocumentedInit()
 	//SSDT-only functions after this
 	if (!NtQO)
 	{
-		NtQO = (NTQUERYOBJECT)SSDTgpa("NtQueryObject");
+		NtQO = (NTQUERYOBJECT)SSDT::GetFunctionAddress("NtQueryObject");
 		if (!NtQO)
 			return false;
 	}
 	if (!NtSCT)
 	{
-		NtSCT = (NTSETCONTEXTTHREAD)SSDTgpa("NtSetContextThread");
+		NtSCT = (NTSETCONTEXTTHREAD)SSDT::GetFunctionAddress("NtSetContextThread");
 		if (!NtSCT)
 			return false;
 	}
 	if (!NtCon)
 	{
-		NtCon = (NTCONTINUE)SSDTgpa("NtContinue");
+		NtCon = (NTCONTINUE)SSDT::GetFunctionAddress("NtContinue");
 		if (!NtCon)
 			return false;
 	}

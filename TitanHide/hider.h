@@ -4,13 +4,11 @@
 #include "_global.h"
 #include "TitanHide.h"
 
-struct HIDE_ENTRY
+class Hider
 {
-	ULONG Type;
-	ULONG Pid;
+public:
+	static bool ProcessData(PVOID Buffer, ULONG Size);
+	static bool IsHidden(ULONG Pid, HIDE_TYPE Type);
 };
-
-bool HiderProcessData(PVOID Buffer, ULONG Size);
-bool HiderIsHidden(ULONG Pid, HIDE_TYPE Type);
 
 #endif

@@ -13,7 +13,7 @@ static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 	IoDeleteSymbolicLink(&Win32Device);
 	IoDeleteDevice(DriverObject->DeviceObject);
 	HooksFree();
-	Ntdll::Deinitialize();
+	NTDLL::Deinitialize();
 }
 
 static NTSTATUS DriverCreateClose(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
@@ -44,7 +44,7 @@ static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 		PVOID pInBuffer = (PVOID)Irp->AssociatedIrp.SystemBuffer;
 		if (pInBuffer)
 		{
-			if (HiderProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
+			if (Hider::ProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
 				Log("[TITANHIDE] HiderProcessData OK!\n");
 			else
 			{
@@ -79,7 +79,7 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
 	DriverObject->MajorFunction[IRP_MJ_WRITE] = DriverWrite;
 
 	//read ntdll.dll from disk so we can use it for exports
-	if (!NT_SUCCESS(Ntdll::Initialize()))
+	if (!NT_SUCCESS(NTDLL::Initialize()))
 	{
 		Log("[TITANHIDE] Ntdll::Initialize() failed...\n");
 		return STATUS_UNSUCCESSFUL;

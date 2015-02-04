@@ -24,7 +24,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
 	if (ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformation && !ThreadInformationLength)
 	{
 		ULONG pid = (ULONG)PsGetCurrentProcessId();
-		if (HiderIsHidden(pid, HideThreadHideFromDebugger))
+		if (Hider::IsHidden(pid, HideThreadHideFromDebugger))
 		{
 			Log("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
 			//Taken from: http://newgre.net/idastealth
@@ -47,21 +47,8 @@ static NTSTATUS NTAPI HookNtClose(
 {
 	ULONG pid = (ULONG)PsGetCurrentProcessId();
 	NTSTATUS ret;
-	if (HiderIsHidden(pid, HideNtClose))
+	if (Hider::IsHidden(pid, HideNtClose))
 	{
-		/*
-		//code by ahmadmansoor
-		if(NT_SUCCESS(ObReferenceObjectByHandle(Handle,GENERIC_READ,0,UserMode,&XObject,NULL)))
-		{
-		ObDereferenceObject(pObject);
-		status = Undocumented::NtClose(Handle);
-		}
-		else
-		{
-		status = STATUS_INVALID_HANDLE;
-		}
-		return status;
-		*/
 		PVOID OldDebugPort = SetDebugPort(PsGetCurrentProcess(), 0);
 		ret = Undocumented::NtClose(Handle);
 		if (!NT_SUCCESS(ret))
@@ -85,7 +72,7 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
 		ULONG pid = (ULONG)PsGetCurrentProcessId();
 		if (SystemInformationClass == SystemKernelDebuggerInformation)
 		{
-			if (HiderIsHidden(pid, HideSystemDebuggerInformation))
+			if (Hider::IsHidden(pid, HideSystemDebuggerInformation))
 			{
 				Log("[TITANHIDE] SystemKernelDebuggerInformation by %d\n", pid);
 				typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION
@@ -120,7 +107,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
 			OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
 			if (RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
 			{
-				if (HiderIsHidden(pid, HideDebugObject))
+				if (Hider::IsHidden(pid, HideDebugObject))
 				{
 					Log("[TITANHIDE] DebugObject by %d\n", pid);
 					type->TotalNumberOfObjects = 0;
@@ -138,7 +125,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
 				OBJECT_TYPE_INFORMATION* pObjectTypeInfo = (OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
 				if (RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
 				{
-					if (HiderIsHidden(pid, HideDebugObject))
+					if (Hider::IsHidden(pid, HideDebugObject))
 					{
 						Log("[TITANHIDE] DebugObject by %d\n", pid);
 						pObjectTypeInfo->TotalNumberOfObjects = 0;
@@ -174,7 +161,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
 		if (ProcessInformationClass == ProcessDebugFlags)
 		{
-			if (HiderIsHidden(pid, HideProcessDebugFlags))
+			if (Hider::IsHidden(pid, HideProcessDebugFlags))
 			{
 				Log("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
 				*(unsigned int*)ProcessInformation = TRUE;
@@ -182,7 +169,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 		}
 		else if (ProcessInformationClass == ProcessDebugPort)
 		{
-			if (HiderIsHidden(pid, HideProcessDebugPort))
+			if (Hider::IsHidden(pid, HideProcessDebugPort))
 			{
 				Log("[TITANHIDE] ProcessDebugPort by %d\n", pid);
 				*(ULONG_PTR*)ProcessInformation = 0;
@@ -190,7 +177,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 		}
 		else if (ProcessInformationClass == ProcessDebugObjectHandle)
 		{
-			if (HiderIsHidden(pid, HideProcessDebugObjectHandle))
+			if (Hider::IsHidden(pid, HideProcessDebugObjectHandle))
 			{
 				Log("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
 				//Taken from: http://newgre.net/idastealth
@@ -206,7 +193,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 	IN PCONTEXT Context)
 {
 	ULONG pid = (ULONG)PsGetCurrentProcessId();
-	bool IsHidden = HiderIsHidden(pid, HideNtSetContextThread);
+	bool IsHidden = Hider::IsHidden(pid, HideNtSetContextThread);
 	ULONG OriginalContextFlags = 0;
 	if (Context && IsHidden)
 	{
@@ -223,22 +210,22 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 int HooksInit()
 {
 	int hook_count = 0;
-	hNtQueryInformationProcess = SSDThook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
+	hNtQueryInformationProcess = SSDT::Hook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
 	if (hNtQueryInformationProcess)
 		hook_count++;
-	hNtQueryObject = SSDThook("NtQueryObject", (void*)HookNtQueryObject);
+	hNtQueryObject = SSDT::Hook("NtQueryObject", (void*)HookNtQueryObject);
 	if (hNtQueryObject)
 		hook_count++;
-	hNtQuerySystemInformation = SSDThook("NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
+	hNtQuerySystemInformation = SSDT::Hook("NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
 	if (hNtQuerySystemInformation)
 		hook_count++;
-	hNtSetInformationThread = SSDThook("NtSetInformationThread", (void*)HookNtSetInformationThread);
+	hNtSetInformationThread = SSDT::Hook("NtSetInformationThread", (void*)HookNtSetInformationThread);
 	if (hNtSetInformationThread)
 		hook_count++;
-	hNtClose = SSDThook("NtClose", (void*)HookNtClose);
+	hNtClose = SSDT::Hook("NtClose", (void*)HookNtClose);
 	if (hNtClose)
 		hook_count++;
-	hNtSetContextThread = SSDThook("NtSetContextThread", (void*)HookNtSetContextThread);
+	hNtSetContextThread = SSDT::Hook("NtSetContextThread", (void*)HookNtSetContextThread);
 	if (hNtSetContextThread)
 		hook_count++;
 	return hook_count;
@@ -246,10 +233,10 @@ int HooksInit()
 
 void HooksFree()
 {
-	SSDTunhook(hNtQueryInformationProcess, true);
-	SSDTunhook(hNtQueryObject, true);
-	SSDTunhook(hNtQuerySystemInformation, true);
-	SSDTunhook(hNtSetInformationThread, true);
-	SSDTunhook(hNtClose, true);
-	SSDTunhook(hNtSetContextThread, true);
+	SSDT::Unhook(hNtQueryInformationProcess, true);
+	SSDT::Unhook(hNtQueryObject, true);
+	SSDT::Unhook(hNtQuerySystemInformation, true);
+	SSDT::Unhook(hNtSetInformationThread, true);
+	SSDT::Unhook(hNtClose, true);
+	SSDT::Unhook(hNtSetContextThread, true);
 }

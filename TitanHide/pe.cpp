@@ -39,7 +39,7 @@ static ULONG RvaToOffset(PIMAGE_NT_HEADERS pnth, ULONG Rva, ULONG FileSize)
 	return PE_ERROR_VALUE;
 }
 
-ULONG_PTR GetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName)
+ULONG_PTR PeGetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName)
 {
 	//Verify DOS Header
 	PIMAGE_DOS_HEADER pdh = (PIMAGE_DOS_HEADER)FileData;

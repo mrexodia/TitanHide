@@ -3,12 +3,12 @@
 
 #include "_global.h"
 
-class Ntdll
+class NTDLL
 {
 public:
 	static NTSTATUS Initialize();
 	static void Deinitialize();
-	static int GetSsdtOffset(const char* ExportName);
+	static int GetSsdtIndex(const char* ExportName);
 
 private:
 	static unsigned char* FileData;

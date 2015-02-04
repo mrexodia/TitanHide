@@ -23,7 +23,7 @@ struct hookstruct
 	opcode hook;
 	unsigned char orig[sizeof(opcode)];
 	//SSDT extension
-	int SSDToffset;
+	int SSDTindex;
 	ULONG SSDTold;
 	ULONG SSDTnew;
 	ULONG_PTR SSDTaddress;
@@ -31,8 +31,6 @@ struct hookstruct
 
 typedef hookstruct* HOOK;
 
-int init_hook();
-VOID uninit_hook();
 HOOK hook(PVOID api, void* newfunc);
 bool unhook(HOOK hook, bool free = false);
 bool hook(HOOK hook);

@@ -3,10 +3,10 @@
 #include "misc.h"
 #include "pe.h"
 
-unsigned char* Ntdll::FileData = 0;
-ULONG Ntdll::FileSize = 0;
+unsigned char* NTDLL::FileData = 0;
+ULONG NTDLL::FileSize = 0;
 
-NTSTATUS Ntdll::Initialize()
+NTSTATUS NTDLL::Initialize()
 {
 	UNICODE_STRING FileName;
 	OBJECT_ATTRIBUTES ObjectAttributes;
@@ -68,14 +68,14 @@ NTSTATUS Ntdll::Initialize()
 	return NtStatus;
 }
 
-void Ntdll::Deinitialize()
+void NTDLL::Deinitialize()
 {
 	RtlFreeMemory(FileData);
 }
 
-int Ntdll::GetSsdtOffset(const char* ExportName)
+int NTDLL::GetSsdtIndex(const char* ExportName)
 {
-	ULONG_PTR ExportOffset = GetExportOffset(FileData, FileSize, ExportName);
+	ULONG_PTR ExportOffset = PeGetExportOffset(FileData, FileSize, ExportName);
 	if (ExportOffset == PE_ERROR_VALUE)
 		return -1;
 

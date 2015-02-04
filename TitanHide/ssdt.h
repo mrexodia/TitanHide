@@ -4,23 +4,13 @@
 #include "_global.h"
 #include "hooklib.h"
 
-//structures
-struct SSDTStruct
+class SSDT
 {
-	PVOID pServiceTable;
-	PVOID pCounterTable;
-#ifdef _WIN64
-	ULONGLONG NumberOfServices;
-#else
-	ULONG NumberOfServices;
-#endif
-	PCHAR pArgumentTable;
+public:
+	static PVOID GetFunctionAddress(const char* apiname);
+	static HOOK Hook(const char* apiname, void* newfunc);
+	static void Hook(HOOK hHook);
+	static void Unhook(HOOK hHook, bool free = false);
 };
-
-//functions
-PVOID SSDTgpa(const char* apiname);
-HOOK SSDThook(const char* apiname, void* newfunc);
-void SSDThook(HOOK hHook);
-void SSDTunhook(HOOK hHook, bool free = false);
 
 #endif
