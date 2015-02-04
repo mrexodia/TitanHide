@@ -5,7 +5,7 @@
 #include "misc.h"
 #include "pe.h"
 #include "log.h"
-#include "eprocess.h"
+#include "debugport.h"
 
 static HOOK hNtQueryInformationProcess = 0;
 static HOOK hNtQueryObject = 0;
@@ -49,11 +49,11 @@ static NTSTATUS NTAPI HookNtClose(
 	NTSTATUS ret;
 	if (Hider::IsHidden(pid, HideNtClose))
 	{
-		PVOID OldDebugPort = SetDebugPort(PsGetCurrentProcess(), 0);
+		PVOID OldDebugPort = DebugPort::Set(PsGetCurrentProcess(), 0);
 		ret = Undocumented::NtClose(Handle);
 		if (!NT_SUCCESS(ret))
 			Log("[TITANHIDE] NtClose(0x%p) by %d\n", Handle, pid);
-		SetDebugPort(PsGetCurrentProcess(), OldDebugPort);
+		DebugPort::Set(PsGetCurrentProcess(), OldDebugPort);
 	}
 	else
 		ret = Undocumented::NtClose(Handle);

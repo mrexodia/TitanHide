@@ -1,4 +1,4 @@
-#include "eprocess.h"
+#include "debugport.h"
 #include "log.h"
 
 static int GetDebugPortOffset()
@@ -116,7 +116,7 @@ static int GetDebugPortOffset()
 	return DebugPortOffset;
 }
 
-PVOID SetDebugPort(PEPROCESS Process, PVOID DebugPort)
+PVOID DebugPort::Set(PEPROCESS Process, PVOID DebugPort)
 {
 	int DebugPortOffset = GetDebugPortOffset();
 	if (DebugPortOffset == -1)

@@ -295,7 +295,7 @@
     <FilesToPackage Include="@(Inf->'%(CopyOutput)')" Condition="'@(Inf)'!=''" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="eprocess.h" />
+    <ClInclude Include="debugport.h" />
     <ClInclude Include="hider.h" />
     <ClInclude Include="hooklib.h" />
     <ClInclude Include="hooks.h" />
@@ -309,7 +309,7 @@
     <ClInclude Include="_global.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="eprocess.cpp" />
+    <ClCompile Include="debugport.cpp" />
     <ClCompile Include="hider.cpp" />
     <ClCompile Include="hooklib.cpp" />
     <ClCompile Include="hooks.cpp" />
