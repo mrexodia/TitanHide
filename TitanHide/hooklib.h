@@ -4,7 +4,7 @@
 #include "_global.h"
 
 #pragma pack(push,1)
-struct opcode
+struct HOOKOPCODES
 {
 #ifdef _WIN64
 	unsigned short int mov;
@@ -17,22 +17,24 @@ struct opcode
 };
 #pragma pack(pop)
 
-struct hookstruct
+typedef struct HOOKSTRUCT
 {
 	ULONG_PTR addr;
-	opcode hook;
-	unsigned char orig[sizeof(opcode)];
+	HOOKOPCODES hook;
+	unsigned char orig[sizeof(HOOKOPCODES)];
 	//SSDT extension
 	int SSDTindex;
 	ULONG SSDTold;
 	ULONG SSDTnew;
 	ULONG_PTR SSDTaddress;
+} *HOOK;
+
+class Hooklib
+{
+public:
+	static HOOK Hook(PVOID api, void* newfunc);
+	static bool Hook(HOOK hook);
+	static bool Unhook(HOOK hook, bool free = false);
 };
-
-typedef hookstruct* HOOK;
-
-HOOK hook(PVOID api, void* newfunc);
-bool unhook(HOOK hook, bool free = false);
-bool hook(HOOK hook);
 
 #endif //_HOOKLIB_H_

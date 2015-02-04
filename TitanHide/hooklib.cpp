@@ -4,7 +4,7 @@
 static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 {
 	//allocate structure
-	HOOK hook = (HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
+	HOOK hook = (HOOK)RtlAllocateMemory(true, sizeof(HOOKSTRUCT));
 	//set hooking address
 	hook->addr = addr;
 	//set hooking opcode
@@ -17,8 +17,8 @@ static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 	hook->hook.push = 0x50;
 	hook->hook.ret = 0xc3;
 	//set original data
-	RtlCopyMemory(&hook->orig, (const void*)addr, sizeof(opcode));
-	if (!NT_SUCCESS(RtlSuperCopyMemory((void*)addr, &hook->hook, sizeof(opcode))))
+	RtlCopyMemory(&hook->orig, (const void*)addr, sizeof(HOOKOPCODES));
+	if (!NT_SUCCESS(RtlSuperCopyMemory((void*)addr, &hook->hook, sizeof(HOOKOPCODES))))
 	{
 		RtlFreeMemory(hook);
 		return 0;
@@ -26,7 +26,7 @@ static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 	return hook;
 }
 
-HOOK hook(PVOID api, void* newfunc)
+HOOK Hooklib::Hook(PVOID api, void* newfunc)
 {
 	ULONG_PTR addr = (ULONG_PTR)api;
 	if (!addr)
@@ -35,22 +35,22 @@ HOOK hook(PVOID api, void* newfunc)
 	return hook_internal(addr, newfunc);
 }
 
-bool unhook(HOOK hook, bool free)
+bool Hooklib::Hook(HOOK hook)
+{
+	if (!hook)
+		return false;
+	return (NT_SUCCESS(RtlSuperCopyMemory((void*)hook->addr, &hook->hook, sizeof(HOOKOPCODES))));
+}
+
+bool Hooklib::Unhook(HOOK hook, bool free)
 {
 	if (!hook || !hook->addr)
 		return false;
-	if (NT_SUCCESS(RtlSuperCopyMemory((void*)hook->addr, hook->orig, sizeof(opcode))))
+	if (NT_SUCCESS(RtlSuperCopyMemory((void*)hook->addr, hook->orig, sizeof(HOOKOPCODES))))
 	{
 		if (free)
 			RtlFreeMemory(hook);
 		return true;
 	}
 	return false;
-}
-
-bool hook(HOOK hook)
-{
-	if (!hook)
-		return false;
-	return (NT_SUCCESS(RtlSuperCopyMemory((void*)hook->addr, &hook->hook, sizeof(opcode))));
 }

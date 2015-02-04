@@ -210,7 +210,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
 		Log("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (ULONG_PTR)CodeStart + CodeSize);
 	}
 
-	PVOID CaveAddress = FindCaveAddress(CodeStart, CodeSize, sizeof(opcode));
+	PVOID CaveAddress = FindCaveAddress(CodeStart, CodeSize, sizeof(HOOKOPCODES));
 	if (!CaveAddress)
 	{
 		Log("[TITANHIDE] FindCaveAddress failed...\n");
@@ -218,7 +218,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
 	}
 	Log("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
 
-	hHook = hook(CaveAddress, (void*)newfunc);
+	hHook = Hooklib::Hook(CaveAddress, (void*)newfunc);
 	if (!hHook)
 		return 0;
 
@@ -293,7 +293,7 @@ void SSDT::Unhook(HOOK hHook, bool free)
 	InterlockedSet(&SSDT_Table[hHook->SSDTindex], hHook->SSDTold);
 #ifdef _WIN64
 	if (free)
-		unhook(hHook, true);
+		Hooklib::Unhook(hHook, true);
 #else
 	UNREFERENCED_PARAMETER(free);
 #endif
