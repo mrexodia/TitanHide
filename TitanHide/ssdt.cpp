@@ -68,7 +68,7 @@ static SSDTStruct* SSDTfind()
 			if (((*(unsigned int*)(function + i)) & 0x00FFFFF0) == 0xBC8340 &&
 				!*(unsigned char*)(function + i + 8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
 			{
-				rvaSSDT = *(unsigned int*)(function + i + 4);
+				rvaSSDT = *(int*)(function + i + 4);
 				break;
 			}
 		}
@@ -100,7 +100,7 @@ static SSDTStruct* SSDTfind()
 				!*(unsigned char*)(function + i + 7)) //48833d ???????? 00 cmp qword ptr [X],0
 			{
 				rvaFound = i;
-				rvaSSDT = *(unsigned int*)(function + i + 3);
+				rvaSSDT = *(int*)(function + i + 3);
 				break;
 			}
 		}
