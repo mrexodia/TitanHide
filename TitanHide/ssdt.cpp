@@ -238,7 +238,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
 	*/
 	newValue = (ULONG)newfunc;
 
-	hHook = (HOOK)RtlAllocateMemory(true, sizeof(hookstruct));
+	hHook = (HOOK)RtlAllocateMemory(true, sizeof(HOOKSTRUCT));
 
 	//update HOOK structure
 	hHook->SSDTindex = FunctionIndex;
