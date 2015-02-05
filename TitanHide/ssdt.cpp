@@ -20,7 +20,7 @@ struct SSDTStruct
 //Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
 static SSDTStruct* SSDTfind()
 {
-	static PVOID SSDT = 0;
+	static SSDTStruct* SSDT = 0;
 	if (!SSDT)
 	{
 		UNICODE_STRING routineName;
@@ -33,7 +33,10 @@ static SSDTStruct* SSDTfind()
 		RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
 		PVOID KeASST = MmGetSystemRoutineAddress(&routineName);
 		if (!KeASST)
+		{
+			Log("[TITANHIDE] Failed to find KeAddSystemServiceTable!\n");
 			return 0;
+		}
 		unsigned char function[1024];
 		unsigned int function_size = 0;
 		RtlCopyMemory(function, KeASST, sizeof(function));
@@ -46,7 +49,10 @@ static SSDTStruct* SSDTfind()
 			}
 		}
 		if (!function_size)
+		{
+			Log("[TITANHIDE] Failed to get function size of KeAddSystemServiceTable!\n");
 			return 0;
+		}
 
 		/*
 		000000014050EA4A 48 C1 E0 05                shl rax, 5
@@ -56,7 +62,7 @@ static SSDTStruct* SSDTfind()
 		000000014050EA64 48 03 C8                   add rcx, rax
 		000000014050EA67 48 83 39 00                cmp qword ptr [rcx], 0
 		*/
-		unsigned int rvaSSDT = 0;
+		int rvaSSDT = 0;
 		for (unsigned int i = 0; i < function_size; i++)
 		{
 			if (((*(unsigned int*)(function + i)) & 0x00FFFFF0) == 0xBC8340 &&
@@ -66,20 +72,65 @@ static SSDTStruct* SSDTfind()
 				break;
 			}
 		}
-		if (!rvaSSDT)
-			return 0;
-		Log("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
-		PVOID base = Undocumented::GetKernelBase();
-		if (!base)
+		if (rvaSSDT) //this method worked
 		{
-			Log("[TITANHIDE] GetKernelBase() failed!\n");
+			Log("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
+			PVOID base = Undocumented::GetKernelBase();
+			if (!base)
+			{
+				Log("[TITANHIDE] GetKernelBase() failed!\n");
+				return 0;
+			}
+			Log("[TITANHIDE] GetKernelBase()->0x%p\n", base);
+			SSDT = (SSDTStruct*)((unsigned char*)base + rvaSSDT);
+		}
+
+		/*
+		Windows 10 Technical Preview:
+		fffff800e21b30ec 757f             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
+		fffff800e21b30ee 48833deafee4ff00 cmp qword ptr [nt!KeServiceDescriptorTable+0x20 (fffff800e2002fe0)],0 <- we are looking for this instruction
+		fffff800e21b30f6 7575             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
+		fffff800e21b30f8 48833da0fee4ff00 cmp qword ptr [nt!KeServiceDescriptorTableShadow+0x20 (fffff800e2002fa0)],0
+		fffff800e21b3100 756b             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
+		*/
+		int rvaFound = -1;
+		for (unsigned int i = 0; i < function_size; i++)
+		{
+			if (((*(unsigned int*)(function + i)) & 0x00FFFFFF) == 0x3D8348 &&
+				!*(unsigned char*)(function + i + 7)) //48833d ???????? 00 cmp qword ptr [X],0
+			{
+				rvaFound = i;
+				rvaSSDT = *(unsigned int*)(function + i + 3);
+				break;
+			}
+		}
+		if (rvaFound == -1)
+		{
+			Log("[TITANHIDE] Failed to find pattern...\n");
 			return 0;
 		}
-		Log("[TITANHIDE] GetKernelBase()->0x%p\n", base);
-		SSDT = (PVOID)((unsigned char*)base + rvaSSDT);
+		//Sanity check SSDT & contents
+		__try
+		{
+			SSDT = (SSDTStruct*)((ULONG_PTR)KeASST + rvaFound + rvaSSDT + 8 - 0x20);
+			ULONG_PTR check = (ULONG_PTR)KeASST & 0xFFFFFFFF00000000;
+			if (((ULONG_PTR)SSDT & 0xFFFFFFFF00000000 != check) ||
+				((ULONG_PTR)SSDT->pServiceTable & 0xFFFFFFFF00000000) != check ||
+				(SSDT->NumberOfServices & 0xFFFFFFFFFFFF0000) != 0 ||
+				((ULONG_PTR)SSDT->pArgumentTable & 0xFFFFFFFF00000000) != check)
+			{
+				Log("[TITANHIDE] Found SSDT didn't pass all checks...\n");
+				return 0;
+			}
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			Log("[TITANHIDE] An exception was thrown while accessing the SSDT...\n");
+			return 0;
+		}
 #endif
 	}
-	return (SSDTStruct*)SSDT;
+	return SSDT;
 }
 
 PVOID SSDT::GetFunctionAddress(const char* apiname)
@@ -104,7 +155,7 @@ PVOID SSDT::GetFunctionAddress(const char* apiname)
 	{
 		Log("[TITANHIDE] Invalid read offset...\n");
 		return 0;
-	}
+}
 #ifdef _WIN64
 	return (PVOID)((SSDT->pServiceTable[readOffset] >> 4) + SSDTbase);
 #else
@@ -297,4 +348,4 @@ void SSDT::Unhook(HOOK hHook, bool free)
 #else
 	UNREFERENCED_PARAMETER(free);
 #endif
-}
+	}
