@@ -84,49 +84,51 @@ static SSDTStruct* SSDTfind()
 			Log("[TITANHIDE] GetKernelBase()->0x%p\n", base);
 			SSDT = (SSDTStruct*)((unsigned char*)base + rvaSSDT);
 		}
-
-		/*
-		Windows 10 Technical Preview:
-		fffff800e21b30ec 757f             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
-		fffff800e21b30ee 48833deafee4ff00 cmp qword ptr [nt!KeServiceDescriptorTable+0x20 (fffff800e2002fe0)],0 <- we are looking for this instruction
-		fffff800e21b30f6 7575             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
-		fffff800e21b30f8 48833da0fee4ff00 cmp qword ptr [nt!KeServiceDescriptorTableShadow+0x20 (fffff800e2002fa0)],0
-		fffff800e21b3100 756b             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
-		*/
-		int rvaFound = -1;
-		for (unsigned int i = 0; i < function_size; i++)
+		else
 		{
-			if (((*(unsigned int*)(function + i)) & 0x00FFFFFF) == 0x3D8348 &&
-				!*(unsigned char*)(function + i + 7)) //48833d ???????? 00 cmp qword ptr [X],0
+			/*
+			Windows 10 Technical Preview:
+			fffff800e21b30ec 757f             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
+			fffff800e21b30ee 48833deafee4ff00 cmp qword ptr [nt!KeServiceDescriptorTable+0x20 (fffff800e2002fe0)],0 <- we are looking for this instruction
+			fffff800e21b30f6 7575             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
+			fffff800e21b30f8 48833da0fee4ff00 cmp qword ptr [nt!KeServiceDescriptorTableShadow+0x20 (fffff800e2002fa0)],0
+			fffff800e21b3100 756b             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
+			*/
+			int rvaFound = -1;
+			for (unsigned int i = 0; i < function_size; i++)
 			{
-				rvaFound = i;
-				rvaSSDT = *(int*)(function + i + 3);
-				break;
+				if (((*(unsigned int*)(function + i)) & 0x00FFFFFF) == 0x3D8348 &&
+					!*(unsigned char*)(function + i + 7)) //48833d ???????? 00 cmp qword ptr [X],0
+				{
+					rvaFound = i;
+					rvaSSDT = *(int*)(function + i + 3);
+					break;
+				}
 			}
-		}
-		if (rvaFound == -1)
-		{
-			Log("[TITANHIDE] Failed to find pattern...\n");
-			return 0;
-		}
-		//Sanity check SSDT & contents
-		__try
-		{
-			SSDT = (SSDTStruct*)((ULONG_PTR)KeASST + rvaFound + rvaSSDT + 8 - 0x20);
-			ULONG_PTR check = (ULONG_PTR)KeASST & 0xFFFFFFFF00000000;
-			if (((ULONG_PTR)SSDT & 0xFFFFFFFF00000000 != check) ||
-				((ULONG_PTR)SSDT->pServiceTable & 0xFFFFFFFF00000000) != check ||
-				(SSDT->NumberOfServices & 0xFFFFFFFFFFFF0000) != 0 ||
-				((ULONG_PTR)SSDT->pArgumentTable & 0xFFFFFFFF00000000) != check)
+			if (rvaFound == -1)
 			{
-				Log("[TITANHIDE] Found SSDT didn't pass all checks...\n");
+				Log("[TITANHIDE] Failed to find pattern...\n");
 				return 0;
 			}
-		}
-		__except (EXCEPTION_EXECUTE_HANDLER)
-		{
-			Log("[TITANHIDE] An exception was thrown while accessing the SSDT...\n");
-			return 0;
+			//Sanity check SSDT & contents
+			__try
+			{
+				SSDT = (SSDTStruct*)((ULONG_PTR)KeASST + rvaFound + rvaSSDT + 8 - 0x20);
+				ULONG_PTR check = (ULONG_PTR)KeASST & 0xFFFFFFFF00000000;
+				if (((ULONG_PTR)SSDT & 0xFFFFFFFF00000000 != check) ||
+					((ULONG_PTR)SSDT->pServiceTable & 0xFFFFFFFF00000000) != check ||
+					(SSDT->NumberOfServices & 0xFFFFFFFFFFFF0000) != 0 ||
+					((ULONG_PTR)SSDT->pArgumentTable & 0xFFFFFFFF00000000) != check)
+				{
+					Log("[TITANHIDE] Found SSDT didn't pass all checks...\n");
+					return 0;
+				}
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				Log("[TITANHIDE] An exception was thrown while accessing the SSDT...\n");
+				return 0;
+			}
 		}
 #endif
 	}
