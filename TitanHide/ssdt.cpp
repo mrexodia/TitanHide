@@ -115,7 +115,7 @@ static SSDTStruct* SSDTfind()
 			{
 				SSDT = (SSDTStruct*)((ULONG_PTR)KeASST + rvaFound + rvaSSDT + 8 - 0x20);
 				ULONG_PTR check = (ULONG_PTR)KeASST & 0xFFFFFFFF00000000;
-				if (((ULONG_PTR)SSDT & 0xFFFFFFFF00000000 != check) ||
+				if (((ULONG_PTR)SSDT & 0xFFFFFFFF00000000) != check ||
 					((ULONG_PTR)SSDT->pServiceTable & 0xFFFFFFFF00000000) != check ||
 					(SSDT->NumberOfServices & 0xFFFFFFFFFFFF0000) != 0 ||
 					((ULONG_PTR)SSDT->pArgumentTable & 0xFFFFFFFF00000000) != check)
