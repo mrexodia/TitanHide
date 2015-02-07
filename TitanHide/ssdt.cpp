@@ -27,7 +27,7 @@ static SSDTStruct* SSDTfind()
 #ifndef _WIN64
 		//x86 code
 		RtlInitUnicodeString(&routineName, L"KeServiceDescriptorTable");
-		SSDT = MmGetSystemRoutineAddress(&routineName);
+		SSDT = (SSDTStruct*)MmGetSystemRoutineAddress(&routineName);
 #else
 		//x64 code
 		RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
@@ -157,7 +157,7 @@ PVOID SSDT::GetFunctionAddress(const char* apiname)
 	{
 		Log("[TITANHIDE] Invalid read offset...\n");
 		return 0;
-}
+	}
 #ifdef _WIN64
 	return (PVOID)((SSDT->pServiceTable[readOffset] >> 4) + SSDTbase);
 #else
@@ -350,4 +350,4 @@ void SSDT::Unhook(HOOK hHook, bool free)
 #else
 	UNREFERENCED_PARAMETER(free);
 #endif
-	}
+}

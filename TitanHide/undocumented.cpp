@@ -405,9 +405,28 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
 	return pModuleBase;
 }
 
+//Code by Nukem: https://bitbucket.org/Nukem9/virtualdbghide
+static PVOID GetNtoskrnlBase()
+{
+	ULONG_PTR addr = (ULONG_PTR)&MmGetSystemRoutineAddress;
+	addr = (addr & ~(PAGE_SIZE - 1));
+	__try
+	{
+		while ((*(USHORT *)addr != IMAGE_DOS_SIGNATURE))
+			addr -= PAGE_SIZE;
+		return (PVOID)addr;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER)
+	{
+	}
+	return 0;
+}
+
 PVOID Undocumented::GetKernelBase()
 {
-	PVOID base = KernelGetModuleBase("ntoskrnl");
+	PVOID base = GetNtoskrnlBase();
+	if (!base)
+		base = KernelGetModuleBase("ntoskrnl");
 	if (!base)
 		base = KernelGetModuleBase("ntkrnlmp");
 	if (!base)
