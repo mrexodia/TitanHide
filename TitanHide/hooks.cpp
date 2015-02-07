@@ -195,15 +195,32 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 	ULONG pid = (ULONG)PsGetCurrentProcessId();
 	bool IsHidden = Hider::IsHidden(pid, HideNtSetContextThread);
 	ULONG OriginalContextFlags = 0;
-	if (Context && IsHidden)
+	if (IsHidden)
 	{
 		Log("[TITANHIDE] NtSetContextThread by %d\n", pid);
-		OriginalContextFlags = Context->ContextFlags;
-		Context->ContextFlags &= ~CONTEXT_DEBUG_REGISTERS;
+		__try
+		{
+			ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
+			OriginalContextFlags = Context->ContextFlags;
+			Context->ContextFlags &= ~CONTEXT_DEBUG_REGISTERS;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+			return Undocumented::NtSetContextThread(ThreadHandle, Context);
+		}
 	}
 	NTSTATUS ret = Undocumented::NtSetContextThread(ThreadHandle, Context);
-	if (Context && IsHidden)
-		Context->ContextFlags = OriginalContextFlags;
+	if (IsHidden)
+	{
+		__try
+		{
+			ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
+			Context->ContextFlags = OriginalContextFlags;
+		}
+		__except (EXCEPTION_EXECUTE_HANDLER)
+		{
+		}
+	}
 	return ret;
 }
 
