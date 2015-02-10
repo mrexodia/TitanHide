@@ -202,7 +202,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 		{
 			ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
 			OriginalContextFlags = Context->ContextFlags;
-			Context->ContextFlags &= ~CONTEXT_DEBUG_REGISTERS;
+			Context->ContextFlags &= ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
