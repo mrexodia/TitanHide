@@ -200,9 +200,10 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 		Log("[TITANHIDE] NtSetContextThread by %d\n", pid);
 		__try
 		{
-			ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
+			ProbeForRead(&Context->ContextFlags, sizeof(ULONG), 1);
 			OriginalContextFlags = Context->ContextFlags;
-			Context->ContextFlags &= ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
+			ULONG NewContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
+			RtlSuperCopyMemory(&Context->ContextFlags, &NewContextFlags, sizeof(ULONG));
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
@@ -214,8 +215,8 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 	{
 		__try
 		{
-			ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
-			Context->ContextFlags = OriginalContextFlags;
+			ProbeForRead(&Context->ContextFlags, sizeof(ULONG), 1);
+			RtlSuperCopyMemory(&Context->ContextFlags, &OriginalContextFlags, sizeof(ULONG));
 		}
 		__except (EXCEPTION_EXECUTE_HANDLER)
 		{
