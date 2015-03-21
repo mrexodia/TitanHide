@@ -28,30 +28,28 @@ TitanHide is a driver intended to hide debuggers from certain processes. The dri
 #Installation Method 1
 
 1. Copy `TitanHide.sys` to `%systemroot%\system32\drivers`.
+2. Run the command `sc create TitanHide binPath= %systemroot%\system32\drivers\TitanHide.sys type= kernel` to create the TitanHide service.
+3. Run the command `sc start TitanHide` to start the TitanHide service.
+4. Run the command `sc query TitanHide` to check if TitanHide is running.
+
+#Installation Method 2
+
+1. Copy `TitanHide.sys` to `%systemroot%\system32\drivers`.
 2. Start `ServiceManager.exe` (available on the download page).
 3. Delete the old service (when present).
 4. Install a new service (specify the full path to `TitanHide.sys`).
 5. Start the service you just created.
 6. Use `TitanHideGUI.exe` to set hide options for a PID.
 
-#Installation Method 2
-
-1. Copy `TitanHide.sys` to `%systemroot%\system32\drivers`.
-2. Run the command `sc create TitanHide binPath=%systemroot%\system32\drivers\TitanHide.sys type=kernel` to create the TitanHide service.
-3. Run the command `sc start TitanHide` to start the TitanHide service.
-4. Run the command `sc query TitanHide` to check if TitanHide is running.
-
 #Testsigning & PatchGuard
 
-A simple way to 'bypass' PatchGuard on x64 systems is by enabling a local kernel debugger. This can be done by executing the following commands in an Administrator Console:
+To enable testsigning run the following command:
 
 ```
 bcdedit /set testsigning on
-bcdedit /debug on
-bcdedit /dbgsettings local /noumex
 ```
 
-In addition to the commands above you need to set `BreakOnSysRq` if you want to use the PrntScr button. Read [this article](http://blogs.msdn.com/b/windowsvistanow/archive/2008/05/14/breakonsysrq-applies-to-usb-kbdhid-keyboards-as-well.aspx) for more information. You can also import `BreakOnSysRq.reg` to automatically fix this problem.
+To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use DebugPrint or check `C:\TitanHide.log`
 
 #Remarks
 

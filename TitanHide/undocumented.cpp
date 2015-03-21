@@ -408,7 +408,9 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
 //Code by Nukem: https://bitbucket.org/Nukem9/virtualdbghide
 static PVOID GetNtoskrnlBase()
 {
-	ULONG_PTR addr = (ULONG_PTR)&MmGetSystemRoutineAddress;
+	UNICODE_STRING routineName;
+	RtlInitUnicodeString(&routineName, L"DbgPrint");
+	ULONG_PTR addr = (ULONG_PTR)MmGetSystemRoutineAddress(&routineName);
 	addr = (addr & ~(PAGE_SIZE - 1));
 	__try
 	{
