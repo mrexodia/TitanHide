@@ -20,11 +20,8 @@ typedef struct _OBJECT_ALL_INFORMATION
 //enums
 typedef enum _OBJECT_INFORMATION_CLASS
 {
-    ObjectBasicInformation,
-    ObjectNameInformation,
-    ObjectTypeInformation,
-    ObjectAllInformation,
-    ObjectDataInformation
+    ObjectTypeInformation = 2,
+    ObjectTypesInformation = 3
 } OBJECT_INFORMATION_CLASS, *POBJECT_INFORMATION_CLASS;
 
 typedef enum _SYSTEM_INFORMATION_CLASS

@@ -35,8 +35,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
                 ObDereferenceObject(Object);
                 return STATUS_SUCCESS;
             }
-            else
-                return status;
+            return status;
         }
     }
     return Undocumented::NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
@@ -81,8 +80,15 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
                     BOOLEAN DebuggerNotPresent;
                 } SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
                 SYSTEM_KERNEL_DEBUGGER_INFORMATION* DebuggerInfo = (SYSTEM_KERNEL_DEBUGGER_INFORMATION*)SystemInformation;
-                DebuggerInfo->DebuggerEnabled = false;
-                DebuggerInfo->DebuggerNotPresent = true;
+                __try
+                {
+                    DebuggerInfo->DebuggerEnabled = false;
+                    DebuggerInfo->DebuggerNotPresent = true;
+                }
+                __except(EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ret = GetExceptionCode();
+                }
             }
         }
     }
@@ -102,43 +108,52 @@ static NTSTATUS NTAPI HookNtQueryObject(
         ULONG pid = (ULONG)PsGetCurrentProcessId();
         UNICODE_STRING DebugObject;
         RtlInitUnicodeString(&DebugObject, L"DebugObject");
-        if(ObjectInformationClass == ObjectTypeInformation)
+        if(ObjectInformationClass == ObjectTypeInformation && Hider::IsHidden(pid, HideDebugObject))
         {
-            OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
-            if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE))  //DebugObject
+            __try
             {
-                if(Hider::IsHidden(pid, HideDebugObject))
+                OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
+                if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE))   //DebugObject
                 {
                     Log("[TITANHIDE] DebugObject by %d\n", pid);
                     type->TotalNumberOfObjects = 0;
                     type->TotalNumberOfHandles = 0;
                 }
             }
-        }
-        else if(ObjectInformationClass == ObjectAllInformation)
-        {
-            OBJECT_ALL_INFORMATION* pObjectAllInfo = (OBJECT_ALL_INFORMATION*)ObjectInformation;
-            unsigned char* pObjInfoLocation = (unsigned char*)pObjectAllInfo->ObjectTypeInformation;
-            unsigned int TotalObjects = pObjectAllInfo->NumberOfObjects;
-            for(unsigned int i = 0; i < TotalObjects; i++)
+            __except(EXCEPTION_EXECUTE_HANDLER)
             {
-                OBJECT_TYPE_INFORMATION* pObjectTypeInfo = (OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
-                if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE))  //DebugObject
+                ret = GetExceptionCode();
+            }
+        }
+        else if(ObjectInformationClass == ObjectTypesInformation && Hider::IsHidden(pid, HideDebugObject))
+        {
+            //NCC Group Security Advisory
+            __try
+            {
+                OBJECT_ALL_INFORMATION* pObjectAllInfo = (OBJECT_ALL_INFORMATION*)ObjectInformation;
+                unsigned char* pObjInfoLocation = (unsigned char*)pObjectAllInfo->ObjectTypeInformation;
+                unsigned int TotalObjects = pObjectAllInfo->NumberOfObjects;
+                for(unsigned int i = 0; i < TotalObjects; i++)
                 {
-                    if(Hider::IsHidden(pid, HideDebugObject))
+                    OBJECT_TYPE_INFORMATION* pObjectTypeInfo = (OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
+                    if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE))   //DebugObject
                     {
                         Log("[TITANHIDE] DebugObject by %d\n", pid);
                         pObjectTypeInfo->TotalNumberOfObjects = 0;
                         //Bug found by Aguila, thanks!
                         pObjectTypeInfo->TotalNumberOfHandles = 0;
                     }
+                    pObjInfoLocation = (unsigned char*)pObjectTypeInfo->TypeName.Buffer;
+                    pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
+                    ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation) & -(LONG_PTR)sizeof(void*);
+                    if((ULONG_PTR)tmp != (ULONG_PTR)pObjInfoLocation)
+                        tmp += sizeof(void*);
+                    pObjInfoLocation = ((unsigned char*)tmp);
                 }
-                pObjInfoLocation = (unsigned char*)pObjectTypeInfo->TypeName.Buffer;
-                pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
-                ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation) & -(LONG_PTR)sizeof(void*);
-                if((ULONG_PTR)tmp != (ULONG_PTR)pObjInfoLocation)
-                    tmp += sizeof(void*);
-                pObjInfoLocation = ((unsigned char*)tmp);
+            }
+            __except(EXCEPTION_EXECUTE_HANDLER)
+            {
+                ret = GetExceptionCode();
             }
         }
     }
@@ -164,7 +179,14 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             if(Hider::IsHidden(pid, HideProcessDebugFlags))
             {
                 Log("[TITANHIDE] ProcessDebugFlags by %d\n", pid);
-                *(unsigned int*)ProcessInformation = TRUE;
+                __try
+                {
+                    *(unsigned int*)ProcessInformation = TRUE;
+                }
+                __except(EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ret = GetExceptionCode();
+                }
             }
         }
         else if(ProcessInformationClass == ProcessDebugPort)
@@ -172,7 +194,14 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             if(Hider::IsHidden(pid, HideProcessDebugPort))
             {
                 Log("[TITANHIDE] ProcessDebugPort by %d\n", pid);
-                *(ULONG_PTR*)ProcessInformation = 0;
+                __try
+                {
+                    *(ULONG_PTR*)ProcessInformation = 0;
+                }
+                __except(EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ret = GetExceptionCode();
+                }
             }
         }
         else if(ProcessInformationClass == ProcessDebugObjectHandle)
@@ -180,6 +209,14 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             if(Hider::IsHidden(pid, HideProcessDebugObjectHandle))
             {
                 Log("[TITANHIDE] ProcessDebugObjectHandle by %d\n", pid);
+                __try
+                {
+                    *(ULONG_PTR*)ProcessInformation = 0;
+                }
+                __except(EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ret = GetExceptionCode();
+                }
                 //Taken from: http://newgre.net/idastealth
                 ret = STATUS_PORT_NOT_SET;
             }
@@ -197,6 +234,8 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     ULONG OriginalContextFlags = 0;
     if(IsHidden)
     {
+        //http://lifeinhex.com/dont-touch-this-writing-good-drivers-is-really-hard
+        //http://lifeinhex.com/when-software-is-good-enough
         Log("[TITANHIDE] NtSetContextThread by %d\n", pid);
         __try
         {

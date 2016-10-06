@@ -142,7 +142,7 @@ typedef enum _OBJECT_INFORMATION_CLASS
     ObjectBasicInformation,
     ObjectNameInformation,
     ObjectTypeInformation,
-    ObjectAllInformation,
+    ObjectTypesInformation,
     ObjectDataInformation
 } OBJECT_INFORMATION_CLASS, *POBJECT_INFORMATION_CLASS;
 
@@ -168,7 +168,7 @@ bool CheckObjectList()
                                   "NtQueryObject");
 
         // Get the size of the list
-        Status = NtQO(NULL, ObjectAllInformation, //ObjectAllTypesInformation
+        Status = NtQO(NULL, ObjectTypesInformation, //ObjectAllTypesInformation
                       &Size, sizeof(ULONG), &Size);
 
         // Allocate room for the list
@@ -179,7 +179,7 @@ bool CheckObjectList()
             return false;
 
         // Now we can actually retrieve the list
-        Status = NtQO(GetCurrentProcess(), ObjectAllInformation, pMemory, Size, NULL);
+        Status = NtQO(GetCurrentProcess(), ObjectTypesInformation, pMemory, Size, NULL);
 
         // Status != STATUS_SUCCESS
         if(Status != STATUS_SUCCESS)
