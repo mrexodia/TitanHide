@@ -60,7 +60,7 @@ bool CheckProcessDebugPort()
 
 	if (Status != 0x00000000)
 	{
-		printf("NtQueryInformationProcess failed with %X, %d\n", Status, ReturnSize);
+		printf("NtQueryInformationProcess failed with %X, %u\n", Status, ReturnSize);
 		return false;
 	}
 
@@ -92,7 +92,7 @@ bool CheckProcessDebugObjectHandle()
 	if (Status != 0x00000000)
 	{
 		if (Status != 0xC0000353) //STATUS_PORT_NOT_SET
-			printf("NtQueryInformationProcess failed with %X, %d\n", Status, ReturnSize);
+			printf("NtQueryInformationProcess failed with %X, %u\n", Status, ReturnSize);
 		return false;
 	}
 
@@ -172,7 +172,7 @@ bool CheckObjectList()
 			&Size, sizeof(ULONG), &Size);
 
 		// Allocate room for the list
-		pMemory = VirtualAlloc(NULL, Size, MEM_RESERVE | MEM_COMMIT,
+		pMemory = VirtualAlloc(NULL, SIZE_T(Size), MEM_RESERVE | MEM_COMMIT,
 			PAGE_READWRITE);
 
 		if (pMemory == NULL)
@@ -201,7 +201,7 @@ bool CheckObjectList()
 
 			// The debug object will always be present
 			wchar_t DebugObject[] = L"DebugObject";
-			int DebugObjectLength = lstrlenW(DebugObject) * sizeof(wchar_t);
+			auto DebugObjectLength = wcslen(DebugObject) * sizeof(wchar_t);
 			if (pObjectTypeInfo->TypeName.Length == DebugObjectLength && !memcmp(pObjectTypeInfo->TypeName.Buffer, DebugObject, DebugObjectLength)) //UNICODE_STRING is not NULL-terminated (pointed to by deepzero!)
 			{
 				// Are there any objects?
