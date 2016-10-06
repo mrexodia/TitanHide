@@ -53,5 +53,5 @@ To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is y
 
 #Remarks
 
-- When using x64_dbg, you can use the TitanHide plugin (available on the download page).
+- When using x64dbg, you can use the TitanHide plugin (available on the download page).
 - When using EsetNod32 AV, disable "Realtime File Protection", to prevent a BSOD when starting TitanHide. You can re-enable it right afterwards
