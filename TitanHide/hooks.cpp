@@ -13,6 +13,7 @@ static HOOK hNtQuerySystemInformation = 0;
 static HOOK hNtClose = 0;
 static HOOK hNtSetInformationThread = 0;
 static HOOK hNtSetContextThread = 0;
+static FAST_MUTEX gDebugPortMutex;
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -48,11 +49,14 @@ static NTSTATUS NTAPI HookNtClose(
     NTSTATUS ret;
     if(Hider::IsHidden(pid, HideNtClose))
     {
+        //NCC Group Security Advisory
+        ExAcquireFastMutex(&gDebugPortMutex);
         PVOID OldDebugPort = DebugPort::Set(PsGetCurrentProcess(), 0);
         ret = Undocumented::NtClose(Handle);
+        DebugPort::Set(PsGetCurrentProcess(), OldDebugPort);
+        ExReleaseFastMutex(&gDebugPortMutex);
         if(!NT_SUCCESS(ret))
             Log("[TITANHIDE] NtClose(0x%p) by %d\n", Handle, pid);
-        DebugPort::Set(PsGetCurrentProcess(), OldDebugPort);
     }
     else
         ret = Undocumented::NtClose(Handle);
@@ -114,7 +118,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
             {
                 OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
                 ProbeForRead(type->TypeName.Buffer, 1, 1);
-                if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE))   //DebugObject
+                if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
                 {
                     Log("[TITANHIDE] DebugObject by %d\n", pid);
                     type->TotalNumberOfObjects = 0;
@@ -139,7 +143,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
                     OBJECT_TYPE_INFORMATION* pObjectTypeInfo = (OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
                     ProbeForRead(pObjectTypeInfo, 1, 1);
                     ProbeForRead(pObjectTypeInfo->TypeName.Buffer, 1, 1);
-                    if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE))   //DebugObject
+                    if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
                     {
                         Log("[TITANHIDE] DebugObject by %d\n", pid);
                         pObjectTypeInfo->TotalNumberOfObjects = 0;
@@ -269,6 +273,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
 
 int Hooks::Initialize()
 {
+    ExInitializeFastMutex(&gDebugPortMutex);
     int hook_count = 0;
     hNtQueryInformationProcess = SSDT::Hook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(hNtQueryInformationProcess)

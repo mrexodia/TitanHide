@@ -121,8 +121,6 @@ PVOID DebugPort::Set(PEPROCESS Process, PVOID DebugPort)
     int DebugPortOffset = GetDebugPortOffset();
     if(DebugPortOffset == -1)
         return 0;
-    PVOID* _DebugPort = (PVOID*)((unsigned char*)Process + DebugPortOffset);
-    PVOID OldDebugPort = *_DebugPort;
-    *_DebugPort = DebugPort;
-    return OldDebugPort;
+    PVOID* pDebugPort = (PVOID*)((unsigned char*)Process + DebugPortOffset);
+    return InterlockedExchangePointer(pDebugPort, DebugPort);
 }
