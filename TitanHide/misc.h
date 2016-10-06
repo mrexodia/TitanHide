@@ -6,8 +6,8 @@
 class Misc
 {
 public:
-	static ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle);
-	static ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle);
+    static ULONG GetProcessIDFromProcessHandle(HANDLE ProcessHandle);
+    static ULONG GetProcessIDFromThreadHandle(HANDLE ThreadHandle);
 };
 
 #endif

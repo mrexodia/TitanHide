@@ -6,7 +6,7 @@
 class DebugPort
 {
 public:
-	static PVOID Set(PEPROCESS Process, PVOID DebugPort);
+    static PVOID Set(PEPROCESS Process, PVOID DebugPort);
 };
 
 #endif //_DEBUGPORT_H

@@ -7,8 +7,8 @@
 class Hider
 {
 public:
-	static bool ProcessData(PVOID Buffer, ULONG Size);
-	static bool IsHidden(ULONG Pid, HIDE_TYPE Type);
+    static bool ProcessData(PVOID Buffer, ULONG Size);
+    static bool IsHidden(ULONG Pid, HIDE_TYPE Type);
 };
 
 #endif

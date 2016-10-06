@@ -6,8 +6,8 @@
 class Hooks
 {
 public:
-	static int Initialize();
-	static void Deinitialize();
+    static int Initialize();
+    static void Deinitialize();
 };
 
 #endif

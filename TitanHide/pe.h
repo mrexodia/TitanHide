@@ -8,8 +8,8 @@
 class PE
 {
 public:
-	static PVOID GetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr);
-	static ULONG GetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName);
+    static PVOID GetPageBase(PVOID lpHeader, ULONG* Size, PVOID ptr);
+    static ULONG GetExportOffset(const unsigned char* FileData, ULONG FileSize, const char* ExportName);
 };
 
 #endif
