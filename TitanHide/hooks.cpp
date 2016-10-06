@@ -113,6 +113,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
             __try
             {
                 OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
+                ProbeForRead(type->TypeName.Buffer, 1, 1);
                 if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE))   //DebugObject
                 {
                     Log("[TITANHIDE] DebugObject by %d\n", pid);
@@ -136,6 +137,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
                 for(unsigned int i = 0; i < TotalObjects; i++)
                 {
                     OBJECT_TYPE_INFORMATION* pObjectTypeInfo = (OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
+                    ProbeForRead(pObjectTypeInfo, 1, 1);
+                    ProbeForRead(pObjectTypeInfo->TypeName.Buffer, 1, 1);
                     if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE))   //DebugObject
                     {
                         Log("[TITANHIDE] DebugObject by %d\n", pid);
