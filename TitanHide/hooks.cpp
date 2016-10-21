@@ -22,19 +22,37 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     IN ULONG ThreadInformationLength)
 {
     //Bug found by Aguila, thanks!
-    if(ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformation && !ThreadInformationLength)
+    if(ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformationLength)
     {
         ULONG pid = (ULONG)PsGetCurrentProcessId();
         if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
         {
             Log("[TITANHIDE] ThreadHideFromDebugger by %d\n", pid);
-            //Taken from: http://newgre.net/idastealth
-            PKTHREAD Object;
-            NTSTATUS status = ObReferenceObjectByHandle(ThreadHandle, 0, NULL, KernelMode, (PVOID*)&Object, NULL);
+            PETHREAD Thread;
+            NTSTATUS status;
+#if NTDDI_VERSION >= NTDDI_WIN8
+            status = ObReferenceObjectByHandleWithTag(ThreadHandle,
+                                                    THREAD_SET_INFORMATION,
+                                                    *PsThreadType,
+                                                    ExGetPreviousMode(),
+                                                    'yQsP', // special 'PsQuery' tag used in many Windows 8/8.1/10 NtXX/ZwXX functions
+                                                    (PVOID*)&Thread,
+                                                    NULL);
+#else // Vista and XP don't have ObReferenceObjectByHandleWithTag; 7 has it but doesn't use it in NtSetInformationThread
+            status = ObReferenceObjectByHandle(ThreadHandle,
+                                                THREAD_SET_INFORMATION,
+                                                *PsThreadType,
+                                                ExGetPreviousMode(),
+                                                (PVOID*)&Thread,
+                                                NULL);
+#endif
             if(NT_SUCCESS(status))
             {
-                ObDereferenceObject(Object);
-                return STATUS_SUCCESS;
+#if NTDDI_VERSION >= NTDDI_WIN8
+                ObfDereferenceObjectWithTag(Thread, 'yQsP');
+#else
+                ObDereferenceObject(Thread);
+#endif
             }
             return status;
         }
