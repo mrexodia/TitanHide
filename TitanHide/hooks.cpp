@@ -32,19 +32,19 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
             NTSTATUS status;
 #if NTDDI_VERSION >= NTDDI_WIN8
             status = ObReferenceObjectByHandleWithTag(ThreadHandle,
-                                                    THREAD_SET_INFORMATION,
-                                                    *PsThreadType,
-                                                    ExGetPreviousMode(),
-                                                    'yQsP', // special 'PsQuery' tag used in many Windows 8/8.1/10 NtXX/ZwXX functions
-                                                    (PVOID*)&Thread,
-                                                    NULL);
+                     THREAD_SET_INFORMATION,
+                     *PsThreadType,
+                     ExGetPreviousMode(),
+                     'yQsP', // special 'PsQuery' tag used in many Windows 8/8.1/10 NtXX/ZwXX functions
+                     (PVOID*)&Thread,
+                     NULL);
 #else // Vista and XP don't have ObReferenceObjectByHandleWithTag; 7 has it but doesn't use it in NtSetInformationThread
             status = ObReferenceObjectByHandle(ThreadHandle,
-                                                THREAD_SET_INFORMATION,
-                                                *PsThreadType,
-                                                ExGetPreviousMode(),
-                                                (PVOID*)&Thread,
-                                                NULL);
+                                               THREAD_SET_INFORMATION,
+                                               *PsThreadType,
+                                               ExGetPreviousMode(),
+                                               (PVOID*)&Thread,
+                                               NULL);
 #endif
             if(NT_SUCCESS(status))
             {
