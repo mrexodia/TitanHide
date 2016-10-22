@@ -94,11 +94,26 @@ static SSDTStruct* SSDTfind()
             fffff800e21b30f8 48833da0fee4ff00 cmp qword ptr [nt!KeServiceDescriptorTableShadow+0x20 (fffff800e2002fa0)],0
             fffff800e21b3100 756b             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
             */
+            /*
+            Windows 10 6.3.9600.18438
+            0000000140552482 0F848A000000     jz      loc_140552512
+            0000000140552488 4C390DD162E5FF   cmp     qword ptr cs:xmmword_1403A8760, r9 <- this is KeServiceDescriptorTable+0x20
+            000000014055248F 0F8511010000     jnz     loc_1405525A6
+            0000000140552495 4C390D8462E5FF   cmp     qword ptr cs:xmmword_1403A8720, r9
+            000000014055249C 0F8504010000     jnz     loc_1405525A6
+            */
             int rvaFound = -1;
             for(unsigned int i = 0; i < function_size; i++)
             {
                 if(((*(unsigned int*)(function + i)) & 0x00FFFFFF) == 0x3D8348 &&
                         !*(unsigned char*)(function + i + 7)) //48833d ???????? 00 cmp qword ptr [X],0
+                {
+                    rvaFound = i;
+                    rvaSSDT = *(int*)(function + i + 3);
+                    break;
+                }
+                if(((*(unsigned int*)(function + i)) & 0x0000FFFF) == 0x394C &&
+                        *(unsigned char*)(function + i + 6) == 0xFF) //4c39 ?? ??????ff cmp qword ptr [X], regX
                 {
                     rvaFound = i;
                     rvaSSDT = *(int*)(function + i + 3);
