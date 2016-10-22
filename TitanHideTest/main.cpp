@@ -353,7 +353,16 @@ bool CheckSystemDebugger()
             return true;
         }
     }
-    return false;
+
+    enum SYSDBG_COMMAND { SysDbgQueryModuleInformation = 0 };
+    typedef NTSTATUS(__stdcall * ZW_SYSTEM_DEBUG_CONTROL)(IN SYSDBG_COMMAND Command, IN PVOID InputBuffer OPTIONAL, IN ULONG InputBufferLength, OUT PVOID OutputBuffer OPTIONAL, IN ULONG OutputBufferLength, OUT PULONG ReturnLength OPTIONAL);
+    static const NTSTATUS STATUS_DEBUGGER_INACTIVE = (NTSTATUS)0xC0000354L;
+    ZW_SYSTEM_DEBUG_CONTROL ZwSystemDebugControl = (ZW_SYSTEM_DEBUG_CONTROL)GetProcAddress(GetModuleHandleA("ntdll.dll"), "ZwSystemDebugControl");
+    if(ZwSystemDebugControl == NULL)
+    {
+        return false;
+    }
+    return ZwSystemDebugControl(SysDbgQueryModuleInformation, NULL, 0, NULL, 0, NULL) != STATUS_DEBUGGER_INACTIVE;
 }
 
 bool CheckNtClose()

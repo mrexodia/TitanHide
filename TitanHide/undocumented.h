@@ -30,6 +30,42 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemKernelDebuggerInformation = 35
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
+typedef enum _SYSDBG_COMMAND
+{
+    SysDbgQueryModuleInformation,
+    SysDbgQueryTraceInformation,
+    SysDbgSetTracepoint,
+    SysDbgSetSpecialCall,
+    SysDbgClearSpecialCalls,
+    SysDbgQuerySpecialCalls,
+    SysDbgBreakPoint,
+    SysDbgQueryVersion,
+    SysDbgReadVirtual,
+    SysDbgWriteVirtual,
+    SysDbgReadPhysical,
+    SysDbgWritePhysical,
+    SysDbgReadControlSpace,
+    SysDbgWriteControlSpace,
+    SysDbgReadIoSpace,
+    SysDbgWriteIoSpace,
+    SysDbgReadMsr,
+    SysDbgWriteMsr,
+    SysDbgReadBusData,
+    SysDbgWriteBusData,
+    SysDbgCheckLowMemory,
+    SysDbgEnableKernelDebugger,
+    SysDbgDisableKernelDebugger,
+    SysDbgGetAutoKdEnable,
+    SysDbgSetAutoKdEnable,
+    SysDbgGetPrintBufferSize,
+    SysDbgSetPrintBufferSize,
+    SysDbgGetKdUmExceptionEnable,
+    SysDbgSetKdUmExceptionEnable,
+    SysDbgGetTriageDump,
+    SysDbgGetKdBlockEnable,
+    SysDbgSetKdBlockEnable,
+} SYSDBG_COMMAND, *PSYSDBG_COMMAND;
+
 class Undocumented
 {
 public:
@@ -106,6 +142,14 @@ public:
         IN PROCESSINFOCLASS ProcessInformationClass,
         OUT PVOID ProcessInformation,
         IN ULONG ProcessInformationLength,
+        OUT PULONG ReturnLength OPTIONAL);
+
+    static NTSTATUS NTAPI NtSystemDebugControl(
+        IN SYSDBG_COMMAND Command,
+        IN PVOID InputBuffer OPTIONAL,
+        IN ULONG InputBufferLength OPTIONAL,
+        OUT PVOID OutputBuffer,
+        IN ULONG OutputBufferLength,
         OUT PULONG ReturnLength OPTIONAL);
 
     static bool UndocumentedInit();

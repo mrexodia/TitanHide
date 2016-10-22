@@ -13,6 +13,7 @@ static HOOK hNtQuerySystemInformation = 0;
 static HOOK hNtClose = 0;
 static HOOK hNtSetInformationThread = 0;
 static HOOK hNtSetContextThread = 0;
+static HOOK hNtSystemDebugControl = 0;
 static FAST_MUTEX gDebugPortMutex;
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
@@ -289,6 +290,27 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     return ret;
 }
 
+static NTSTATUS NTAPI HookNtSystemDebugControl(
+    IN SYSDBG_COMMAND Command,
+    IN PVOID InputBuffer,
+    IN ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN ULONG OutputBufferLength,
+    OUT PULONG ReturnLength)
+{
+    ULONGLONG pid = reinterpret_cast<ULONGLONG>(PsGetCurrentProcessId());
+    if(Hider::IsHidden(static_cast<ULONG>(pid), HideNtSystemDebugControl))
+    {
+        Log("[TITANHIDE] NtSystemDebugControl by %d\r\n", pid);
+        if(Command == SysDbgGetTriageDump)
+        {
+            return STATUS_INFO_LENGTH_MISMATCH;
+        }
+        return STATUS_DEBUGGER_INACTIVE;
+    }
+    return Undocumented::NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength);
+}
+
 int Hooks::Initialize()
 {
     ExInitializeFastMutex(&gDebugPortMutex);
@@ -311,6 +333,9 @@ int Hooks::Initialize()
     hNtSetContextThread = SSDT::Hook("NtSetContextThread", (void*)HookNtSetContextThread);
     if(hNtSetContextThread)
         hook_count++;
+    hNtSystemDebugControl = SSDT::Hook("NtSystemDebugControl", (void*)HookNtSystemDebugControl);
+    if(hNtSystemDebugControl)
+        hook_count++;
     return hook_count;
 }
 
@@ -322,4 +347,5 @@ void Hooks::Deinitialize()
     SSDT::Unhook(hNtSetInformationThread, true);
     SSDT::Unhook(hNtClose, true);
     SSDT::Unhook(hNtSetContextThread, true);
+    SSDT::Unhook(hNtSystemDebugControl, true);
 }
