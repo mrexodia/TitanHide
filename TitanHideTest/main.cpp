@@ -353,7 +353,10 @@ bool CheckSystemDebugger()
             return true;
         }
     }
+}
 
+bool CheckSystemDebugControl()
+{
     enum SYSDBG_COMMAND { SysDbgQueryModuleInformation = 0 };
     typedef NTSTATUS(__stdcall * ZW_SYSTEM_DEBUG_CONTROL)(IN SYSDBG_COMMAND Command, IN PVOID InputBuffer OPTIONAL, IN ULONG InputBufferLength, OUT PVOID OutputBuffer OPTIONAL, IN ULONG OutputBufferLength, OUT PULONG ReturnLength OPTIONAL);
     static const NTSTATUS STATUS_DEBUGGER_INACTIVE = (NTSTATUS)0xC0000354L;
@@ -390,6 +393,7 @@ int main(int argc, char* argv[])
         printf("ProcessDebugObjectHandle: %d\n", CheckProcessDebugObjectHandle());
         printf("NtQueryObject: %d\n", CheckObjectList());
         printf("CheckSystemDebugger: %d\n", CheckSystemDebugger());
+        printf("SystemDebugControl: %d\n", CheckSystemDebugControl());
         printf("CheckNtClose: %d\n", CheckNtClose());
         //printf("ThreadHideFromDebugger: %d\n", HideFromDebugger());
         puts("");
