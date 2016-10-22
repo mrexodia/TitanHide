@@ -90,6 +90,15 @@ typedef NTSTATUS(NTAPI* NTQUERYINFORMATIONPROCESS)(
     OUT PULONG ReturnLength OPTIONAL
 );
 
+typedef NTSTATUS(NTAPI* NTSYSTEMDEBUGCONTROL)(
+    IN SYSDBG_COMMAND Command,
+    IN PVOID InputBuffer OPTIONAL,
+    IN ULONG InputBufferLength,
+    OUT PVOID OutputBuffer OPTIONAL,
+    IN ULONG OutputBufferLength,
+    OUT PULONG ReturnLength OPTIONAL
+);
+
 static ZWQUERYINFORMATIONPROCESS ZwQIP = 0;
 static ZWQUERYINFORMATIONTHREAD ZwQIT = 0;
 static NTQUERYOBJECT NtQO = 0;
@@ -103,6 +112,7 @@ static KERAISEUSEREXCEPTION KeRUE = 0;
 static NTSETINFORMATIONTHREAD NtSIT = 0;
 static NTSETINFORMATIONPROCESS NtSIP = 0;
 static NTQUERYINFORMATIONPROCESS NtQIP = 0;
+static NTSYSTEMDEBUGCONTROL NtSDBC = 0;
 
 NTSTATUS NTAPI Undocumented::ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
@@ -218,6 +228,17 @@ NTSTATUS NTAPI Undocumented::NtQueryInformationProcess(
     return NtQIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
 }
 
+NTSTATUS NTAPI Undocumented::NtSystemDebugControl(
+    IN SYSDBG_COMMAND Command,
+    IN PVOID InputBuffer,
+    IN ULONG InputBufferLength,
+    OUT PVOID OutputBuffer,
+    IN ULONG OutputBufferLength,
+    OUT PULONG ReturnLength)
+{
+    return NtSDBC(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength);
+}
+
 bool Undocumented::UndocumentedInit()
 {
     //Exported kernel functions after this
@@ -318,6 +339,12 @@ bool Undocumented::UndocumentedInit()
     {
         NtCon = (NTCONTINUE)SSDT::GetFunctionAddress("NtContinue");
         if(!NtCon)
+            return false;
+    }
+    if(!NtSDBC)
+    {
+        NtSDBC = (NTSYSTEMDEBUGCONTROL)SSDT::GetFunctionAddress("NtSystemDebugControl");
+        if(!NtSDBC)
             return false;
     }
     return true;
