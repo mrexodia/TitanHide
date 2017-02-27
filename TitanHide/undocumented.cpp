@@ -351,22 +351,20 @@ bool Undocumented::UndocumentedInit()
 }
 
 //Based on: http://alter.org.ua/docs/nt_kernel/procaddr
-static PVOID KernelGetModuleBase(PCHAR pModuleName)
+PVOID Undocumented::GetKernelBase(PULONG pImageSize)
 {
     typedef struct _SYSTEM_MODULE_ENTRY
     {
-        ULONG Reserved1[2];
-#ifdef _WIN64
-        ULONG Reserved2[2];
-#endif
-        PVOID Base;
-        ULONG Size;
+        HANDLE Section;
+        PVOID MappedBase;
+        PVOID ImageBase;
+        ULONG ImageSize;
         ULONG Flags;
-        USHORT Index;
-        USHORT Unknown;
+        USHORT LoadOrderIndex;
+        USHORT InitOrderIndex;
         USHORT LoadCount;
-        USHORT ModuleNameOffset;
-        CHAR ImageName[256];
+        USHORT OffsetToFileName;
+        UCHAR FullPathName[256];
     } SYSTEM_MODULE_ENTRY, *PSYSTEM_MODULE_ENTRY;
 
 #pragma warning(disable:4200)
@@ -377,7 +375,7 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
     } SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;
 
     PVOID pModuleBase = NULL;
-    PULONG pSystemInfoBuffer = NULL;
+    PSYSTEM_MODULE_INFORMATION pSystemInfoBuffer = NULL;
 
     NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
     ULONG    SystemInfoBufferSize = 0;
@@ -393,7 +391,7 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
         return NULL;
     }
 
-    pSystemInfoBuffer = (PULONG)ExAllocatePool(NonPagedPool, SystemInfoBufferSize * 2);
+    pSystemInfoBuffer = (PSYSTEM_MODULE_INFORMATION)ExAllocatePool(NonPagedPool, SystemInfoBufferSize * 2);
 
     if(!pSystemInfoBuffer)
     {
@@ -410,16 +408,9 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
 
     if(NT_SUCCESS(status))
     {
-        PSYSTEM_MODULE_ENTRY pSysModuleEntry = ((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Module;
-        ULONG len = (ULONG)strlen(pModuleName);
-        for(ULONG i = 0; i < ((PSYSTEM_MODULE_INFORMATION)(pSystemInfoBuffer))->Count; i++)
-        {
-            if(_strnicmp(pSysModuleEntry[i].ImageName + pSysModuleEntry[i].ModuleNameOffset, pModuleName, len) == 0)
-            {
-                pModuleBase = pSysModuleEntry[i].Base;
-                break;
-            }
-        }
+        pModuleBase = pSystemInfoBuffer->Module[0].ImageBase;
+        if(pImageSize)
+            *pImageSize = pSystemInfoBuffer->Module[0].ImageSize;
     }
     else
         Log("[TITANHIDE] ZwQuerySystemInformation (2) failed...\n");
@@ -430,37 +421,4 @@ static PVOID KernelGetModuleBase(PCHAR pModuleName)
     }
 
     return pModuleBase;
-}
-
-//Code by Nukem: https://bitbucket.org/Nukem9/virtualdbghide
-static PVOID GetNtoskrnlBase()
-{
-    UNICODE_STRING routineName;
-    RtlInitUnicodeString(&routineName, L"DbgPrint");
-    ULONG_PTR addr = (ULONG_PTR)MmGetSystemRoutineAddress(&routineName);
-    addr = (addr & ~(PAGE_SIZE - 1));
-    __try
-    {
-        while((*(USHORT*)addr != IMAGE_DOS_SIGNATURE))
-            addr -= PAGE_SIZE;
-        return (PVOID)addr;
-    }
-    __except(EXCEPTION_EXECUTE_HANDLER)
-    {
-    }
-    return 0;
-}
-
-PVOID Undocumented::GetKernelBase()
-{
-    PVOID base = GetNtoskrnlBase();
-    if(!base)
-        base = KernelGetModuleBase("ntoskrnl");
-    if(!base)
-        base = KernelGetModuleBase("ntkrnlmp");
-    if(!base)
-        base = KernelGetModuleBase("ntkrnlpa");
-    if(!base)
-        base = KernelGetModuleBase("ntkrpamp");
-    return base;
 }

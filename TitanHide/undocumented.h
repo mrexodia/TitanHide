@@ -122,7 +122,7 @@ public:
         OUT PULONG ReturnLength OPTIONAL);
 
     static bool UndocumentedInit();
-    static PVOID GetKernelBase();
+    static PVOID GetKernelBase(PULONG pImageSize = NULL);
 };
 
 #endif

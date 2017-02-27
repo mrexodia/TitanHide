@@ -17,134 +17,53 @@ struct SSDTStruct
     PCHAR pArgumentTable;
 };
 
-//Based on: https://code.google.com/p/volatility/issues/detail?id=189#c2
+//Based on: https://github.com/hfiref0x/WinObjEx64
 static SSDTStruct* SSDTfind()
 {
     static SSDTStruct* SSDT = 0;
     if(!SSDT)
     {
-        UNICODE_STRING routineName;
 #ifndef _WIN64
         //x86 code
+        UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"KeServiceDescriptorTable");
         SSDT = (SSDTStruct*)MmGetSystemRoutineAddress(&routineName);
 #else
         //x64 code
-        RtlInitUnicodeString(&routineName, L"KeAddSystemServiceTable");
-        PVOID KeASST = MmGetSystemRoutineAddress(&routineName);
-        if(!KeASST)
-        {
-            Log("[TITANHIDE] Failed to find KeAddSystemServiceTable!\n");
-            return 0;
-        }
-        unsigned char function[1024];
-        unsigned int function_size = 0;
-        RtlCopyMemory(function, KeASST, sizeof(function));
-        for(unsigned int i = 0; i < sizeof(function); i++)
-        {
-            if(function[i] == 0xC3)  //ret
-            {
-                function_size = i + 1;
-                break;
-            }
-        }
-        if(!function_size)
-        {
-            Log("[TITANHIDE] Failed to get function size of KeAddSystemServiceTable!\n");
-            return 0;
-        }
+        ULONG kernelSize;
+        ULONG_PTR kernelBase = (ULONG_PTR)Undocumented::GetKernelBase(&kernelSize);
+        if(kernelBase == 0 || kernelSize == 0)
+            return NULL;
 
-        /*
-        000000014050EA4A 48 C1 E0 05                shl rax, 5
-        000000014050EA4E 48 83 BC 18 80 3A 36 00 00 cmp qword ptr [rax+rbx+363A80h], 0 <- we are looking for this instruction
-        000000014050EA57 0F 85 B2 5C 0A 00          jnz loc_1405B470F
-        000000014050EA5D 48 8D 8B C0 3A 36 00       lea rcx, rva KeServiceDescriptorTableShadow[rbx]
-        000000014050EA64 48 03 C8                   add rcx, rax
-        000000014050EA67 48 83 39 00                cmp qword ptr [rcx], 0
-        */
-        int rvaSSDT = 0;
-        for(unsigned int i = 0; i < function_size; i++)
+        // Find KiSystemServiceStart
+        const unsigned char KiSystemServiceStartPattern[] = { 0x8B, 0xF8, 0xC1, 0xEF, 0x07, 0x83, 0xE7, 0x20, 0x25, 0xFF, 0x0F, 0x00, 0x00 };
+        const ULONG signatureSize = sizeof(KiSystemServiceStartPattern);
+        bool found = false;
+        ULONG KiSSSOffset;
+        for(KiSSSOffset = 0; KiSSSOffset < kernelSize - signatureSize; KiSSSOffset++)
         {
-            if(((*(unsigned int*)(function + i)) & 0x00FFFFF0) == 0xBC8340 &&
-                    !*(unsigned char*)(function + i + 8)) //4?83bc?? ???????? 00 cmp qword ptr [r?+r?+????????h],0
+            if(RtlCompareMemory(((unsigned char*)kernelBase + KiSSSOffset), KiSystemServiceStartPattern, signatureSize) == signatureSize)
             {
-                rvaSSDT = *(int*)(function + i + 4);
+                found = true;
                 break;
             }
         }
-        if(rvaSSDT)  //this method worked
+        if(!found)
+            return NULL;
+
+        // lea r10, KeServiceDescriptorTable
+        ULONG_PTR address = kernelBase + KiSSSOffset + signatureSize;
+        LONG relativeOffset = 0;
+        if((*(unsigned char*)address == 0x4c) &&
+                (*(unsigned char*)(address + 1) == 0x8d) &&
+                (*(unsigned char*)(address + 2) == 0x15))
         {
-            Log("[TITANHIDE] SSDT RVA: 0x%X\n", rvaSSDT);
-            PVOID base = Undocumented::GetKernelBase();
-            if(!base)
-            {
-                Log("[TITANHIDE] GetKernelBase() failed!\n");
-                return 0;
-            }
-            Log("[TITANHIDE] GetKernelBase()->0x%p\n", base);
-            SSDT = (SSDTStruct*)((unsigned char*)base + rvaSSDT);
+            relativeOffset = *(LONG*)(address + 3);
         }
-        else
-        {
-            /*
-            Windows 10 Technical Preview:
-            fffff800e21b30ec 757f             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
-            fffff800e21b30ee 48833deafee4ff00 cmp qword ptr [nt!KeServiceDescriptorTable+0x20 (fffff800e2002fe0)],0 <- we are looking for this instruction
-            fffff800e21b30f6 7575             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
-            fffff800e21b30f8 48833da0fee4ff00 cmp qword ptr [nt!KeServiceDescriptorTableShadow+0x20 (fffff800e2002fa0)],0
-            fffff800e21b3100 756b             jne nt!KeAddSystemServiceTable+0x91 (fffff800e21b316d)
-            */
-            /*
-            Windows 10 6.3.9600.18438
-            0000000140552482 0F848A000000     jz      loc_140552512
-            0000000140552488 4C390DD162E5FF   cmp     qword ptr cs:xmmword_1403A8760, r9 <- this is KeServiceDescriptorTable+0x20
-            000000014055248F 0F8511010000     jnz     loc_1405525A6
-            0000000140552495 4C390D8462E5FF   cmp     qword ptr cs:xmmword_1403A8720, r9
-            000000014055249C 0F8504010000     jnz     loc_1405525A6
-            */
-            int rvaFound = -1;
-            for(unsigned int i = 0; i < function_size; i++)
-            {
-                if(((*(unsigned int*)(function + i)) & 0x00FFFFFF) == 0x3D8348 &&
-                        !*(unsigned char*)(function + i + 7)) //48833d ???????? 00 cmp qword ptr [X],0
-                {
-                    rvaFound = i;
-                    rvaSSDT = *(int*)(function + i + 3);
-                    break;
-                }
-                if(((*(unsigned int*)(function + i)) & 0x0000FFFF) == 0x394C &&
-                        *(unsigned char*)(function + i + 6) == 0xFF) //4c39 ?? ??????ff cmp qword ptr [X], regX
-                {
-                    rvaFound = i;
-                    rvaSSDT = *(int*)(function + i + 3);
-                    break;
-                }
-            }
-            if(rvaFound == -1)
-            {
-                Log("[TITANHIDE] Failed to find pattern...\n");
-                return 0;
-            }
-            //Sanity check SSDT & contents
-            __try
-            {
-                SSDT = (SSDTStruct*)((ULONG_PTR)KeASST + rvaFound + rvaSSDT + 8 - 0x20);
-                ULONG_PTR check = (ULONG_PTR)KeASST & 0xFFFFFFFF00000000;
-                if(((ULONG_PTR)SSDT & 0xFFFFFFFF00000000) != check ||
-                        ((ULONG_PTR)SSDT->pServiceTable & 0xFFFFFFFF00000000) != check ||
-                        (SSDT->NumberOfServices & 0xFFFFFFFFFFFF0000) != 0 ||
-                        ((ULONG_PTR)SSDT->pArgumentTable & 0xFFFFFFFF00000000) != check)
-                {
-                    Log("[TITANHIDE] Found SSDT didn't pass all checks...\n");
-                    return 0;
-                }
-            }
-            __except(EXCEPTION_EXECUTE_HANDLER)
-            {
-                Log("[TITANHIDE] An exception was thrown while accessing the SSDT...\n");
-                return 0;
-            }
-        }
+        if(relativeOffset == 0)
+            return NULL;
+
+        SSDT = (SSDTStruct*)(address + relativeOffset + 7);
 #endif
     }
     return SSDT;
