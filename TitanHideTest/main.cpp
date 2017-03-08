@@ -342,17 +342,14 @@ bool CheckSystemDebugger()
     ZW_QUERY_SYSTEM_INFORMATION ZwQuerySystemInformation;
     SYSTEM_KERNEL_DEBUGGER_INFORMATION Info;
     ZwQuerySystemInformation = (ZW_QUERY_SYSTEM_INFORMATION)GetProcAddress(GetModuleHandleA("ntdll.dll"), "ZwQuerySystemInformation");
-    if(ZwQuerySystemInformation == NULL)
-    {
-        return false;
-    }
-    if(NT_SUCCESS(ZwQuerySystemInformation(SystemKernelDebuggerInformation, &Info, sizeof(Info), NULL)))
+    if(ZwQuerySystemInformation && NT_SUCCESS(ZwQuerySystemInformation(SystemKernelDebuggerInformation, &Info, sizeof(Info), NULL)))
     {
         if(Info.DebuggerEnabled || !Info.DebuggerNotPresent)
         {
             return true;
         }
     }
+    return false;
 }
 
 bool CheckSystemDebugControl()
