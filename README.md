@@ -55,9 +55,10 @@ To enable testsigning run the following command:
 bcdedit /set testsigning on
 ```
 
-To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use DebugPrint or check `C:\TitanHide.log`
+To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use DebugPrint or check `C:\TitanHide.log`. You can also try [UPGDSED](https://github.com/hfiref0x/UPGDSED).
 
 # Remarks
 
 - When using x64dbg, you can use the TitanHide plugin (available on the download page).
 - When using EsetNod32 AV, disable "Realtime File Protection", to prevent a BSOD when starting TitanHide. You can re-enable it right afterwards
+- **NEVER RUN THIS DRIVER ON A PRODUCTION SYSTEM, ALWAYS USE A VM!**
