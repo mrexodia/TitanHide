@@ -30,7 +30,7 @@ There is partial Windows 10 support. Hooking works, but finding the SSDT will cu
 # Compiling
 
 1. Install Visual Studio 2013 (Express Edition untested).
-2. Install the [WDK](http://www.microsoft.com/en-us/download/details.aspx?id=42273).
+2. Install the [WDK8](http://www.microsoft.com/en-us/download/details.aspx?id=42273)/[WDK7](https://www.microsoft.com/en-us/download/details.aspx?id=11800).
 3. Open `TitanHide.sln` and hit compile!
 
 # Installation Method 1
