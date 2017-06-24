@@ -3,6 +3,7 @@
 x64/
 ipch/
 signed/
+bin/
 *.opensdf
 *.sdf
 *.suo
