@@ -282,6 +282,7 @@ void SSDT::Unhook(HOOK hHook, bool free)
     if(free)
         Hooklib::Unhook(hHook, true);
 #else
-    UNREFERENCED_PARAMETER(free);
+    if(free)
+        RtlFreeMemory(hHook);
 #endif
 }
