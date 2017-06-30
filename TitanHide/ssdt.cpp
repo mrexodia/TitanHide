@@ -153,7 +153,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
     int FunctionIndex = NTDLL::GetExportSsdtIndex(apiname);
     if(FunctionIndex == -1)
         return 0;
-    if(FunctionIndex >= SSDT->NumberOfServices)
+    if((ULONGLONG)FunctionIndex >= SSDT->NumberOfServices)
     {
         Log("[TITANHIDE] Invalid API offset...\r\n");
         return 0;
