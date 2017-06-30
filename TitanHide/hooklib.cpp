@@ -31,7 +31,7 @@ HOOK Hooklib::Hook(PVOID api, void* newfunc)
     ULONG_PTR addr = (ULONG_PTR)api;
     if(!addr)
         return 0;
-    Log("[TITANHIDE] hook(0x%p, 0x%p)\n", addr, newfunc);
+    Log("[TITANHIDE] hook(0x%p, 0x%p)\r\n", addr, newfunc);
     return hook_internal(addr, newfunc);
 }
 

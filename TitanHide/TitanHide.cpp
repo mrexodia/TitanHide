@@ -45,17 +45,17 @@ static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
         if(pInBuffer)
         {
             if(Hider::ProcessData(pInBuffer, pIoStackIrp->Parameters.Write.Length))
-                Log("[TITANHIDE] HiderProcessData OK!\n");
+                Log("[TITANHIDE] HiderProcessData OK!\r\n");
             else
             {
-                Log("[TITANHIDE] HiderProcessData failed...\n");
+                Log("[TITANHIDE] HiderProcessData failed...\r\n");
                 RetStatus = STATUS_UNSUCCESSFUL;
             }
         }
     }
     else
     {
-        Log("[TITANHIDE] Invalid IRP stack pointer...\n");
+        Log("[TITANHIDE] Invalid IRP stack pointer...\r\n");
         RetStatus = STATUS_UNSUCCESSFUL;
     }
     Irp->IoStatus.Status = RetStatus;
@@ -81,17 +81,17 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     //read ntdll.dll from disk so we can use it for exports
     if(!NT_SUCCESS(NTDLL::Initialize()))
     {
-        Log("[TITANHIDE] Ntdll::Initialize() failed...\n");
+        Log("[TITANHIDE] Ntdll::Initialize() failed...\r\n");
         return STATUS_UNSUCCESSFUL;
     }
 
     //initialize undocumented APIs
     if(!Undocumented::UndocumentedInit())
     {
-        Log("[TITANHIDE] UndocumentedInit() failed...\n");
+        Log("[TITANHIDE] UndocumentedInit() failed...\r\n");
         return STATUS_UNSUCCESSFUL;
     }
-    Log("[TITANHIDE] UndocumentedInit() was successful!\n");
+    Log("[TITANHIDE] UndocumentedInit() was successful!\r\n");
 
     //create io device
     RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");
@@ -105,15 +105,15 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
                             &DeviceObject);
     if(!NT_SUCCESS(status))
     {
-        Log("[TITANHIDE] IoCreateDevice Error...\n");
+        Log("[TITANHIDE] IoCreateDevice Error...\r\n");
         return status;
     }
     if(!DeviceObject)
     {
-        Log("[TITANHIDE] Unexpected I/O Error...\n");
+        Log("[TITANHIDE] Unexpected I/O Error...\r\n");
         return STATUS_UNEXPECTED_IO_ERROR;
     }
-    Log("[TITANHIDE] Device %.*ws created successfully!\n", DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
+    Log("[TITANHIDE] Device %.*ws created successfully!\r\n", DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
 
     //create symbolic link
     DeviceObject->Flags |= DO_BUFFERED_IO;
@@ -121,13 +121,13 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     status = IoCreateSymbolicLink(&Win32Device, &DeviceName);
     if(!NT_SUCCESS(status))
     {
-        Log("[TITANHIDE] IoCreateSymbolicLink Error...\n");
+        Log("[TITANHIDE] IoCreateSymbolicLink Error...\r\n");
         return status;
     }
-    Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\n", Win32Device.Length / sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
+    Log("[TITANHIDE] Symbolic link %.*ws->%.*ws created!\r\n", Win32Device.Length / sizeof(WCHAR), Win32Device.Buffer, DeviceName.Length / sizeof(WCHAR), DeviceName.Buffer);
 
     //initialize hooking
-    Log("[TITANHIDE] Hooks::Initialize() returned %d\n", Hooks::Initialize());
+    Log("[TITANHIDE] Hooks::Initialize() hooked %d functions\r\n", Hooks::Initialize());
 
     return STATUS_SUCCESS;
 }

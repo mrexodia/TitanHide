@@ -40,7 +40,7 @@ NTSTATUS NTDLL::Initialize()
         if(NT_SUCCESS(NtStatus))
         {
             FileSize = StandardInformation.EndOfFile.LowPart;
-            Log("[TITANHIDE] FileSize of ntdll.dll is %08X!\n", StandardInformation.EndOfFile.LowPart);
+            Log("[TITANHIDE] FileSize of ntdll.dll is %08X!\r\n", StandardInformation.EndOfFile.LowPart);
             FileData = (unsigned char*)RtlAllocateMemory(true, FileSize);
 
             LARGE_INTEGER ByteOffset;
@@ -55,15 +55,15 @@ NTSTATUS NTDLL::Initialize()
             if(!NT_SUCCESS(NtStatus))
             {
                 RtlFreeMemory(FileData);
-                Log("[TITANHIDE] ZwReadFile failed with status %08X...\n", NtStatus);
+                Log("[TITANHIDE] ZwReadFile failed with status %08X...\r\n", NtStatus);
             }
         }
         else
-            Log("[TITANHIDE] ZwQueryInformationFile failed with status %08X...\n", NtStatus);
+            Log("[TITANHIDE] ZwQueryInformationFile failed with status %08X...\r\n", NtStatus);
         ZwClose(FileHandle);
     }
     else
-        Log("[TITANHIDE] ZwCreateFile failed with status %08X...\n", NtStatus);
+        Log("[TITANHIDE] ZwCreateFile failed with status %08X...\r\n", NtStatus);
     return NtStatus;
 }
 
@@ -93,7 +93,7 @@ int NTDLL::GetExportSsdtIndex(const char* ExportName)
 
     if(SsdtOffset == -1)
     {
-        Log("[TITANHIDE] SSDT Offset for %s not found...\n", ExportName);
+        Log("[TITANHIDE] SSDT Offset for %s not found...\r\n", ExportName);
     }
 
     return SsdtOffset;

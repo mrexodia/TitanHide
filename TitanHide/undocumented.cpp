@@ -386,7 +386,7 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
 
     if(!SystemInfoBufferSize)
     {
-        Log("[TITANHIDE] ZwQuerySystemInformation (1) failed...\n");
+        Log("[TITANHIDE] ZwQuerySystemInformation (1) failed...\r\n");
         return NULL;
     }
 
@@ -394,7 +394,7 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
 
     if(!pSystemInfoBuffer)
     {
-        Log("[TITANHIDE] ExAllocatePool failed...\n");
+        Log("[TITANHIDE] ExAllocatePool failed...\r\n");
         return NULL;
     }
 
@@ -412,7 +412,7 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
             *pImageSize = pSystemInfoBuffer->Module[0].ImageSize;
     }
     else
-        Log("[TITANHIDE] ZwQuerySystemInformation (2) failed...\n");
+        Log("[TITANHIDE] ZwQuerySystemInformation (2) failed...\r\n");
 
     ExFreePool(pSystemInfoBuffer);
 

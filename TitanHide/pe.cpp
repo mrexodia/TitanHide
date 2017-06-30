@@ -44,7 +44,7 @@ ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const c
     PIMAGE_DOS_HEADER pdh = (PIMAGE_DOS_HEADER)FileData;
     if(pdh->e_magic != IMAGE_DOS_SIGNATURE)
     {
-        Log("[TITANHIDE] Invalid IMAGE_DOS_SIGNATURE!\n");
+        Log("[TITANHIDE] Invalid IMAGE_DOS_SIGNATURE!\r\n");
         return PE_ERROR_VALUE;
     }
 
@@ -52,7 +52,7 @@ ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const c
     PIMAGE_NT_HEADERS pnth = (PIMAGE_NT_HEADERS)(FileData + pdh->e_lfanew);
     if(pnth->Signature != IMAGE_NT_SIGNATURE)
     {
-        Log("[TITANHIDE] Invalid IMAGE_NT_SIGNATURE!\n");
+        Log("[TITANHIDE] Invalid IMAGE_NT_SIGNATURE!\r\n");
         return PE_ERROR_VALUE;
     }
 
@@ -67,7 +67,7 @@ ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const c
     ULONG ExportDirOffset = RvaToOffset(pnth, ExportDirRva, FileSize);
     if(ExportDirOffset == PE_ERROR_VALUE)
     {
-        Log("[TITANHIDE] Invalid Export Directory!\n");
+        Log("[TITANHIDE] Invalid Export Directory!\r\n");
         return PE_ERROR_VALUE;
     }
 
@@ -81,7 +81,7 @@ ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const c
             AddressOfNameOrdinalsOffset == PE_ERROR_VALUE ||
             AddressOfNamesOffset == PE_ERROR_VALUE)
     {
-        Log("[TITANHIDE] Invalid Export Directory Contents!\n");
+        Log("[TITANHIDE] Invalid Export Directory Contents!\r\n");
         return PE_ERROR_VALUE;
     }
     ULONG* AddressOfFunctions = (ULONG*)(FileData + AddressOfFunctionsOffset);
@@ -108,7 +108,7 @@ ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const c
 
     if(ExportOffset == PE_ERROR_VALUE)
     {
-        Log("[TITANHIDE] Export %s not found in export table!\n", ExportName);
+        Log("[TITANHIDE] Export %s not found in export table!\r\n", ExportName);
     }
 
     return ExportOffset;

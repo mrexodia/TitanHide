@@ -35,7 +35,7 @@ static int GetDebugPortOffset()
 #endif
         }
         if(DebugPortOffset != -1)
-            Log("[TITANHIDE] DebugPortOffset=%X\n", DebugPortOffset);
+            Log("[TITANHIDE] DebugPortOffset=%X\r\n", DebugPortOffset);
     }
 
     //Hard-coded offsets
