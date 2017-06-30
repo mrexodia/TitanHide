@@ -1,4 +1,4 @@
-**Do not come here and open issues about problems with installation, crashes with bug check 0x109: CRITICAL_STRUCTURE_CORRUPTION or questions on how to disable PatchGuard. I will permanently ban you from the issue tracker. If you don't know how to properly install the tool you don't know enough to use it responsibly and you should use something else.**
+**Do not come here and open issues about problems with installation, crashes with bug check 0x109: CRITICAL_STRUCTURE_CORRUPTION or questions on how to disable PatchGuard. I will permanently ban you from the issue tracker. If you don't know how to properly install the tool you don't know enough to use it responsibly and you should use something else like [ScyllaHide](https://github.com/x64dbg/ScyllaHide).**
 
 ## Latest build: [![Build status](https://ci.appveyor.com/api/projects/status/cb17ic9sxmccc74d?svg=true)](https://ci.appveyor.com/project/mrexodia/titanhide/artifacts)
 
@@ -57,10 +57,10 @@ To enable testsigning run the following command:
 bcdedit /set testsigning on
 ```
 
-To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use DebugPrint or check `C:\TitanHide.log`. You can also try [UPGDSED](https://github.com/hfiref0x/UPGDSED).
+To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx) or check `C:\TitanHide.log`. You can also try [UPGDSED](https://github.com/hfiref0x/UPGDSED).
 
 # Remarks
 
 - When using x64dbg, you can use the TitanHide plugin (available on the download page).
-- When using EsetNod32 AV, disable "Realtime File Protection", to prevent a BSOD when starting TitanHide. You can re-enable it right afterwards
+- When using EsetNod32 AV, disable "Realtime File Protection", to prevent a BSOD when starting TitanHide. You can re-enable it right afterwards.
 - **NEVER RUN THIS DRIVER ON A PRODUCTION SYSTEM, ALWAYS USE A VM!**
