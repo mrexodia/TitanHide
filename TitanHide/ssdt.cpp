@@ -75,13 +75,13 @@ PVOID SSDT::GetFunctionAddress(const char* apiname)
     SSDTStruct* SSDT = SSDTfind();
     if(!SSDT)
     {
-        Log("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\r\n");
         return 0;
     }
     ULONG_PTR SSDTbase = (ULONG_PTR)SSDT->pServiceTable;
     if(!SSDTbase)
     {
-        Log("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\r\n");
         return 0;
     }
     ULONG readOffset = NTDLL::GetExportSsdtIndex(apiname);
@@ -89,7 +89,7 @@ PVOID SSDT::GetFunctionAddress(const char* apiname)
         return 0;
     if(readOffset >= SSDT->NumberOfServices)
     {
-        Log("[TITANHIDE] Invalid read offset...\n");
+        Log("[TITANHIDE] Invalid read offset...\r\n");
         return 0;
     }
 #ifdef _WIN64
@@ -141,27 +141,27 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
     SSDTStruct* SSDT = SSDTfind();
     if(!SSDT)
     {
-        Log("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\r\n");
         return 0;
     }
     ULONG_PTR SSDTbase = (ULONG_PTR)SSDT->pServiceTable;
     if(!SSDTbase)
     {
-        Log("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\r\n");
         return 0;
     }
-    ULONG FunctionIndex = NTDLL::GetExportSsdtIndex(apiname);
+    int FunctionIndex = NTDLL::GetExportSsdtIndex(apiname);
     if(FunctionIndex == -1)
         return 0;
     if(FunctionIndex >= SSDT->NumberOfServices)
     {
-        Log("[TITANHIDE] Invalid API offset...\n");
+        Log("[TITANHIDE] Invalid API offset...\r\n");
         return 0;
     }
 
     HOOK hHook = 0;
-    ULONG oldValue = SSDT->pServiceTable[FunctionIndex];
-    ULONG newValue;
+    LONG oldValue = SSDT->pServiceTable[FunctionIndex];
+    LONG newValue;
 
 #ifdef _WIN64
     /*
@@ -179,37 +179,37 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
     {
         ULONG_PTR Lowest = SSDTbase;
         ULONG_PTR Highest = Lowest + 0x0FFFFFFF;
-        Log("[TITANHIDE] Range: 0x%p-0x%p\n", Lowest, Highest);
+        Log("[TITANHIDE] Range: 0x%p-0x%p\r\n", Lowest, Highest);
         CodeSize = 0;
         CodeStart = PE::GetPageBase(Undocumented::GetKernelBase(), &CodeSize, (PVOID)((oldValue >> 4) + SSDTbase));
         if(!CodeStart || !CodeSize)
         {
-            Log("[TITANHIDE] PeGetPageBase failed...\n");
+            Log("[TITANHIDE] PeGetPageBase failed...\r\n");
             return 0;
         }
-        Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
+        Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\r\n", CodeStart, CodeSize);
         if((ULONG_PTR)CodeStart < Lowest)  //start of the page is out of range (impossible, but whatever)
         {
             CodeSize -= (ULONG)(Lowest - (ULONG_PTR)CodeStart);
             CodeStart = (PVOID)Lowest;
-            Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\n", CodeStart, CodeSize);
+            Log("[TITANHIDE] CodeStart: 0x%p, CodeSize: 0x%X\r\n", CodeStart, CodeSize);
         }
-        Log("[TITANHIDE] Range: 0x%p-0x%p\n", CodeStart, (ULONG_PTR)CodeStart + CodeSize);
+        Log("[TITANHIDE] Range: 0x%p-0x%p\r\n", CodeStart, (ULONG_PTR)CodeStart + CodeSize);
     }
 
     PVOID CaveAddress = FindCaveAddress(CodeStart, CodeSize, sizeof(HOOKOPCODES));
     if(!CaveAddress)
     {
-        Log("[TITANHIDE] FindCaveAddress failed...\n");
+        Log("[TITANHIDE] FindCaveAddress failed...\r\n");
         return 0;
     }
-    Log("[TITANHIDE] CaveAddress: 0x%p\n", CaveAddress);
+    Log("[TITANHIDE] CaveAddress: 0x%p\r\n", CaveAddress);
 
     hHook = Hooklib::Hook(CaveAddress, (void*)newfunc);
     if(!hHook)
         return 0;
 
-    newValue = (ULONG)((ULONG_PTR)CaveAddress - SSDTbase);
+    newValue = (LONG)((ULONG_PTR)CaveAddress - SSDTbase);
     newValue = (newValue << 4) | oldValue & 0xF;
 
     //update HOOK structure
@@ -237,7 +237,7 @@ HOOK SSDT::Hook(const char* apiname, void* newfunc)
 
     InterlockedSet(&SSDT->pServiceTable[FunctionIndex], newValue);
 
-    Log("[TITANHIDE] SSDThook(%s:0x%p, 0x%p)\n", apiname, hHook->SSDTold, hHook->SSDTnew);
+    Log("[TITANHIDE] SSDThook(%s:0x%p, 0x%p)\r\n", apiname, hHook->SSDTold, hHook->SSDTnew);
 
     return hHook;
 }
@@ -249,13 +249,13 @@ void SSDT::Hook(HOOK hHook)
     SSDTStruct* SSDT = SSDTfind();
     if(!SSDT)
     {
-        Log("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\r\n");
         return;
     }
     LONG* SSDT_Table = SSDT->pServiceTable;
     if(!SSDT_Table)
     {
-        Log("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\r\n");
         return;
     }
     InterlockedSet(&SSDT_Table[hHook->SSDTindex], hHook->SSDTnew);
@@ -268,13 +268,13 @@ void SSDT::Unhook(HOOK hHook, bool free)
     SSDTStruct* SSDT = SSDTfind();
     if(!SSDT)
     {
-        Log("[TITANHIDE] SSDT not found...\n");
+        Log("[TITANHIDE] SSDT not found...\r\n");
         return;
     }
     LONG* SSDT_Table = SSDT->pServiceTable;
     if(!SSDT_Table)
     {
-        Log("[TITANHIDE] ServiceTable not found...\n");
+        Log("[TITANHIDE] ServiceTable not found...\r\n");
         return;
     }
     InterlockedSet(&SSDT_Table[hHook->SSDTindex], hHook->SSDTold);

@@ -24,8 +24,8 @@ typedef struct HOOKSTRUCT
     unsigned char orig[sizeof(HOOKOPCODES)];
     //SSDT extension
     int SSDTindex;
-    ULONG SSDTold;
-    ULONG SSDTnew;
+    LONG SSDTold;
+    LONG SSDTnew;
     ULONG_PTR SSDTaddress;
 }* HOOK;
 
