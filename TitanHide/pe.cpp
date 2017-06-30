@@ -62,7 +62,6 @@ ULONG PE::GetExportOffset(const unsigned char* FileData, ULONG FileSize, const c
         pdd = ((PIMAGE_NT_HEADERS64)pnth)->OptionalHeader.DataDirectory;
     else
         pdd = ((PIMAGE_NT_HEADERS32)pnth)->OptionalHeader.DataDirectory;
-    pnth->OptionalHeader.DataDirectory;
     ULONG ExportDirRva = pdd[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
     ULONG ExportDirSize = pdd[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
     ULONG ExportDirOffset = RvaToOffset(pnth, ExportDirRva, FileSize);

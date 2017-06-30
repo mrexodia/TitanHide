@@ -377,13 +377,12 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
     PVOID pModuleBase = NULL;
     PSYSTEM_MODULE_INFORMATION pSystemInfoBuffer = NULL;
 
-    NTSTATUS status = STATUS_INSUFFICIENT_RESOURCES;
-    ULONG    SystemInfoBufferSize = 0;
+    ULONG SystemInfoBufferSize = 0;
 
-    status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
-             &SystemInfoBufferSize,
-             0,
-             &SystemInfoBufferSize);
+    NTSTATUS status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
+                      &SystemInfoBufferSize,
+                      0,
+                      &SystemInfoBufferSize);
 
     if(!SystemInfoBufferSize)
     {
@@ -415,10 +414,7 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
     else
         Log("[TITANHIDE] ZwQuerySystemInformation (2) failed...\n");
 
-    if(pSystemInfoBuffer)
-    {
-        ExFreePool(pSystemInfoBuffer);
-    }
+    ExFreePool(pSystemInfoBuffer);
 
     return pModuleBase;
 }

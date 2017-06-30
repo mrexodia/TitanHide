@@ -14,7 +14,7 @@ static LONG TotalHideEntries = 0;
 //entry management
 static void EntryAdd(HIDE_ENTRY* NewEntry)
 {
-    if(TotalHideEntries >= MAX_HIDE_ENTRIES || !HideEntries)
+    if(TotalHideEntries >= MAX_HIDE_ENTRIES)
         return;
     RtlCopyMemory(&HideEntries[TotalHideEntries], &NewEntry[0], sizeof(HIDE_ENTRY));
     int NewTotalHideEntries = TotalHideEntries + 1;
@@ -28,7 +28,7 @@ static void EntryClear()
 
 static void EntryDel(int EntryIndex)
 {
-    if(EntryIndex < TotalHideEntries && HideEntries)
+    if(EntryIndex < TotalHideEntries)
     {
         int NewTotalHideEntries = TotalHideEntries - 1;
         if(!NewTotalHideEntries)  //nothing left
@@ -61,7 +61,7 @@ static int EntryFind(ULONG Pid)
 static ULONG EntryGet(int EntryIndex)
 {
     ULONG Type = 0;
-    if(EntryIndex < TotalHideEntries && HideEntries)
+    if(EntryIndex < TotalHideEntries)
     {
         Type = HideEntries[EntryIndex].Type;
     }
@@ -70,7 +70,7 @@ static ULONG EntryGet(int EntryIndex)
 
 static void EntrySet(int EntryIndex, ULONG Type)
 {
-    if(EntryIndex < TotalHideEntries && HideEntries)
+    if(EntryIndex < TotalHideEntries)
     {
         HideEntries[EntryIndex].Type |= Type;
     }
@@ -78,7 +78,7 @@ static void EntrySet(int EntryIndex, ULONG Type)
 
 static void EntryUnset(int EntryIndex, ULONG Type)
 {
-    if(EntryIndex < TotalHideEntries && HideEntries)
+    if(EntryIndex < TotalHideEntries)
     {
         HideEntries[EntryIndex].Type &= ~Type;
     }
@@ -89,9 +89,9 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 {
     if(Size % sizeof(HIDE_INFO))
         return false;
-    int HideInfoCount = Size / sizeof(HIDE_INFO);
+    size_t HideInfoCount = Size / sizeof(HIDE_INFO);
     HIDE_INFO* HideInfo = (HIDE_INFO*)Buffer;
-    for(int i = 0; i < HideInfoCount; i++)
+    for(size_t i = 0; i < HideInfoCount; i++)
     {
         switch(HideInfo[i].Command)
         {
