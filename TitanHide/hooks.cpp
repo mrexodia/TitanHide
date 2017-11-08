@@ -16,6 +16,18 @@ static HOOK hNtSetContextThread = 0;
 static HOOK hNtSystemDebugControl = 0;
 static FAST_MUTEX gDebugPortMutex;
 
+//https://forum.tuts4you.com/topic/40011-debugme-vmprotect-312-build-886-anti-debug-method-improved/#comment-192824
+//https://github.com/x64dbg/ScyllaHide/issues/47
+//https://github.com/mrexodia/TitanHide/issues/27
+#define BACKUP_RETURNLENGTH() \
+    ULONG TempReturnLength = 0; \
+    if(ARGUMENT_PRESENT(ReturnLength)) \
+        TempReturnLength = *ReturnLength
+
+#define RESTORE_RETURNLENGTH() \
+    if(ARGUMENT_PRESENT(ReturnLength)) \
+        *ReturnLength = TempReturnLength
+
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
@@ -105,8 +117,12 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
                 SYSTEM_KERNEL_DEBUGGER_INFORMATION* DebuggerInfo = (SYSTEM_KERNEL_DEBUGGER_INFORMATION*)SystemInformation;
                 __try
                 {
+                    BACKUP_RETURNLENGTH();
+
                     DebuggerInfo->DebuggerEnabled = false;
                     DebuggerInfo->DebuggerNotPresent = true;
+
+                    RESTORE_RETURNLENGTH();
                 }
                 __except(EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -135,6 +151,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
         {
             __try
             {
+                BACKUP_RETURNLENGTH();
+
                 OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
                 ProbeForRead(type->TypeName.Buffer, 1, 1);
                 if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
@@ -143,6 +161,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
                     type->TotalNumberOfObjects = 0;
                     type->TotalNumberOfHandles = 0;
                 }
+
+                RESTORE_RETURNLENGTH();
             }
             __except(EXCEPTION_EXECUTE_HANDLER)
             {
@@ -154,6 +174,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
             //NCC Group Security Advisory
             __try
             {
+                BACKUP_RETURNLENGTH();
+
                 OBJECT_ALL_INFORMATION* pObjectAllInfo = (OBJECT_ALL_INFORMATION*)ObjectInformation;
                 unsigned char* pObjInfoLocation = (unsigned char*)pObjectAllInfo->ObjectTypeInformation;
                 unsigned int TotalObjects = pObjectAllInfo->NumberOfObjects;
@@ -176,6 +198,8 @@ static NTSTATUS NTAPI HookNtQueryObject(
                         tmp += sizeof(void*);
                     pObjInfoLocation = ((unsigned char*)tmp);
                 }
+
+                RESTORE_RETURNLENGTH();
             }
             __except(EXCEPTION_EXECUTE_HANDLER)
             {
@@ -207,7 +231,11 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                 Log("[TITANHIDE] ProcessDebugFlags by %d\r\n", pid);
                 __try
                 {
+                    BACKUP_RETURNLENGTH();
+
                     *(unsigned int*)ProcessInformation = TRUE;
+
+                    RESTORE_RETURNLENGTH();
                 }
                 __except(EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -222,7 +250,11 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                 Log("[TITANHIDE] ProcessDebugPort by %d\r\n", pid);
                 __try
                 {
+                    BACKUP_RETURNLENGTH();
+
                     *(ULONG_PTR*)ProcessInformation = 0;
+
+                    RESTORE_RETURNLENGTH();
                 }
                 __except(EXCEPTION_EXECUTE_HANDLER)
                 {
@@ -237,7 +269,11 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                 Log("[TITANHIDE] ProcessDebugObjectHandle by %d\r\n", pid);
                 __try
                 {
+                    BACKUP_RETURNLENGTH();
+
                     *(ULONG_PTR*)ProcessInformation = 0;
+
+                    RESTORE_RETURNLENGTH();
                 }
                 __except(EXCEPTION_EXECUTE_HANDLER)
                 {
