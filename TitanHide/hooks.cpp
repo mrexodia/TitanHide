@@ -271,6 +271,17 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                 {
                     BACKUP_RETURNLENGTH();
 
+                    __try
+                    {
+                        // This was a successful request and a valid handle was returned.
+                        // That means we should close it before we nuke it to prevent handle leaks.
+                        ObCloseHandle(*(PHANDLE)ProcessInformation, KernelMode);
+                    }
+                    __except(EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        NOTHING;
+                    }
+
                     *(ULONG_PTR*)ProcessInformation = 0;
 
                     RESTORE_RETURNLENGTH();
