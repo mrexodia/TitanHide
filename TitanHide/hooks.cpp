@@ -3,9 +3,7 @@
 #include "ssdt.h"
 #include "hider.h"
 #include "misc.h"
-#include "pe.h"
 #include "log.h"
-#include "debugport.h"
 
 static HOOK hNtQueryInformationProcess = 0;
 static HOOK hNtQueryObject = 0;
@@ -14,7 +12,7 @@ static HOOK hNtClose = 0;
 static HOOK hNtSetInformationThread = 0;
 static HOOK hNtSetContextThread = 0;
 static HOOK hNtSystemDebugControl = 0;
-static FAST_MUTEX gDebugPortMutex;
+static KMUTEX gDebugPortMutex;
 
 //https://forum.tuts4you.com/topic/40011-debugme-vmprotect-312-build-886-anti-debug-method-improved/#comment-192824
 //https://github.com/x64dbg/ScyllaHide/issues/47
@@ -37,7 +35,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     //Bug found by Aguila, thanks!
     if(ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformationLength)
     {
-        ULONG pid = (ULONG)PsGetCurrentProcessId();
+        ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
         if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
         {
             Log("[TITANHIDE] ThreadHideFromDebugger by %d\r\n", pid);
@@ -76,22 +74,32 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
 static NTSTATUS NTAPI HookNtClose(
     IN HANDLE Handle)
 {
-    ULONG pid = (ULONG)PsGetCurrentProcessId();
-    NTSTATUS ret;
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
     if(Hider::IsHidden(pid, HideNtClose))
     {
-        //NCC Group Security Advisory
-        ExAcquireFastMutex(&gDebugPortMutex);
-        PVOID OldDebugPort = DebugPort::Set(PsGetCurrentProcess(), 0);
-        ret = Undocumented::NtClose(Handle);
-        DebugPort::Set(PsGetCurrentProcess(), OldDebugPort);
-        ExReleaseFastMutex(&gDebugPortMutex);
-        if(!NT_SUCCESS(ret))
+        KeWaitForSingleObject(&gDebugPortMutex, Executive, KernelMode, FALSE, nullptr);
+
+        // Check if this is a valid handle without raising exceptionss
+        BOOLEAN AuditOnClose;
+        const NTSTATUS ObStatus = ObQueryObjectAuditingByHandle(Handle, &AuditOnClose);
+
+        NTSTATUS Status;
+        if(ObStatus != STATUS_INVALID_HANDLE)  // Don't change the return path for any status except this one
+        {
+            Status = ObCloseHandle(Handle, PreviousMode);
+        }
+        else
+        {
             Log("[TITANHIDE] NtClose(0x%p) by %d\r\n", Handle, pid);
+            Status = STATUS_INVALID_HANDLE;
+        }
+
+        KeReleaseMutex(&gDebugPortMutex, FALSE);
+
+        return Status;
     }
-    else
-        ret = Undocumented::NtClose(Handle);
-    return ret;
+    return ObCloseHandle(Handle, PreviousMode);
 }
 
 static NTSTATUS NTAPI HookNtQuerySystemInformation(
@@ -103,7 +111,7 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
     NTSTATUS ret = Undocumented::NtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && SystemInformation)
     {
-        ULONG pid = (ULONG)PsGetCurrentProcessId();
+        ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
         if(SystemInformationClass == SystemKernelDebuggerInformation)
         {
             if(Hider::IsHidden(pid, HideSystemDebuggerInformation))
@@ -144,7 +152,7 @@ static NTSTATUS NTAPI HookNtQueryObject(
     NTSTATUS ret = Undocumented::NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
     if(NT_SUCCESS(ret) && ObjectInformation)
     {
-        ULONG pid = (ULONG)PsGetCurrentProcessId();
+        ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
         UNICODE_STRING DebugObject;
         RtlInitUnicodeString(&DebugObject, L"DebugObject");
         if(ObjectInformationClass == ObjectTypeInformation && Hider::IsHidden(pid, HideDebugObject))
@@ -291,7 +299,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
-    ULONG pid = (ULONG)PsGetCurrentProcessId();
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
     bool IsHidden = Hider::IsHidden(pid, HideNtSetContextThread);
     ULONG OriginalContextFlags = 0;
     if(IsHidden)
@@ -334,7 +342,7 @@ static NTSTATUS NTAPI HookNtSystemDebugControl(
     IN ULONG OutputBufferLength,
     OUT PULONG ReturnLength)
 {
-    ULONG pid = (ULONG)PsGetCurrentProcessId();
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
     if(Hider::IsHidden(pid, HideNtSystemDebugControl))
     {
         Log("[TITANHIDE] NtSystemDebugControl by %d\r\n", pid);
@@ -347,7 +355,7 @@ static NTSTATUS NTAPI HookNtSystemDebugControl(
 
 int Hooks::Initialize()
 {
-    ExInitializeFastMutex(&gDebugPortMutex);
+    KeInitializeMutex(&gDebugPortMutex, 0);
     int hook_count = 0;
     hNtQueryInformationProcess = SSDT::Hook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(hNtQueryInformationProcess)

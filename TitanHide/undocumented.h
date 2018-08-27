@@ -35,6 +35,15 @@ typedef enum _SYSDBG_COMMAND
     SysDbgGetTriageDump = 29,
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
+// This is in ntifs.h, but some say Alan Turing died trying to parse that file
+extern "C"
+NTKERNELAPI
+NTSTATUS
+ObQueryObjectAuditingByHandle(
+    _In_ HANDLE Handle,
+    _Out_ PBOOLEAN GenerateOnClose
+);
+
 class Undocumented
 {
 public:

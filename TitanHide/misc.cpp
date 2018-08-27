@@ -23,7 +23,7 @@ ULONG Misc::GetProcessIDFromThreadHandle(HANDLE ThreadHandle)
     } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
     THREAD_BASIC_INFORMATION TBI;
     if(NT_SUCCESS(Undocumented::ZwQueryInformationThread(ThreadHandle, ThreadBasicInformation, &TBI, sizeof(TBI), NULL)))
-        return (ULONG)TBI.ClientId.UniqueProcess;
+        return (ULONG)(ULONG_PTR)TBI.ClientId.UniqueProcess;
     else
         return 0;
 }
