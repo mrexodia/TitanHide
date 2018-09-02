@@ -299,8 +299,9 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
-    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
-    bool IsHidden = Hider::IsHidden(pid, HideNtSetContextThread);
+    ULONG pid = (ULONG)PsGetCurrentProcessId();
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    bool IsHidden = PreviousMode != KernelMode && Hider::IsHidden(pid, HideNtSetContextThread);
     ULONG OriginalContextFlags = 0;
     if(IsHidden)
     {
