@@ -275,31 +275,48 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             if(Hider::IsHidden(pid, HideProcessDebugObjectHandle))
             {
                 Log("[TITANHIDE] ProcessDebugObjectHandle by %d\r\n", pid);
+                HANDLE CantTouchThis = nullptr;
+
                 __try
                 {
-                    BACKUP_RETURNLENGTH();
-
                     __try
                     {
                         // This was a successful request and a valid handle was returned.
-                        // That means we should close it before we nuke it to prevent handle leaks.
-                        ObCloseHandle(*(PHANDLE)ProcessInformation, KernelMode);
+                        // That means we should close it and not just nuke it to prevent handle leaks.
+                        // Copy the handle to our kernel thread stack first so that VMProte... the nice user application can't mess with it
+                        CantTouchThis = *static_cast<PHANDLE>(ProcessInformation);
                     }
                     __except(EXCEPTION_EXECUTE_HANDLER)
                     {
-                        NOTHING;
+                        NOTHING; // Do nothing; a new exception will follow
                     }
 
-                    *(ULONG_PTR*)ProcessInformation = 0;
+                    // Do not change the order of the following statements ever
+                    BACKUP_RETURNLENGTH();
+
+                    *static_cast<PHANDLE>(ProcessInformation) = nullptr;
 
                     RESTORE_RETURNLENGTH();
+
+                    // Taken from : http://newgre.net/idastealth
+                    ret = STATUS_PORT_NOT_SET;
                 }
                 __except(EXCEPTION_EXECUTE_HANDLER)
                 {
+                    // If an exception occured anywhere, this means the process was manipulating the output buffer on purpose during a write.
+                    // Mimic the kernel here and return the exception code it caused by fucking things up for itself, rather than any other status.
                     ret = GetExceptionCode();
                 }
-                //Taken from: http://newgre.net/idastealth
-                ret = STATUS_PORT_NOT_SET;
+
+                // We passed all of the user mode buffer booby traps; now close the debug object handle. While this handle can't be
+                // messed with *anymore*, that doesn't mean we didn't receive garbage when originally dereferencing it :) So test it first
+                if(CantTouchThis != nullptr)
+                {
+                    BOOLEAN AuditOnClose;
+                    const NTSTATUS HandleStatus = ObQueryObjectAuditingByHandle(CantTouchThis, &AuditOnClose);
+                    if(HandleStatus != STATUS_INVALID_HANDLE)
+                        ObCloseHandle(CantTouchThis, KernelMode);
+                }
             }
         }
     }
