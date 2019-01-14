@@ -44,6 +44,13 @@ ObQueryObjectAuditingByHandle(
     _Out_ PBOOLEAN GenerateOnClose
 );
 
+extern "C"
+NTKERNELAPI
+PVOID
+PsGetProcessDebugPort(
+    _In_ PEPROCESS Process
+);
+
 class Undocumented
 {
 public:

@@ -9,6 +9,7 @@ static HOOK hNtQueryInformationProcess = 0;
 static HOOK hNtQueryObject = 0;
 static HOOK hNtQuerySystemInformation = 0;
 static HOOK hNtClose = 0;
+static HOOK hNtDuplicateObject = 0;
 static HOOK hNtSetInformationThread = 0;
 static HOOK hNtSetContextThread = 0;
 static HOOK hNtSystemDebugControl = 0;
@@ -25,6 +26,8 @@ static KMUTEX gDebugPortMutex;
 #define RESTORE_RETURNLENGTH() \
     if(ARGUMENT_PRESENT(ReturnLength)) \
         *ReturnLength = TempReturnLength
+
+#define OBJ_PROTECT_CLOSE 0x00000001L
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -82,12 +85,39 @@ static NTSTATUS NTAPI HookNtClose(
 
         // Check if this is a valid handle without raising exceptionss
         BOOLEAN AuditOnClose;
-        const NTSTATUS ObStatus = ObQueryObjectAuditingByHandle(Handle, &AuditOnClose);
+        NTSTATUS ObStatus = ObQueryObjectAuditingByHandle(Handle, &AuditOnClose);
 
         NTSTATUS Status;
         if(ObStatus != STATUS_INVALID_HANDLE)  // Don't change the return path for any status except this one
         {
-            Status = ObCloseHandle(Handle, PreviousMode);
+            BOOLEAN BeingDebugged = PsGetProcessDebugPort(PsGetCurrentProcess()) != nullptr;
+            OBJECT_HANDLE_INFORMATION HandleInfo = { 0 };
+
+            if(BeingDebugged)
+            {
+                // Get handle info so we can check if the handle has the ProtectFromClose bit set
+                PVOID Object = nullptr;
+                ObStatus = ObReferenceObjectByHandle(Handle,
+                                                     0,
+                                                     nullptr,
+                                                     PreviousMode,
+                                                     &Object,
+                                                     &HandleInfo);
+                if(Object != nullptr)
+                    ObDereferenceObject(Object);
+            }
+
+            if(BeingDebugged && NT_SUCCESS(ObStatus) &&
+                    (HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE))
+            {
+                // Return STATUS_HANDLE_NOT_CLOSABLE instead of raising an exception
+                Log("[TITANHIDE] NtClose(0x%p) (protected handle) by %d\r\n", Handle, pid);
+                Status = STATUS_HANDLE_NOT_CLOSABLE;
+            }
+            else
+            {
+                Status = ObCloseHandle(Handle, PreviousMode);
+            }
         }
         else
         {
@@ -100,6 +130,50 @@ static NTSTATUS NTAPI HookNtClose(
         return Status;
     }
     return ObCloseHandle(Handle, PreviousMode);
+}
+
+static NTSTATUS NTAPI HookNtDuplicateObject(
+    IN HANDLE SourceProcessHandle,
+    IN HANDLE SourceHandle,
+    IN HANDLE TargetProcessHandle,
+    OUT PHANDLE TargetHandle,
+    IN ACCESS_MASK DesiredAccess OPTIONAL,
+    IN ULONG HandleAttributes,
+    IN ULONG Options)
+{
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    if(Hider::IsHidden(pid, HideNtClose))
+    {
+        BOOLEAN BeingDebugged = PsGetProcessDebugPort(PsGetCurrentProcess()) != nullptr;
+        if(BeingDebugged && (Options & DUPLICATE_CLOSE_SOURCE))
+        {
+            // Get handle info so we can check if the handle has the ProtectFromClose bit set
+            PVOID Object = nullptr;
+            OBJECT_HANDLE_INFORMATION HandleInfo = { 0 };
+            NTSTATUS Status = ObReferenceObjectByHandle(SourceHandle,
+                              0,
+                              nullptr,
+                              PreviousMode,
+                              &Object,
+                              &HandleInfo);
+
+            if(NT_SUCCESS(Status))
+            {
+                if(Object != nullptr)
+                    ObDereferenceObject(Object);
+
+                if(HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE)
+                {
+                    // Prevent a user mode exception from happening when ObDuplicateObject calls NtClose on the source handle.
+                    // Why doesn't our NtClose hook catch this? Because the kernel uses its own RVAs instead of going through the SSDT
+                    Options &= ~DUPLICATE_CLOSE_SOURCE;
+                }
+            }
+        }
+    }
+
+    return Undocumented::NtDuplicateObject(SourceProcessHandle, SourceHandle, TargetProcessHandle, TargetHandle, DesiredAccess, HandleAttributes, Options);
 }
 
 static NTSTATUS NTAPI HookNtQuerySystemInformation(
@@ -327,7 +401,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
-    ULONG pid = (ULONG)PsGetCurrentProcessId();
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
     bool IsHidden = PreviousMode != KernelMode && Hider::IsHidden(pid, HideNtSetContextThread);
     ULONG OriginalContextFlags = 0;
@@ -401,6 +475,9 @@ int Hooks::Initialize()
     hNtClose = SSDT::Hook("NtClose", (void*)HookNtClose);
     if(hNtClose)
         hook_count++;
+    hNtDuplicateObject = SSDT::Hook("NtDuplicateObject", (void*)HookNtDuplicateObject);
+    if(hNtDuplicateObject)
+        hook_count++;
     hNtSetContextThread = SSDT::Hook("NtSetContextThread", (void*)HookNtSetContextThread);
     if(hNtSetContextThread)
         hook_count++;
@@ -417,6 +494,7 @@ void Hooks::Deinitialize()
     SSDT::Unhook(hNtQuerySystemInformation, true);
     SSDT::Unhook(hNtSetInformationThread, true);
     SSDT::Unhook(hNtClose, true);
+    SSDT::Unhook(hNtDuplicateObject, true);
     SSDT::Unhook(hNtSetContextThread, true);
     SSDT::Unhook(hNtSystemDebugControl, true);
 }
