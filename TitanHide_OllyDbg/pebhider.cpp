@@ -130,16 +130,7 @@ typedef PEB32 PEB_CURRENT;
 // Global.Engine.Hider.functions:
 static bool isAtleastVista()
 {
-    static bool isAtleastVista = false;
-    static bool isSet = false;
-    if(isSet)
-        return isAtleastVista;
-    OSVERSIONINFO versionInfo = {0};
-    versionInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-    GetVersionEx(&versionInfo);
-    isAtleastVista = versionInfo.dwMajorVersion >= 6;
-    isSet = true;
-    return isAtleastVista;
+    return *(PULONG)(0x7FFE0000 + 0x26C) >= 6;
 }
 
 //Quote from The Ultimate Anti-Debugging Reference by Peter Ferrie
