@@ -11,5 +11,6 @@ bin/
 *.vddklaunch
 *.reg
 *.TMP
+*.user
 !BreakOnSysRq.reg
 .vs/

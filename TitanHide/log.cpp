@@ -7,7 +7,7 @@ void Log(const char* format, ...)
     va_start(vl, format);
     _vsnprintf(msg, sizeof(msg) / sizeof(char), format, vl);
 #ifdef _DEBUG
-    DbgPrint(msg);
+    DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, msg);
 #endif
     va_end(format);
     UNICODE_STRING FileName;
