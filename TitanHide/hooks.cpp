@@ -35,10 +35,11 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     IN PVOID ThreadInformation,
     IN ULONG ThreadInformationLength)
 {
+    const ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+
     //Bug found by Aguila, thanks!
     if(ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformationLength)
     {
-        ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
         if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
         {
             Log("[TITANHIDE] ThreadHideFromDebugger by %d\r\n", pid);
@@ -71,6 +72,46 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
             return status;
         }
     }
+    // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
+#ifdef _WIN64
+    else if(ThreadInformationClass == ThreadWow64Context &&
+            ThreadInformation != nullptr &&
+            ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
+            ExGetPreviousMode() != KernelMode &&
+            Hider::IsHidden(pid, HideNtSetContextThread))
+    {
+        PWOW64_CONTEXT Wow64Context = (PWOW64_CONTEXT)ThreadInformation;
+        ULONG OriginalContextFlags = 0;
+
+        Log("[TITANHIDE] NtSetContextThread by %d\r\n", pid);
+
+        __try
+        {
+            ProbeForWrite(&Wow64Context->ContextFlags, sizeof(ULONG), 1);
+            OriginalContextFlags = Wow64Context->ContextFlags;
+            Wow64Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
+        }
+        __except(EXCEPTION_EXECUTE_HANDLER)
+        {
+            NOTHING;
+        }
+
+        const NTSTATUS Status = Undocumented::NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
+
+        __try
+        {
+            ProbeForWrite(&Wow64Context->ContextFlags, sizeof(ULONG), 1);
+            Wow64Context->ContextFlags = OriginalContextFlags;
+        }
+        __except(EXCEPTION_EXECUTE_HANDLER)
+        {
+            NOTHING;
+        }
+
+        return Status;
+    }
+#endif
+
     return Undocumented::NtSetInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
 }
 

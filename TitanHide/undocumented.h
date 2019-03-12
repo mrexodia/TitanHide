@@ -35,6 +35,65 @@ typedef enum _SYSDBG_COMMAND
     SysDbgGetTriageDump = 29,
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
+// WOW64_CONTEXT is not undocumented, but it's missing from the WDK
+#define WOW64_SIZE_OF_80387_REGISTERS 80
+#define WOW64_MAXIMUM_SUPPORTED_EXTENSION 512
+
+typedef struct _WOW64_FLOATING_SAVE_AREA
+{
+    ULONG ControlWord;
+    ULONG StatusWord;
+    ULONG TagWord;
+    ULONG ErrorOffset;
+    ULONG ErrorSelector;
+    ULONG DataOffset;
+    ULONG DataSelector;
+    UCHAR RegisterArea[WOW64_SIZE_OF_80387_REGISTERS];
+    ULONG Cr0NpxState;
+} WOW64_FLOATING_SAVE_AREA, *PWOW64_FLOATING_SAVE_AREA;
+
+#pragma pack(push, 4)
+
+typedef struct _WOW64_CONTEXT
+{
+    ULONG ContextFlags;
+
+    ULONG Dr0;
+    ULONG Dr1;
+    ULONG Dr2;
+    ULONG Dr3;
+    ULONG Dr6;
+    ULONG Dr7;
+
+    WOW64_FLOATING_SAVE_AREA FloatSave;
+
+    ULONG SegGs;
+    ULONG SegFs;
+    ULONG SegEs;
+    ULONG SegDs;
+
+    ULONG Edi;
+    ULONG Esi;
+    ULONG Ebx;
+    ULONG Edx;
+    ULONG Ecx;
+    ULONG Eax;
+
+    ULONG Ebp;
+    ULONG Eip;
+    ULONG SegCs;
+    ULONG EFlags;
+    ULONG Esp;
+    ULONG SegSs;
+
+    UCHAR ExtendedRegisters[WOW64_MAXIMUM_SUPPORTED_EXTENSION];
+
+} WOW64_CONTEXT;
+
+typedef WOW64_CONTEXT* PWOW64_CONTEXT;
+
+#pragma pack(pop)
+
 // This is in ntifs.h, but some say Alan Turing died trying to parse that file
 extern "C"
 NTKERNELAPI
