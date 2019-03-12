@@ -13,25 +13,43 @@ void RtlFreeMemory(void* InPointer)
     ExFreePool(InPointer);
 }
 
-//Based on: http://leguanyuan.blogspot.nl/2013/09/x64-inline-hook-zwcreatesection.html
 NTSTATUS RtlSuperCopyMemory(IN VOID UNALIGNED* Destination, IN CONST VOID UNALIGNED* Source, IN ULONG Length)
 {
-    //Change memory properties.
-    PMDL g_pmdl = IoAllocateMdl(Destination, Length, 0, 0, NULL);
-    if(!g_pmdl)
-        return STATUS_UNSUCCESSFUL;
-    MmBuildMdlForNonPagedPool(g_pmdl);
-    unsigned int* Mapped = (unsigned int*)MmMapLockedPages(g_pmdl, KernelMode);
-    if(!Mapped)
+    const KIRQL Irql = KeRaiseIrqlToDpcLevel();
+
+    PMDL Mdl = IoAllocateMdl(Destination, Length, 0, 0, nullptr);
+    if(Mdl == nullptr)
     {
-        IoFreeMdl(g_pmdl);
-        return STATUS_UNSUCCESSFUL;
+        KeLowerIrql(Irql);
+        return STATUS_NO_MEMORY;
     }
-    KIRQL kirql = KeRaiseIrqlToDpcLevel();
+
+    MmBuildMdlForNonPagedPool(Mdl);
+
+    // Hack: prevent bugcheck from Driver Verifier and possible future versions of Windows
+#pragma prefast(push)
+#pragma prefast(disable:__WARNING_MODIFYING_MDL, "Trust me I'm a scientist")
+    const CSHORT OriginalMdlFlags = Mdl->MdlFlags;
+    Mdl->MdlFlags |= MDL_PAGES_LOCKED;
+    Mdl->MdlFlags &= ~MDL_SOURCE_IS_NONPAGED_POOL;
+
+    // Map pages and do the copy
+    const PVOID Mapped = MmMapLockedPagesSpecifyCache(Mdl, KernelMode, MmCached, nullptr, FALSE, HighPagePriority);
+    if(Mapped == nullptr)
+    {
+        Mdl->MdlFlags = OriginalMdlFlags;
+        IoFreeMdl(Mdl);
+        KeLowerIrql(Irql);
+        return STATUS_NONE_MAPPED;
+    }
+
     RtlCopyMemory(Mapped, Source, Length);
-    KeLowerIrql(kirql);
-    //Restore memory properties.
-    MmUnmapLockedPages((PVOID)Mapped, g_pmdl);
-    IoFreeMdl(g_pmdl);
+
+    MmUnmapLockedPages(Mapped, Mdl);
+    Mdl->MdlFlags = OriginalMdlFlags;
+#pragma prefast(pop)
+    IoFreeMdl(Mdl);
+    KeLowerIrql(Irql);
+
     return STATUS_SUCCESS;
 }
