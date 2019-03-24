@@ -3,10 +3,12 @@
 
 ULONG Misc::GetProcessIDFromProcessHandle(HANDLE ProcessHandle)
 {
-    // FIXME: this causes a Driver Verifier violation when non-kernel handles are passed to ObReferenceObjectByHandle inside ZwQIP
-    PROCESS_BASIC_INFORMATION PBI;
-    if(NT_SUCCESS(Undocumented::ZwQueryInformationProcess(ProcessHandle, ProcessBasicInformation, &PBI, sizeof(PBI), NULL)))
-        return (ULONG)PBI.UniqueProcessId;
-
-    return 0;
+    ULONG Pid = 0;
+    PEPROCESS Process;
+    if(NT_SUCCESS(ObReferenceObjectByHandle(ProcessHandle, 0, *PsProcessType, ExGetPreviousMode(), (PVOID*)&Process, nullptr)))
+    {
+        Pid = (ULONG)(ULONG_PTR)PsGetProcessId(Process);
+        ObDereferenceObject(Process);
+    }
+    return Pid;
 }
