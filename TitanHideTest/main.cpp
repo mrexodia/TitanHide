@@ -383,6 +383,12 @@ int main(int argc, char* argv[])
     char title[256] = "";
     sprintf_s(title, "pid: %d", (int)GetCurrentProcessId());
     SetConsoleTitleA(title);
+
+    BOOL IsWow64 = FALSE;
+#ifndef _WIN64
+    IsWow64Process(GetCurrentProcess(), &IsWow64);
+#endif
+
     while(1)
     {
         printf("ProcessDebugFlags: %d\n", CheckProcessDebugFlags());
@@ -390,7 +396,8 @@ int main(int argc, char* argv[])
         printf("ProcessDebugObjectHandle: %d\n", CheckProcessDebugObjectHandle());
         printf("NtQueryObject: %d\n", CheckObjectList());
         printf("CheckSystemDebugger: %d\n", CheckSystemDebugger());
-        printf("SystemDebugControl: %d\n", CheckSystemDebugControl());
+        if(!IsWow64)  // This syscall is not implemented in wow64.dll
+            printf("SystemDebugControl: %d\n", CheckSystemDebugControl());
         printf("CheckNtClose: %d\n", CheckNtClose());
         //printf("ThreadHideFromDebugger: %d\n", HideFromDebugger());
         puts("");
