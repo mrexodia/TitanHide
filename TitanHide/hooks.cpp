@@ -430,7 +430,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                     BOOLEAN AuditOnClose;
                     const NTSTATUS HandleStatus = ObQueryObjectAuditingByHandle(CantTouchThis, &AuditOnClose);
                     if(HandleStatus != STATUS_INVALID_HANDLE)
-                        ObCloseHandle(CantTouchThis, KernelMode);
+                        ObCloseHandle(CantTouchThis, ExGetPreviousMode());
                 }
             }
         }
