@@ -1,4 +1,4 @@
-**Do not come here and open issues about problems with installation, crashes with bug check 0x109: CRITICAL_STRUCTURE_CORRUPTION or questions on how to disable PatchGuard. I will permanently ban you from the issue tracker. If you don't know how to properly install the tool you don't know enough to use it responsibly and you should use something else like [ScyllaHide](https://github.com/x64dbg/ScyllaHide). To disable PatchGuard, try [UPGDSED](https://github.com/hfiref0x/UPGDSED).**
+**Do not come here and open issues about problems with installation, crashes with bug check 0x109: CRITICAL_STRUCTURE_CORRUPTION or questions on how to disable PatchGuard. I will permanently ban you from the issue tracker. If you don't know how to properly install the tool you don't know enough to use it responsibly and you should use something else like [ScyllaHide](https://github.com/x64dbg/ScyllaHide). To disable PatchGuard, try [EfiGuard](https://github.com/Mattiwatti/EfiGuard) or [UPGDSED](https://github.com/hfiref0x/UPGDSED).**
 
 ## Latest build: [![Build status](https://ci.appveyor.com/api/projects/status/cb17ic9sxmccc74d?svg=true)](https://ci.appveyor.com/project/mrexodia/titanhide/build/artifacts)
 
@@ -56,7 +56,7 @@ To enable testsigning run the following command:
 bcdedit /set testsigning on
 ```
 
-To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx) or check `C:\TitanHide.log`. You can also try [UPGDSED](https://github.com/hfiref0x/UPGDSED).
+To disable PatchGuard, find a tool like KPP Destroyer to disable it (Google is your friend). To check if TitanHide is working correctly, use [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx) or check `C:\TitanHide.log`. You can also try [EfiGuard](https://github.com/Mattiwatti/EfiGuard) or [UPGDSED](https://github.com/hfiref0x/UPGDSED).
 
 # Remarks
 
