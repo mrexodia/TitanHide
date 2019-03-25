@@ -545,10 +545,12 @@ static NTSTATUS NTAPI HookNtGetContextThread(
                 Context->Dr3 = 0;
                 Context->Dr6 = 0;
                 Context->Dr7 = 0;
+#ifdef _WIN64
                 Context->LastBranchToRip = 0;
                 Context->LastBranchFromRip = 0;
                 Context->LastExceptionToRip = 0;
                 Context->LastExceptionFromRip = 0;
+#endif
             }
         }
         __except(EXCEPTION_EXECUTE_HANDLER)
