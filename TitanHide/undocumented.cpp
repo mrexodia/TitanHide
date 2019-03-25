@@ -10,7 +10,7 @@ typedef NTSTATUS(NTAPI* ZWQUERYINFORMATIONPROCESS)(
     OUT PULONG ReturnLength OPTIONAL
 );
 
-typedef NTSTATUS(NTAPI* ZWQUERYINFORMATIONTHREAD)(
+typedef NTSTATUS(NTAPI* NTQUERYINFORMATIONTHREAD)(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN OUT PVOID ThreadInformation,
@@ -42,6 +42,11 @@ typedef NTSTATUS(NTAPI* NTQUERYSYSTEMINFORMATION)(
 
 typedef NTSTATUS(NTAPI* NTCLOSE)(
     IN HANDLE Handle
+);
+
+typedef NTSTATUS(NTAPI* NTGETCONTEXTTHREAD)(
+    IN HANDLE ThreadHandle,
+    IN OUT PCONTEXT Context
 );
 
 typedef NTSTATUS(NTAPI* NTSETCONTEXTTHREAD)(
@@ -100,11 +105,12 @@ typedef NTSTATUS(NTAPI* NTSYSTEMDEBUGCONTROL)(
 );
 
 static ZWQUERYINFORMATIONPROCESS ZwQIP = 0;
-static ZWQUERYINFORMATIONTHREAD ZwQIT = 0;
+static NTQUERYINFORMATIONTHREAD NtQIT = 0;
 static NTQUERYOBJECT NtQO = 0;
 static ZWQUERYSYSTEMINFORMATION ZwQSI = 0;
 static NTQUERYSYSTEMINFORMATION NtQSI = 0;
 static NTCLOSE NtClo = 0;
+static NTSETCONTEXTTHREAD NtGCT = 0;
 static NTSETCONTEXTTHREAD NtSCT = 0;
 static NTCONTINUE NtCon = 0;
 static NTDUPLICATEOBJECT NtDO = 0;
@@ -124,14 +130,14 @@ NTSTATUS NTAPI Undocumented::ZwQueryInformationProcess(
     return ZwQIP(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
 }
 
-NTSTATUS NTAPI Undocumented::ZwQueryInformationThread(
+NTSTATUS NTAPI Undocumented::NtQueryInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN OUT PVOID ThreadInformation,
     IN ULONG ThreadInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    return ZwQIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
+    return NtQIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
 }
 
 NTSTATUS NTAPI Undocumented::NtQueryObject(
@@ -166,6 +172,13 @@ NTSTATUS NTAPI Undocumented::NtClose(
     IN HANDLE Handle)
 {
     return NtClo(Handle);
+}
+
+NTSTATUS NTAPI Undocumented::NtGetContextThread(
+    IN HANDLE ThreadHandle,
+    IN OUT PCONTEXT Context)
+{
+    return NtGCT(ThreadHandle, Context);
 }
 
 NTSTATUS NTAPI Undocumented::NtSetContextThread(
@@ -250,12 +263,12 @@ bool Undocumented::UndocumentedInit()
         if(!ZwQIP)
             return false;
     }
-    if(!ZwQIT)
+    if(!NtQIT)
     {
         UNICODE_STRING routineName;
-        RtlInitUnicodeString(&routineName, L"ZwQueryInformationThread");
-        ZwQIT = (ZWQUERYINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwQIT)
+        RtlInitUnicodeString(&routineName, L"NtQueryInformationThread");
+        NtQIT = (NTQUERYINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
+        if(!NtQIT)
             return false;
     }
     if(!ZwQSI)
@@ -327,6 +340,12 @@ bool Undocumented::UndocumentedInit()
     {
         NtQO = (NTQUERYOBJECT)SSDT::GetFunctionAddress("NtQueryObject");
         if(!NtQO)
+            return false;
+    }
+    if(!NtGCT)
+    {
+        NtGCT = (NTGETCONTEXTTHREAD)SSDT::GetFunctionAddress("NtGetContextThread");
+        if(!NtGCT)
             return false;
     }
     if(!NtSCT)

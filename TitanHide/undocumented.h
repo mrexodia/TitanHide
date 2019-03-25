@@ -110,6 +110,13 @@ PsGetProcessDebugPort(
     _In_ PEPROCESS Process
 );
 
+extern "C"
+NTKERNELAPI
+PEPROCESS
+PsGetThreadProcess(
+    _In_ PETHREAD Thread
+);
+
 class Undocumented
 {
 public:
@@ -120,7 +127,7 @@ public:
         IN ULONG ProcessInformationLength,
         OUT PULONG ReturnLength OPTIONAL);
 
-    static NTSTATUS NTAPI ZwQueryInformationThread(
+    static NTSTATUS NTAPI NtQueryInformationThread(
         IN HANDLE ThreadHandle,
         IN THREADINFOCLASS ThreadInformationClass,
         IN OUT PVOID ThreadInformation,
@@ -148,6 +155,10 @@ public:
 
     static NTSTATUS NTAPI NtClose(
         IN HANDLE Handle);
+
+    static NTSTATUS NTAPI NtGetContextThread(
+        IN HANDLE ThreadHandle,
+        IN OUT PCONTEXT Context);
 
     static NTSTATUS NTAPI NtSetContextThread(
         IN HANDLE ThreadHandle,

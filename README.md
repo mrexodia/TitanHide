@@ -14,9 +14,9 @@ TitanHide is a driver intended to hide debuggers from certain processes. The dri
 - DebugObject (NtQueryObject)
 - SystemKernelDebuggerInformation (NtQuerySystemInformation)
 - SystemDebugControl (NtSystemDebugControl)
-- NtClose (STATUS_INVALID_HANDLE exception)
+- NtClose (STATUS_INVALID_HANDLE/STATUS_HANDLE_NOT_CLOSABLE exceptions)
 - ThreadHideFromDebugger (NtSetInformationThread)
-- Protect DRx (HW BPs) (NtSetContextThread)
+- Protect DRx (HW BPs) (NtGetContextThread/NtSetContextThread)
 
 # Test environments
 

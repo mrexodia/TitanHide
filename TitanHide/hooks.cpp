@@ -6,11 +6,13 @@
 #include "log.h"
 
 static HOOK hNtQueryInformationProcess = 0;
+static HOOK hNtQueryInformationThread = 0;
 static HOOK hNtQueryObject = 0;
 static HOOK hNtQuerySystemInformation = 0;
 static HOOK hNtClose = 0;
 static HOOK hNtDuplicateObject = 0;
 static HOOK hNtSetInformationThread = 0;
+static HOOK hNtGetContextThread = 0;
 static HOOK hNtSetContextThread = 0;
 static HOOK hNtSystemDebugControl = 0;
 static KMUTEX gDebugPortMutex;
@@ -25,9 +27,73 @@ static KMUTEX gDebugPortMutex;
 
 #define RESTORE_RETURNLENGTH() \
     if(ARGUMENT_PRESENT(ReturnLength)) \
-        *ReturnLength = TempReturnLength
+        (*ReturnLength) = TempReturnLength
 
 #define OBJ_PROTECT_CLOSE 0x00000001L
+
+static NTSTATUS NTAPI HookNtQueryInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN OUT PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength,
+    OUT PULONG ReturnLength OPTIONAL)
+{
+    // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
+#ifdef _WIN64
+    ULONG pid = Misc::GetProcessIDFromThreadHandle(ThreadHandle); // NB: this is the PID of the target thread, not the caller
+    if(ThreadInformationClass == ThreadWow64Context &&
+            ThreadInformation != nullptr &&
+            ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
+            ExGetPreviousMode() != KernelMode &&
+            Hider::IsHidden(pid, HideNtGetContextThread))
+    {
+        PWOW64_CONTEXT Wow64Context = (PWOW64_CONTEXT)ThreadInformation;
+        ULONG OriginalContextFlags = 0;
+        bool DebugRegistersRequested = false;
+
+        Log("[TITANHIDE] NtGetContextThread by %d\r\n", pid);
+
+        __try
+        {
+            ProbeForWrite(&Wow64Context->ContextFlags, sizeof(ULONG), 1);
+            OriginalContextFlags = Wow64Context->ContextFlags;
+            Wow64Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
+            DebugRegistersRequested = Wow64Context->ContextFlags != OriginalContextFlags;
+        }
+        __except(EXCEPTION_EXECUTE_HANDLER)
+        {
+            NOTHING;
+        }
+
+        const NTSTATUS Status = Undocumented::NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
+
+        __try
+        {
+            ProbeForWrite(&Wow64Context->ContextFlags, sizeof(ULONG), 1);
+            Wow64Context->ContextFlags = OriginalContextFlags;
+
+            // If debug registers were requested, zero user input
+            if(DebugRegistersRequested)
+            {
+                Wow64Context->Dr0 = 0;
+                Wow64Context->Dr1 = 0;
+                Wow64Context->Dr2 = 0;
+                Wow64Context->Dr3 = 0;
+                Wow64Context->Dr6 = 0;
+                Wow64Context->Dr7 = 0;
+            }
+        }
+        __except(EXCEPTION_EXECUTE_HANDLER)
+        {
+            NOTHING;
+        }
+
+        return Status;
+    }
+#endif
+
+    return Undocumented::NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
+}
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
     IN HANDLE ThreadHandle,
@@ -438,6 +504,60 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     return ret;
 }
 
+static NTSTATUS NTAPI HookNtGetContextThread(
+    IN HANDLE ThreadHandle,
+    IN OUT PCONTEXT Context)
+{
+    ULONG pid = Misc::GetProcessIDFromThreadHandle(ThreadHandle); // NB: this is the PID of the target thread, not the caller
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    bool IsHidden = PreviousMode != KernelMode && Hider::IsHidden(pid, HideNtGetContextThread);
+    ULONG OriginalContextFlags = 0;
+    bool DebugRegistersRequested = false;
+    if(IsHidden)
+    {
+        Log("[TITANHIDE] NtGetContextThread by %d\r\n", pid);
+        __try
+        {
+            ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
+            OriginalContextFlags = Context->ContextFlags;
+            Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
+            DebugRegistersRequested = Context->ContextFlags != OriginalContextFlags;
+        }
+        __except(EXCEPTION_EXECUTE_HANDLER)
+        {
+            IsHidden = false;
+        }
+    }
+    NTSTATUS ret = Undocumented::NtGetContextThread(ThreadHandle, Context);
+    if(IsHidden)
+    {
+        __try
+        {
+            ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
+            Context->ContextFlags = OriginalContextFlags;
+
+            // If debug registers were requested, zero user input
+            if(DebugRegistersRequested)
+            {
+                Context->Dr0 = 0;
+                Context->Dr1 = 0;
+                Context->Dr2 = 0;
+                Context->Dr3 = 0;
+                Context->Dr6 = 0;
+                Context->Dr7 = 0;
+                Context->LastBranchToRip = 0;
+                Context->LastBranchFromRip = 0;
+                Context->LastExceptionToRip = 0;
+                Context->LastExceptionFromRip = 0;
+            }
+        }
+        __except(EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
+    }
+    return ret;
+}
+
 static NTSTATUS NTAPI HookNtSetContextThread(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
@@ -503,6 +623,9 @@ int Hooks::Initialize()
     hNtQueryInformationProcess = SSDT::Hook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
     if(hNtQueryInformationProcess)
         hook_count++;
+    hNtQueryInformationThread = SSDT::Hook("NtQueryInformationThread", (void*)HookNtQueryInformationThread);
+    if(hNtQueryInformationThread)
+        hook_count++;
     hNtQueryObject = SSDT::Hook("NtQueryObject", (void*)HookNtQueryObject);
     if(hNtQueryObject)
         hook_count++;
@@ -518,6 +641,9 @@ int Hooks::Initialize()
     hNtDuplicateObject = SSDT::Hook("NtDuplicateObject", (void*)HookNtDuplicateObject);
     if(hNtDuplicateObject)
         hook_count++;
+    hNtGetContextThread = SSDT::Hook("NtGetContextThread", (void*)HookNtGetContextThread);
+    if(hNtGetContextThread)
+        hook_count++;
     hNtSetContextThread = SSDT::Hook("NtSetContextThread", (void*)HookNtSetContextThread);
     if(hNtSetContextThread)
         hook_count++;
@@ -530,11 +656,13 @@ int Hooks::Initialize()
 void Hooks::Deinitialize()
 {
     SSDT::Unhook(hNtQueryInformationProcess, true);
+    SSDT::Unhook(hNtQueryInformationThread, true);
     SSDT::Unhook(hNtQueryObject, true);
     SSDT::Unhook(hNtQuerySystemInformation, true);
     SSDT::Unhook(hNtSetInformationThread, true);
     SSDT::Unhook(hNtClose, true);
     SSDT::Unhook(hNtDuplicateObject, true);
+    SSDT::Unhook(hNtGetContextThread, true);
     SSDT::Unhook(hNtSetContextThread, true);
     SSDT::Unhook(hNtSystemDebugControl, true);
 }
