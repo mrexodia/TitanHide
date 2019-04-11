@@ -508,9 +508,12 @@ static NTSTATUS NTAPI HookNtGetContextThread(
     IN HANDLE ThreadHandle,
     IN OUT PCONTEXT Context)
 {
-    ULONG pid = Misc::GetProcessIDFromThreadHandle(ThreadHandle); // NB: this is the PID of the target thread, not the caller
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+    ULONG targetPid = Misc::GetProcessIDFromThreadHandle(ThreadHandle);
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
-    bool IsHidden = PreviousMode != KernelMode && Hider::IsHidden(pid, HideNtGetContextThread);
+    bool IsHidden = PreviousMode != KernelMode &&
+                    Hider::IsHidden(pid, HideNtGetContextThread) &&
+                    Hider::IsHidden(targetPid, HideNtGetContextThread);
     ULONG OriginalContextFlags = 0;
     bool DebugRegistersRequested = false;
     if(IsHidden)
