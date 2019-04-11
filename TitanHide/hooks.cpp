@@ -40,12 +40,14 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
 {
     // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
 #ifdef _WIN64
-    ULONG pid = Misc::GetProcessIDFromThreadHandle(ThreadHandle); // NB: this is the PID of the target thread, not the caller
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+    ULONG targetPid = Misc::GetProcessIDFromThreadHandle(ThreadHandle);
     if(ThreadInformationClass == ThreadWow64Context &&
             ThreadInformation != nullptr &&
             ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
             ExGetPreviousMode() != KernelMode &&
-            Hider::IsHidden(pid, HideNtGetContextThread))
+            Hider::IsHidden(pid, HideNtGetContextThread) &&
+            Hider::IsHidden(targetPid, HideNtGetContextThread))
     {
         PWOW64_CONTEXT Wow64Context = (PWOW64_CONTEXT)ThreadInformation;
         ULONG OriginalContextFlags = 0;
