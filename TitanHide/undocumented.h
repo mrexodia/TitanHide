@@ -105,6 +105,17 @@ ObQueryObjectAuditingByHandle(
 
 extern "C"
 NTKERNELAPI
+BOOLEAN
+ObFindHandleForObject(
+    _In_ PEPROCESS Process,
+    _In_opt_ PVOID Object,
+    _In_opt_ POBJECT_TYPE ObjectType,
+    _In_opt_ POBJECT_HANDLE_INFORMATION MatchCriteria,
+    _Out_ PHANDLE Handle
+);
+
+extern "C"
+NTKERNELAPI
 PVOID
 PsGetProcessDebugPort(
     _In_ PEPROCESS Process

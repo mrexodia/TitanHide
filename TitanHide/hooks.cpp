@@ -455,10 +455,13 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
         }
         else if(ProcessInformationClass == ProcessDebugObjectHandle)
         {
+            // TODO: the ProcessDebugObjectHandle hook is now so convoluted that it may be better to check
+            // for this information class prior to the syscall and emulate what the kernel does instead
             if(Hider::IsHidden(pid, HideProcessDebugObjectHandle))
             {
                 Log("[TITANHIDE] ProcessDebugObjectHandle by %d\r\n", pid);
                 HANDLE CantTouchThis = nullptr;
+                BOOLEAN HandleAndReturnLengthOverlap = FALSE;
 
                 __try
                 {
@@ -474,12 +477,20 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                         NOTHING; // Do nothing; a new exception will follow
                     }
 
-                    // Do not change the order of the following statements ever
-                    BACKUP_RETURNLENGTH();
+                    // https://github.com/mrexodia/TitanHide/issues/39
+                    HandleAndReturnLengthOverlap = ARGUMENT_PRESENT(ReturnLength) &&
+                                                   (ULONG_PTR)ReturnLength > (ULONG_PTR)ProcessInformation - sizeof(HANDLE) &&
+                                                   (ULONG_PTR)ReturnLength < (ULONG_PTR)ProcessInformation + sizeof(HANDLE);
 
-                    *static_cast<PHANDLE>(ProcessInformation) = nullptr;
+                    if(!HandleAndReturnLengthOverlap)
+                    {
+                        // Do not change the order of the following statements ever
+                        BACKUP_RETURNLENGTH();
 
-                    RESTORE_RETURNLENGTH();
+                        *static_cast<PHANDLE>(ProcessInformation) = nullptr;
+
+                        RESTORE_RETURNLENGTH();
+                    }
 
                     // Taken from : http://newgre.net/idastealth
                     ret = STATUS_PORT_NOT_SET;
@@ -489,6 +500,32 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
                     // If an exception occured anywhere, this means the process was manipulating the output buffer on purpose during a write.
                     // Mimic the kernel here and return the exception code it caused by fucking things up for itself, rather than any other status.
                     ret = GetExceptionCode();
+                }
+
+                if(HandleAndReturnLengthOverlap)
+                {
+                    // Since the kernel writes the return length last (overwriting the handle), we must find the unclosed handle.
+                    CantTouchThis = nullptr;
+                    PEPROCESS Process;
+                    const NTSTATUS Status = ObReferenceObjectByHandle(ProcessHandle,
+                                            PROCESS_ALL_ACCESS,
+                                            *PsProcessType,
+                                            KernelMode,
+                                            (PVOID*)&Process,
+                                            nullptr);
+                    if(NT_SUCCESS(Status))
+                    {
+                        const PVOID DebugPort = PsGetProcessDebugPort(Process);
+                        if(DebugPort != nullptr)
+                        {
+                            ObFindHandleForObject(Process,
+                                                  DebugPort,
+                                                  nullptr,
+                                                  nullptr,
+                                                  &CantTouchThis);
+                        }
+                        ObDereferenceObject(Process);
+                    }
                 }
 
                 // We passed all of the user mode buffer booby traps; now close the debug object handle. While this handle can't be
