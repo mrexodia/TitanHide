@@ -602,43 +602,79 @@ static NTSTATUS NTAPI HookNtGetContextThread(
     return ret;
 }
 
-static NTSTATUS NTAPI HookNtSetContextThread(
+static NTSTATUS NTAPI SetContextThreadWithoutDebugRegisters(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context)
 {
-    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
-    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
-    bool IsHidden = PreviousMode != KernelMode && Hider::IsHidden(pid, HideNtSetContextThread);
     ULONG OriginalContextFlags = 0;
-    if(IsHidden)
+    CONTEXT contextCopy;
+    PCONTEXT contextPtr;
+    bool copyContextSuccess;
+
+    __try
     {
-        //http://lifeinhex.com/dont-touch-this-writing-good-drivers-is-really-hard
-        //http://lifeinhex.com/when-software-is-good-enough
-        Log("[TITANHIDE] NtSetContextThread by %d\r\n", pid);
-        __try
-        {
-            ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
-            OriginalContextFlags = Context->ContextFlags;
-            Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
-        }
-        __except(EXCEPTION_EXECUTE_HANDLER)
-        {
-            IsHidden = false;
-        }
+        // Copy the context, then strip flags: https://github.com/mrexodia/TitanHide/issues/44
+        ProbeForRead(Context, sizeof(CONTEXT), 1);
+        contextCopy = *Context;
+        contextPtr = &contextCopy;
+
+        OriginalContextFlags = contextPtr->ContextFlags;
+        contextPtr->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
+        copyContextSuccess = true;
     }
-    NTSTATUS ret = Undocumented::NtSetContextThread(ThreadHandle, Context);
-    if(IsHidden)
+    __except (EXCEPTION_EXECUTE_HANDLER)
     {
+        contextPtr = Context;
+        copyContextSuccess = false;
+    }
+
+    NTSTATUS ret = Undocumented::NtSetContextThread(ThreadHandle, contextPtr);
+    if (copyContextSuccess)
+    {
+        // Copy the result context back
+        contextPtr->ContextFlags = OriginalContextFlags;
         __try
         {
-            ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
-            Context->ContextFlags = OriginalContextFlags;
+            ProbeForWrite(Context, sizeof(CONTEXT), 1);
+            *Context = *contextPtr;
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
         }
     }
     return ret;
+}
+
+static NTSTATUS NTAPI HookNtSetContextThread(
+    IN HANDLE ThreadHandle,
+    IN PCONTEXT Context)
+{
+    ULONG callerPid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();;
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    bool StripDebugRegisterFlags;
+
+    if (PreviousMode == KernelMode)
+    {
+        StripDebugRegisterFlags = false;
+    }
+    else
+    {
+        ULONG targetPid = Misc::GetProcessIDFromThreadHandle(ThreadHandle);
+
+        // To prevent other processes from erasing breakpoints, they need to be "hidden" too
+        StripDebugRegisterFlags = Hider::IsHidden(targetPid, HideNtSetContextThread) && 
+                                  Hider::IsHidden(callerPid, HideNtSetContextThread);
+    }
+
+    if (StripDebugRegisterFlags)
+    {
+        //http://lifeinhex.com/dont-touch-this-writing-good-drivers-is-really-hard
+        //http://lifeinhex.com/when-software-is-good-enough
+        Log("[TITANHIDE] NtSetContextThread on %d\r\n", callerPid);
+        return SetContextThreadWithoutDebugRegisters(ThreadHandle, Context);
+    }
+
+    return Undocumented::NtSetContextThread(ThreadHandle, Context);
 }
 
 static NTSTATUS NTAPI HookNtSystemDebugControl(
