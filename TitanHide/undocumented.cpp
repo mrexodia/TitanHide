@@ -409,7 +409,7 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
         return NULL;
     }
 
-    pSystemInfoBuffer = (PSYSTEM_MODULE_INFORMATION)ExAllocatePool(NonPagedPool, SystemInfoBufferSize * 2);
+    pSystemInfoBuffer = (PSYSTEM_MODULE_INFORMATION)ExAllocatePoolWithTag(NonPagedPool, SystemInfoBufferSize * 2, 'HIDE');
 
     if(!pSystemInfoBuffer)
     {
