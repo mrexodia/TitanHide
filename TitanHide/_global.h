@@ -10,7 +10,7 @@ extern "C"
 {
 #endif
 
-#include <ntddk.h>
+#include <ntifs.h>
 #include <ntddstor.h>
 #include <mountdev.h>
 #include <ntddvol.h>
@@ -21,6 +21,7 @@ extern "C"
 }
 #endif
 
+ULONG GetPoolTag();
 void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize);
 void RtlFreeMemory(void* InPointer);
 NTSTATUS RtlSuperCopyMemory(IN VOID UNALIGNED* Destination, IN CONST VOID UNALIGNED* Source, IN ULONG Length);

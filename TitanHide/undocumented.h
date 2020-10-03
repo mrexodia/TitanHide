@@ -18,11 +18,9 @@ typedef struct _OBJECT_ALL_INFORMATION
 } OBJECT_ALL_INFORMATION, *POBJECT_ALL_INFORMATION;
 
 //enums
-typedef enum _OBJECT_INFORMATION_CLASS
-{
-    ObjectTypeInformation = 2,
-    ObjectTypesInformation = 3
-} OBJECT_INFORMATION_CLASS, *POBJECT_INFORMATION_CLASS;
+
+// OBJECT_INFORMATION_CLASS
+#define ObjectTypesInformation 3
 
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
