@@ -15,6 +15,7 @@ static HOOK hNtSetInformationThread = 0;
 static HOOK hNtGetContextThread = 0;
 static HOOK hNtSetContextThread = 0;
 static HOOK hNtSystemDebugControl = 0;
+static HOOK hNtCreateThreadEx = 0;
 static KMUTEX gDebugPortMutex;
 
 //https://forum.tuts4you.com/topic/40011-debugme-vmprotect-312-build-886-anti-debug-method-improved/#comment-192824
@@ -110,7 +111,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     {
         if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
         {
-            Log("[TITANHIDE] ThreadHideFromDebugger by %d\r\n", pid);
+            Log("[TITANHIDE] NtSetInformationThread(ThreadHideFromDebugger) by %d\r\n", pid);
             PETHREAD Thread;
             NTSTATUS status;
 #if NTDDI_VERSION >= NTDDI_WIN8
@@ -660,6 +661,31 @@ static NTSTATUS NTAPI HookNtSystemDebugControl(
     return Undocumented::NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength);
 }
 
+static NTSTATUS NTAPI HookNtCreateThreadEx(
+    OUT PHANDLE ThreadHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN HANDLE ProcessHandle,
+    IN PUSER_THREAD_START_ROUTINE StartRoutine,
+    IN PVOID Argument OPTIONAL,
+    IN ULONG CreateFlags,
+    IN SIZE_T ZeroBits OPTIONAL,
+    IN SIZE_T StackSize OPTIONAL,
+    IN SIZE_T MaximumStackSize OPTIONAL,
+    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL)
+{
+    const ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+    if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
+    {
+        if((CreateFlags & THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER) != 0)
+        {
+            CreateFlags &= ~THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER;
+            Log("[TITANHIDE] NtCreateThreadEx with THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER by %u\r\n", pid);
+        }
+    }
+    return Undocumented::NtCreateThreadEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize, MaximumStackSize, AttributeList);
+}
+
 int Hooks::Initialize()
 {
     KeInitializeMutex(&gDebugPortMutex, 0);
@@ -694,6 +720,12 @@ int Hooks::Initialize()
     hNtSystemDebugControl = SSDT::Hook("NtSystemDebugControl", (void*)HookNtSystemDebugControl);
     if(hNtSystemDebugControl)
         hook_count++;
+    if((NtBuildNumber & 0xFFFF) >= 6000)
+    {
+        hNtCreateThreadEx = SSDT::Hook("NtCreateThreadEx", (void*)HookNtCreateThreadEx);
+        if(hNtCreateThreadEx)
+            hook_count++;
+    }
     return hook_count;
 }
 
@@ -709,4 +741,8 @@ void Hooks::Deinitialize()
     SSDT::Unhook(hNtGetContextThread, true);
     SSDT::Unhook(hNtSetContextThread, true);
     SSDT::Unhook(hNtSystemDebugControl, true);
+    if((NtBuildNumber & 0xFFFF) >= 6000)
+    {
+        SSDT::Unhook(hNtCreateThreadEx, true);
+    }
 }
