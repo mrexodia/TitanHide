@@ -1,4 +1,6 @@
 #include "hider.h"
+#include "log.h"
+#include "threadhidefromdbg.h"
 
 struct HIDE_ENTRY
 {
@@ -108,6 +110,16 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
             else
             {
                 EntrySet(FoundEntry, HideInfo[i].Type);
+            }
+
+            // Use DKOM to disable HideThreadHideFromDebugger in any threads in the target process that already have this flag set
+            if((HideInfo[i].Type & (ULONG)HideThreadHideFromDebugger) != 0 && CrossThreadFlagsOffset != 0)
+            {
+                const NTSTATUS Status = UndoHideFromDebuggerInRunningThreads(HideInfo[i].Pid);
+                if(!NT_SUCCESS(Status))
+                {
+                    Log("[TITANHIDE] Failed to undo HideThreadHideFromDebugger in running threads! Status = 0x%08lX\n", Status);
+                }
             }
         }
         break;

@@ -162,6 +162,7 @@
     <ClInclude Include="ntdll.h" />
     <ClInclude Include="pe.h" />
     <ClInclude Include="ssdt.h" />
+    <ClInclude Include="threadhidefromdbg.h" />
     <ClInclude Include="TitanHide.h" />
     <ClInclude Include="undocumented.h" />
     <ClInclude Include="_global.h" />
@@ -175,6 +176,7 @@
     <ClCompile Include="ntdll.cpp" />
     <ClCompile Include="pe.cpp" />
     <ClCompile Include="ssdt.cpp" />
+    <ClCompile Include="threadhidefromdbg.cpp" />
     <ClCompile Include="TitanHide.cpp" />
     <ClCompile Include="undocumented.cpp" />
     <ClCompile Include="_global.cpp" />

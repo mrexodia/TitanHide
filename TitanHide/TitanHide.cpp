@@ -4,6 +4,7 @@
 #include "hider.h"
 #include "log.h"
 #include "ntdll.h"
+#include "threadhidefromdbg.h"
 
 static UNICODE_STRING DeviceName;
 static UNICODE_STRING Win32Device;
@@ -92,6 +93,14 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
         return STATUS_UNSUCCESSFUL;
     }
     Log("[TITANHIDE] UndocumentedInit() was successful!\r\n");
+
+    //find the offset of CrossThreadFlags in ETHREAD
+    status = FindCrossThreadFlagsOffset(&CrossThreadFlagsOffset);
+    if(!NT_SUCCESS(status))
+    {
+        Log("[TITANHIDE] FindCrossThreadFlagsOffset() failed: 0x%lX\r\n", status);
+        return status;
+    }
 
     //create io device
     RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");

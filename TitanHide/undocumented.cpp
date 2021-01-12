@@ -104,6 +104,25 @@ typedef NTSTATUS(NTAPI* NTSYSTEMDEBUGCONTROL)(
     OUT PULONG ReturnLength OPTIONAL
 );
 
+typedef NTSTATUS(NTAPI* NTCREATETHREADEX)(
+    OUT PHANDLE ThreadHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN HANDLE ProcessHandle,
+    IN PUSER_THREAD_START_ROUTINE StartRoutine,
+    IN PVOID Argument OPTIONAL,
+    IN ULONG CreateFlags,
+    IN SIZE_T ZeroBits OPTIONAL,
+    IN SIZE_T StackSize OPTIONAL,
+    IN SIZE_T MaximumStackSize OPTIONAL,
+    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
+);
+
+typedef NTSTATUS(NTAPI* NTTERMINATETHREAD)(
+    IN HANDLE ThreadHandle OPTIONAL,
+    IN NTSTATUS ExitStatus
+);
+
 static ZWQUERYINFORMATIONPROCESS ZwQIP = 0;
 static NTQUERYINFORMATIONTHREAD NtQIT = 0;
 static NTQUERYOBJECT NtQO = 0;
@@ -119,6 +138,8 @@ static NTSETINFORMATIONTHREAD NtSIT = 0;
 static NTSETINFORMATIONPROCESS NtSIP = 0;
 static NTQUERYINFORMATIONPROCESS NtQIP = 0;
 static NTSYSTEMDEBUGCONTROL NtSDBC = 0;
+static NTCREATETHREADEX NtCrThrEx = 0;
+static NTTERMINATETHREAD NtTermThr = 0;
 
 NTSTATUS NTAPI Undocumented::ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
@@ -252,6 +273,29 @@ NTSTATUS NTAPI Undocumented::NtSystemDebugControl(
     return NtSDBC(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength);
 }
 
+NTSTATUS NTAPI Undocumented::NtCreateThreadEx(
+    OUT PHANDLE ThreadHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN HANDLE ProcessHandle,
+    IN PUSER_THREAD_START_ROUTINE StartRoutine,
+    IN PVOID Argument OPTIONAL,
+    IN ULONG CreateFlags,
+    IN SIZE_T ZeroBits OPTIONAL,
+    IN SIZE_T StackSize OPTIONAL,
+    IN SIZE_T MaximumStackSize OPTIONAL,
+    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL)
+{
+    return NtCrThrEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize, MaximumStackSize, AttributeList);
+}
+
+NTSTATUS NTAPI Undocumented::NtTerminateThread(
+    IN HANDLE ThreadHandle OPTIONAL,
+    IN NTSTATUS ExitStatus)
+{
+    return NtTermThr(ThreadHandle, ExitStatus);
+}
+
 bool Undocumented::UndocumentedInit()
 {
     //Exported kernel functions after this
@@ -364,6 +408,18 @@ bool Undocumented::UndocumentedInit()
     {
         NtSDBC = (NTSYSTEMDEBUGCONTROL)SSDT::GetFunctionAddress("NtSystemDebugControl");
         if(!NtSDBC)
+            return false;
+    }
+    if((NtBuildNumber & 0xFFFF) >= 6000 && !NtCrThrEx) // only exists on >= Vista
+    {
+        NtCrThrEx = (NTCREATETHREADEX)SSDT::GetFunctionAddress("NtCreateThreadEx");
+        if(!NtCrThrEx)
+            return false;
+    }
+    if(!NtTermThr)
+    {
+        NtTermThr = (NTTERMINATETHREAD)SSDT::GetFunctionAddress("NtTerminateThread");
+        if(!NtTermThr)
             return false;
     }
     return true;
