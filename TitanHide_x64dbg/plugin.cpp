@@ -9,7 +9,7 @@ static bool hidden = false;
 static ULONG GetTitanHideOptions()
 {
     duint options = 0;
-    if (!BridgeSettingGetUint("TitanHide", "Options", &options))
+    if(!BridgeSettingGetUint("TitanHide", "Options", &options))
         options = 0xffffffff;
     return (ULONG)options;
 }
@@ -43,10 +43,10 @@ static bool TitanHideCall(HIDE_COMMAND Command)
 
 static bool cbTitanHide(int argc, char* argv[])
 {
-    if (!hidden)
+    if(!hidden)
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Hiding PID %X (%ud)\n", pid, pid);
-        if (TitanHideCall(HidePid))
+        if(TitanHideCall(HidePid))
         {
             DbgCmdExecDirect("hide");
             hidden = true;
@@ -57,10 +57,10 @@ static bool cbTitanHide(int argc, char* argv[])
 
 static bool cbTitanUnhide(int argc, char* argv[])
 {
-    if (hidden)
+    if(hidden)
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Unhiding PID %X (%ud)\n", pid, pid);
-        if (TitanHideCall(UnhidePid))
+        if(TitanHideCall(UnhidePid))
             hidden = false;
     }
     return !hidden;
@@ -68,7 +68,7 @@ static bool cbTitanUnhide(int argc, char* argv[])
 
 static bool cbTitanHideOptions(int argc, char* argv[])
 {
-    if (argc < 2)
+    if(argc < 2)
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Options: 0x%08X\n", GetTitanHideOptions());
     }
@@ -76,7 +76,7 @@ static bool cbTitanHideOptions(int argc, char* argv[])
     {
         duint options = DbgValFromString(argv[1]);
         BridgeSettingSetUint("TitanHide", "Options", options & 0xffffffff);
-        if (hidden)
+        if(hidden)
             TitanHideCall(HidePid);
         _plugin_logprintf("[" PLUGIN_NAME "] New options: 0x%08X\n", GetTitanHideOptions());
     }
