@@ -607,11 +607,10 @@ static NTSTATUS NTAPI HookNtSystemDebugControl(
     OUT PULONG ReturnLength)
 {
     ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
-    if(Hider::IsHidden(pid, HideNtSystemDebugControl))
+    if(Command != SysDbgGetTriageDump && Command != SysDbgGetLiveKernelDump &&
+            Hider::IsHidden(pid, HideNtSystemDebugControl))
     {
         Log("[TITANHIDE] NtSystemDebugControl by %d\r\n", pid);
-        if(Command == SysDbgGetTriageDump)
-            return STATUS_INFO_LENGTH_MISMATCH;
         return STATUS_DEBUGGER_INACTIVE;
     }
     return Undocumented::NtSystemDebugControl(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength);

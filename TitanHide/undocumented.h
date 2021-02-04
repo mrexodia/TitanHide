@@ -25,6 +25,7 @@ typedef struct _OBJECT_ALL_INFORMATION
 typedef enum _SYSDBG_COMMAND
 {
     SysDbgGetTriageDump = 29,
+    SysDbgGetLiveKernelDump = 37 // Windows 8.1+
 } SYSDBG_COMMAND, *PSYSDBG_COMMAND;
 
 // WOW64_CONTEXT is not undocumented, but it's missing from the WDK
