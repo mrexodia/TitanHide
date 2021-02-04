@@ -39,10 +39,10 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
     IN ULONG ThreadInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
-#ifdef _WIN64
     ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
     ULONG targetPid = Misc::GetProcessIDFromThreadHandle(ThreadHandle);
+
+#ifdef _WIN64 // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
     if(ThreadInformationClass == ThreadWow64Context &&
             ThreadInformation != nullptr &&
             ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
@@ -95,7 +95,33 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
     }
 #endif
 
-    return Undocumented::NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
+    // Call the original function now, since querying ThreadHideFromDebugger may fail with STATUS_INVALID_INFO_CLASS (if we are on XP/2003)
+    NTSTATUS Status = Undocumented::NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
+
+    if(NT_SUCCESS(Status) && ThreadInformationClass == ThreadHideFromDebugger)
+    {
+        if(Hider::IsHidden(pid, HideThreadHideFromDebugger) &&
+                Hider::IsHidden(targetPid, HideThreadHideFromDebugger))
+        {
+            Log("[TITANHIDE] NtQueryInformationThread(ThreadHideFromDebugger) by %d\r\n", pid);
+
+            __try
+            {
+                BACKUP_RETURNLENGTH();
+
+                // Since they're asking, assume they're expecting "yes"
+                *(BOOLEAN*)ThreadInformation = TRUE;
+
+                RESTORE_RETURNLENGTH();
+            }
+            __except(EXCEPTION_EXECUTE_HANDLER)
+            {
+                Status = GetExceptionCode();
+            }
+        }
+    }
+
+    return Status;
 }
 
 static NTSTATUS NTAPI HookNtSetInformationThread(
@@ -113,31 +139,14 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
         {
             Log("[TITANHIDE] NtSetInformationThread(ThreadHideFromDebugger) by %d\r\n", pid);
             PETHREAD Thread;
-            NTSTATUS status;
-#if NTDDI_VERSION >= NTDDI_WIN8
-            status = ObReferenceObjectByHandleWithTag(ThreadHandle,
-                     THREAD_SET_INFORMATION,
-                     *PsThreadType,
-                     ExGetPreviousMode(),
-                     'yQsP', // special 'PsQuery' tag used in many Windows 8/8.1/10 NtXX/ZwXX functions
-                     (PVOID*)&Thread,
-                     NULL);
-#else // Vista and XP don't have ObReferenceObjectByHandleWithTag; 7 has it but doesn't use it in NtSetInformationThread
-            status = ObReferenceObjectByHandle(ThreadHandle,
-                                               THREAD_SET_INFORMATION,
-                                               *PsThreadType,
-                                               ExGetPreviousMode(),
-                                               (PVOID*)&Thread,
-                                               NULL);
-#endif
+            NTSTATUS status = ObReferenceObjectByHandle(ThreadHandle,
+                              THREAD_SET_INFORMATION,
+                              *PsThreadType,
+                              ExGetPreviousMode(),
+                              (PVOID*)&Thread,
+                              NULL);
             if(NT_SUCCESS(status))
-            {
-#if NTDDI_VERSION >= NTDDI_WIN8
-                ObfDereferenceObjectWithTag(Thread, 'yQsP');
-#else
                 ObDereferenceObject(Thread);
-#endif
-            }
             return status;
         }
     }
