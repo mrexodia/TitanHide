@@ -365,6 +365,22 @@ typedef NTSTATUS(NTAPI* PUSER_THREAD_START_ROUTINE)(
     _In_ PVOID ThreadParameter
 );
 
+#define PROCESS_TERMINATE                           0x0001
+#define PROCESS_CREATE_THREAD                       0x0002
+#define PROCESS_SET_SESSIONID                       0x0004
+#define PROCESS_VM_OPERATION                        0x0008
+#define PROCESS_VM_READ                             0x0010
+#define PROCESS_VM_WRITE                            0x0020
+//#define PROCESS_DUP_HANDLE                        0x0040 // already in wdm.h
+#define PROCESS_CREATE_PROCESS                      0x0080
+#define PROCESS_SET_QUOTA                           0x0100
+#define PROCESS_SET_INFORMATION                     0x0200
+#define PROCESS_QUERY_INFORMATION                   0x0400
+#define PROCESS_SET_PORT                            0x0800 // NB: same value as PROCESS_SUSPEND_RESUME, this is not a mistake
+#define PROCESS_SUSPEND_RESUME                      0x0800
+#define PROCESS_QUERY_LIMITED_INFORMATION           0x1000
+#define PROCESS_SET_LIMITED_INFORMATION             0x2000
+
 #define THREAD_CREATE_FLAGS_CREATE_SUSPENDED        0x00000001
 #define THREAD_CREATE_FLAGS_SUPPRESS_DLLMAINS       0x00000002
 #define THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER      0x00000004
