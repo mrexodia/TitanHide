@@ -221,7 +221,7 @@ NTSTATUS UndoHideFromDebuggerInRunningThreads(_In_ ULONG Pid)
         goto Exit;
     }
 
-    Status = Status = Undocumented::NtQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
+    Status = Undocumented::NtQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
     if(!NT_SUCCESS(Status))
         goto Exit;
 
