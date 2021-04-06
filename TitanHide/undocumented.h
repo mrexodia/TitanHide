@@ -425,6 +425,14 @@ PsGetThreadProcess(
 
 extern "C"
 NTKERNELAPI
+PIMAGE_NT_HEADERS
+NTAPI
+RtlImageNtHeader(
+    _In_ PVOID Base
+);
+
+extern "C"
+NTKERNELAPI
 ULONG
 NtBuildNumber;
 

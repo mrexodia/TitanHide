@@ -33,26 +33,45 @@ static SSDTStruct* SSDTfind()
         ULONG kernelSize;
         ULONG_PTR kernelBase = (ULONG_PTR)Undocumented::GetKernelBase(&kernelSize);
         if(kernelBase == 0 || kernelSize == 0)
-            return NULL;
+            return nullptr;
 
-        // Find KiSystemServiceStart
+        // Find .text section
+        PIMAGE_NT_HEADERS ntHeaders = RtlImageNtHeader((PVOID)kernelBase);
+        PIMAGE_SECTION_HEADER textSection = nullptr;
+        PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(ntHeaders);
+        for(ULONG i = 0; i < ntHeaders->FileHeader.NumberOfSections; ++i)
+        {
+            char sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
+            RtlCopyMemory(sectionName, section->Name, IMAGE_SIZEOF_SHORT_NAME);
+            sectionName[IMAGE_SIZEOF_SHORT_NAME] = '\0';
+            if(strncmp(sectionName, ".text", sizeof(".text") - sizeof(char)) == 0)
+            {
+                textSection = section;
+                break;
+            }
+            section++;
+        }
+        if(textSection == nullptr)
+            return nullptr;
+
+        // Find KiSystemServiceStart in .text
         const unsigned char KiSystemServiceStartPattern[] = { 0x8B, 0xF8, 0xC1, 0xEF, 0x07, 0x83, 0xE7, 0x20, 0x25, 0xFF, 0x0F, 0x00, 0x00 };
         const ULONG signatureSize = sizeof(KiSystemServiceStartPattern);
         bool found = false;
         ULONG KiSSSOffset;
-        for(KiSSSOffset = 0; KiSSSOffset < kernelSize - signatureSize; KiSSSOffset++)
+        for(KiSSSOffset = 0; KiSSSOffset < textSection->Misc.VirtualSize - signatureSize; KiSSSOffset++)
         {
-            if(RtlCompareMemory(((unsigned char*)kernelBase + KiSSSOffset), KiSystemServiceStartPattern, signatureSize) == signatureSize)
+            if(RtlCompareMemory(((unsigned char*)kernelBase + textSection->VirtualAddress + KiSSSOffset), KiSystemServiceStartPattern, signatureSize) == signatureSize)
             {
                 found = true;
                 break;
             }
         }
         if(!found)
-            return NULL;
+            return nullptr;
 
         // lea r10, KeServiceDescriptorTable
-        ULONG_PTR address = kernelBase + KiSSSOffset + signatureSize;
+        ULONG_PTR address = kernelBase + textSection->VirtualAddress + KiSSSOffset + signatureSize;
         LONG relativeOffset = 0;
         if((*(unsigned char*)address == 0x4c) &&
                 (*(unsigned char*)(address + 1) == 0x8d) &&
@@ -61,7 +80,7 @@ static SSDTStruct* SSDTfind()
             relativeOffset = *(LONG*)(address + 3);
         }
         if(relativeOffset == 0)
-            return NULL;
+            return nullptr;
 
         SSDT = (SSDTStruct*)(address + relativeOffset + 7);
 #endif
