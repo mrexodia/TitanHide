@@ -1,0 +1,42 @@
+name: Visual Studio
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    # Skip building pull requests from the same repository
+    if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) }}
+    runs-on: windows-2019
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@v1.0.2
+    
+    - name: Build
+      run: |
+        msbuild.exe ${{ github.event.repository.name }}.sln /m /verbosity:minimal /t:Rebuild /p:Configuration=Release /p:Platform=x64
+        msbuild.exe ${{ github.event.repository.name }}.sln /m /verbosity:minimal /t:Rebuild /p:Configuration=Release /p:Platform=Win32
+        ./release.bat
+    
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ${{ github.event.repository.name }}-${{ github.sha }}
+        path: bin/
+    
+    - name: Compress artifacts
+      uses: papeloto/action-zip@v1
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      with:
+        files: bin/
+        dest: ${{ github.event.repository.name }}-${{ github.sha }}.zip
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: ${{ startsWith(github.ref, 'refs/tags/') }}
+      with:
+        prerelease: ${{ !startsWith(github.ref, 'refs/tags/v') || contains(github.ref, '-pre') }}
+        files: ${{ github.event.repository.name }}-${{ github.sha }}.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
