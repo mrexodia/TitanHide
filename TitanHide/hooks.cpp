@@ -305,16 +305,18 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
     if(NT_SUCCESS(ret) && SystemInformation)
     {
         ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
-        if(SystemInformationClass == SystemKernelDebuggerInformation)
+        switch (SystemInformationClass)
         {
-            if(Hider::IsHidden(pid, HideSystemDebuggerInformation))
+        case SystemKernelDebuggerInformation:
+        {
+            if (Hider::IsHidden(pid, HideSystemDebuggerInformation))
             {
                 Log("[TITANHIDE] SystemKernelDebuggerInformation by %d\r\n", pid);
                 typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION
                 {
                     BOOLEAN DebuggerEnabled;
                     BOOLEAN DebuggerNotPresent;
-                } SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
+                } SYSTEM_KERNEL_DEBUGGER_INFORMATION, * PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
                 SYSTEM_KERNEL_DEBUGGER_INFORMATION* DebuggerInfo = (SYSTEM_KERNEL_DEBUGGER_INFORMATION*)SystemInformation;
                 __try
                 {
@@ -325,11 +327,44 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
 
                     RESTORE_RETURNLENGTH();
                 }
-                __except(EXCEPTION_EXECUTE_HANDLER)
+                __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     ret = GetExceptionCode();
                 }
             }
+            break;
+        }
+        case SystemKernelDebuggerInformationEx:
+        {
+            if (Hider::IsHidden(pid, HideSystemDebuggerInformation))
+            {
+                Log("[TITANHIDE] SystemKernelDebuggerInformationEx by %d\r\n", pid);
+                typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX
+                {
+                    BOOLEAN DebuggerAllowed;
+                    BOOLEAN DebuggerEnabled;
+                    BOOLEAN DebuggerPresent;
+                } SYSTEM_KERNEL_DEBUGGER_INFORMATION_EX, * PSYSTEM_KERNEL_DEBUGGER_INFORMATION_EX;
+                PSYSTEM_KERNEL_DEBUGGER_INFORMATION_EX DebuggerInfo = (PSYSTEM_KERNEL_DEBUGGER_INFORMATION_EX)SystemInformation;
+                __try
+                {
+                    BACKUP_RETURNLENGTH();
+
+                    DebuggerInfo->DebuggerAllowed = false;
+                    DebuggerInfo->DebuggerEnabled = false;
+                    DebuggerInfo->DebuggerPresent = false;
+
+                    RESTORE_RETURNLENGTH();
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ret = GetExceptionCode();
+                }
+            }
+            break;
+        }
+        default:
+            break;
         }
     }
     return ret;
