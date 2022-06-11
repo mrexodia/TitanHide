@@ -29,7 +29,7 @@ The idea for this project was thought of together with cypher, shoutout man!
 # Compiling
 
 1. Install Visual Studio 2013 (Express Edition untested).
-2. Install the [WDK8](http://www.microsoft.com/en-us/download/details.aspx?id=42273)/[WDK7](https://www.microsoft.com/en-us/download/details.aspx?id=11800).
+2. Install the [WDK10](https://go.microsoft.com/fwlink/?linkid=2128854)/[WDK8](https://go.microsoft.com/fwlink/p/?LinkID=324284)/[WDK7](https://www.microsoft.com/download/confirmation.aspx?id=11800).
 3. Open `TitanHide.sln` and hit compile!
 
 # Installation Method 1
