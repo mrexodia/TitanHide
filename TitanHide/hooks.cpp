@@ -24,7 +24,10 @@ static KMUTEX gDebugPortMutex;
 #define BACKUP_RETURNLENGTH() \
     ULONG TempReturnLength = 0; \
     if(ARGUMENT_PRESENT(ReturnLength)) \
-        TempReturnLength = *ReturnLength
+    { \
+        ProbeForWrite(ReturnLength, sizeof(ULONG), 1); \
+        TempReturnLength = *ReturnLength; \
+    }
 
 #define RESTORE_RETURNLENGTH() \
     if(ARGUMENT_PRESENT(ReturnLength)) \
@@ -477,8 +480,12 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
         __try
         {
+            if (ReturnLength != nullptr)
+                ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
+
             *(PHANDLE)ProcessInformation = nullptr;
-            if(ReturnLength != nullptr)
+
+            if (ReturnLength != nullptr)
                 *ReturnLength = sizeof(HANDLE);
         }
         __except(EXCEPTION_EXECUTE_HANDLER)
