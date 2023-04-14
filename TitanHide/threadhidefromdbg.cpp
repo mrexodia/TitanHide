@@ -18,13 +18,13 @@ ULONG CrossThreadFlagsOffset = 0;
 NTSTATUS ReferenceProcessByName(_Outptr_ PEPROCESS* Process, _In_ PUNICODE_STRING ProcessName)
 {
     ULONG Size;
-    if(Undocumented::NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &Size) != STATUS_INFO_LENGTH_MISMATCH)
+    if(Undocumented::ZwQuerySystemInformation(SystemProcessInformation, nullptr, 0, &Size) != STATUS_INFO_LENGTH_MISMATCH)
         return STATUS_UNSUCCESSFUL;
     const PSYSTEM_PROCESS_INFORMATION SystemProcessInfo =
         (PSYSTEM_PROCESS_INFORMATION)ExAllocatePoolWithTag(NonPagedPool, 2 * Size, 'croP');
     if(SystemProcessInfo == nullptr)
         return STATUS_NO_MEMORY;
-    NTSTATUS Status = Undocumented::NtQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
+    NTSTATUS Status = Undocumented::ZwQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
     if(!NT_SUCCESS(Status))
     {
         ExFreePool(SystemProcessInfo);
@@ -110,7 +110,7 @@ NTSTATUS FindCrossThreadFlagsOffset(_Out_ PULONG Offset)
     Attached = TRUE;
 
     // Create a dummy thread
-    Status = Undocumented::NtCreateThreadEx(&ThreadHandle,
+    Status = Undocumented::ZwCreateThreadEx(&ThreadHandle,
                                             THREAD_SET_INFORMATION,
                                             &ObjectAttributes,
                                             NtCurrentProcess(),
@@ -148,7 +148,7 @@ NTSTATUS FindCrossThreadFlagsOffset(_Out_ PULONG Offset)
     }
 
     // Set the flag we are looking for
-    Status = Undocumented::NtSetInformationThread(ThreadHandle, ThreadHideFromDebugger, nullptr, 0);
+    Status = Undocumented::ZwSetInformationThread(ThreadHandle, ThreadHideFromDebugger, nullptr, 0);
     if(!NT_SUCCESS(Status))
         goto Exit;
 
@@ -181,7 +181,7 @@ Exit:
         ObDereferenceObject(Thread);
     if(ThreadHandle != nullptr)
     {
-        Undocumented::NtTerminateThread(ThreadHandle, STATUS_SUCCESS);
+        Undocumented::ZwTerminateThread(ThreadHandle, STATUS_SUCCESS);
         ObCloseHandle(ThreadHandle, ExGetPreviousMode());
     }
     if(Attached)
@@ -210,7 +210,7 @@ NTSTATUS UndoHideFromDebuggerInRunningThreads(_In_ ULONG Pid)
         return Status;
 
     ULONG Size;
-    Status = Undocumented::NtQuerySystemInformation(SystemProcessInformation, nullptr, 0, &Size);
+    Status = Undocumented::ZwQuerySystemInformation(SystemProcessInformation, nullptr, 0, &Size);
     if(Status != STATUS_INFO_LENGTH_MISMATCH)
         goto Exit;
 
@@ -221,7 +221,7 @@ NTSTATUS UndoHideFromDebuggerInRunningThreads(_In_ ULONG Pid)
         goto Exit;
     }
 
-    Status = Undocumented::NtQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
+    Status = Undocumented::ZwQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
     if(!NT_SUCCESS(Status))
         goto Exit;
 

@@ -73,6 +73,13 @@ typedef NTSTATUS(NTAPI* KERAISEUSEREXCEPTION)(
     IN NTSTATUS ExceptionCode
 );
 
+typedef NTSTATUS(NTAPI* ZWSETINFORMATIONTHREAD)(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength
+);
+
 typedef NTSTATUS(NTAPI* NTSETINFORMATIONTHREAD)(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
@@ -104,6 +111,20 @@ typedef NTSTATUS(NTAPI* NTSYSTEMDEBUGCONTROL)(
     OUT PULONG ReturnLength OPTIONAL
 );
 
+typedef NTSTATUS(NTAPI* ZWCREATETHREADEX)(
+    OUT PHANDLE ThreadHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN HANDLE ProcessHandle,
+    IN PUSER_THREAD_START_ROUTINE StartRoutine,
+    IN PVOID Argument OPTIONAL,
+    IN ULONG CreateFlags,
+    IN SIZE_T ZeroBits OPTIONAL,
+    IN SIZE_T StackSize OPTIONAL,
+    IN SIZE_T MaximumStackSize OPTIONAL,
+    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
+);
+
 typedef NTSTATUS(NTAPI* NTCREATETHREADEX)(
     OUT PHANDLE ThreadHandle,
     IN ACCESS_MASK DesiredAccess,
@@ -116,6 +137,11 @@ typedef NTSTATUS(NTAPI* NTCREATETHREADEX)(
     IN SIZE_T StackSize OPTIONAL,
     IN SIZE_T MaximumStackSize OPTIONAL,
     IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
+);
+
+typedef NTSTATUS(NTAPI* ZWTERMINATETHREAD)(
+    IN HANDLE ThreadHandle OPTIONAL,
+    IN NTSTATUS ExitStatus
 );
 
 typedef NTSTATUS(NTAPI* NTTERMINATETHREAD)(
@@ -134,11 +160,14 @@ static NTSETCONTEXTTHREAD NtSCT = 0;
 static NTCONTINUE NtCon = 0;
 static NTDUPLICATEOBJECT NtDO = 0;
 static KERAISEUSEREXCEPTION KeRUE = 0;
+static ZWSETINFORMATIONTHREAD ZwSIT = 0;
 static NTSETINFORMATIONTHREAD NtSIT = 0;
 static NTSETINFORMATIONPROCESS NtSIP = 0;
 static NTQUERYINFORMATIONPROCESS NtQIP = 0;
 static NTSYSTEMDEBUGCONTROL NtSDBC = 0;
+static ZWCREATETHREADEX ZwCrThrEx = 0;
 static NTCREATETHREADEX NtCrThrEx = 0;
+static ZWTERMINATETHREAD ZwTermThr = 0;
 static NTTERMINATETHREAD NtTermThr = 0;
 
 NTSTATUS NTAPI Undocumented::ZwQueryInformationProcess(
@@ -234,6 +263,15 @@ NTSTATUS NTAPI Undocumented::KeRaiseUserException(
     return KeRUE(ExceptionCode);
 }
 
+NTSTATUS NTAPI Undocumented::ZwSetInformationThread(
+    IN HANDLE ThreadHandle,
+    IN THREADINFOCLASS ThreadInformationClass,
+    IN PVOID ThreadInformation,
+    IN ULONG ThreadInformationLength)
+{
+    return ZwSIT(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength);
+}
+
 NTSTATUS NTAPI Undocumented::NtSetInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
@@ -273,6 +311,22 @@ NTSTATUS NTAPI Undocumented::NtSystemDebugControl(
     return NtSDBC(Command, InputBuffer, InputBufferLength, OutputBuffer, OutputBufferLength, ReturnLength);
 }
 
+NTSTATUS NTAPI Undocumented::ZwCreateThreadEx(
+    OUT PHANDLE ThreadHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN HANDLE ProcessHandle,
+    IN PUSER_THREAD_START_ROUTINE StartRoutine,
+    IN PVOID Argument OPTIONAL,
+    IN ULONG CreateFlags,
+    IN SIZE_T ZeroBits OPTIONAL,
+    IN SIZE_T StackSize OPTIONAL,
+    IN SIZE_T MaximumStackSize OPTIONAL,
+    IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL)
+{
+    return ZwCrThrEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize, MaximumStackSize, AttributeList);
+}
+
 NTSTATUS NTAPI Undocumented::NtCreateThreadEx(
     OUT PHANDLE ThreadHandle,
     IN ACCESS_MASK DesiredAccess,
@@ -287,6 +341,13 @@ NTSTATUS NTAPI Undocumented::NtCreateThreadEx(
     IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL)
 {
     return NtCrThrEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize, MaximumStackSize, AttributeList);
+}
+
+NTSTATUS NTAPI Undocumented::ZwTerminateThread(
+    IN HANDLE ThreadHandle OPTIONAL,
+    IN NTSTATUS ExitStatus)
+{
+    return ZwTermThr(ThreadHandle, ExitStatus);
 }
 
 NTSTATUS NTAPI Undocumented::NtTerminateThread(
@@ -355,6 +416,14 @@ bool Undocumented::UndocumentedInit()
         if(!KeRUE)
             return false;
     }
+    if(!ZwSIT)
+    {
+        UNICODE_STRING routineName;
+        RtlInitUnicodeString(&routineName, L"ZwSetInformationThread");
+        ZwSIT = (ZWSETINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
+        if(!ZwSIT)
+            return false;
+    }
     if(!NtSIT)
     {
         UNICODE_STRING routineName;
@@ -410,10 +479,22 @@ bool Undocumented::UndocumentedInit()
         if(!NtSDBC)
             return false;
     }
+    if((NtBuildNumber & 0xFFFF) >= 6000 && !ZwCrThrEx) // only exists on >= Vista
+    {
+        ZwCrThrEx = (ZWCREATETHREADEX)SSDT::GetFunctionAddress("ZwCreateThreadEx");
+        if(!ZwCrThrEx)
+            return false;
+    }
     if((NtBuildNumber & 0xFFFF) >= 6000 && !NtCrThrEx) // only exists on >= Vista
     {
         NtCrThrEx = (NTCREATETHREADEX)SSDT::GetFunctionAddress("NtCreateThreadEx");
         if(!NtCrThrEx)
+            return false;
+    }
+    if(!ZwTermThr)
+    {
+        ZwTermThr = (ZWTERMINATETHREAD)SSDT::GetFunctionAddress("ZwTerminateThread");
+        if(!ZwTermThr)
             return false;
     }
     if(!NtTermThr)

@@ -499,6 +499,12 @@ public:
     static NTSTATUS NTAPI KeRaiseUserException(
         IN NTSTATUS ExceptionCode);
 
+    static NTSTATUS NTAPI ZwSetInformationThread(
+        IN HANDLE ThreadHandle,
+        IN THREADINFOCLASS ThreadInformationClass,
+        IN PVOID ThreadInformation,
+        IN ULONG ThreadInformationLength);
+
     static NTSTATUS NTAPI NtSetInformationThread(
         IN HANDLE ThreadHandle,
         IN THREADINFOCLASS ThreadInformationClass,
@@ -526,9 +532,26 @@ public:
         IN ULONG OutputBufferLength,
         OUT PULONG ReturnLength OPTIONAL);
 
+    static NTSTATUS NTAPI ZwTerminateThread(
+        IN HANDLE ThreadHandle OPTIONAL,
+        IN NTSTATUS ExitStatus);
+
     static NTSTATUS NTAPI NtTerminateThread(
         IN HANDLE ThreadHandle OPTIONAL,
         IN NTSTATUS ExitStatus);
+
+    static NTSTATUS NTAPI ZwCreateThreadEx(
+        OUT PHANDLE ThreadHandle,
+        IN ACCESS_MASK DesiredAccess,
+        IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+        IN HANDLE ProcessHandle,
+        IN PUSER_THREAD_START_ROUTINE StartRoutine,
+        IN PVOID Argument OPTIONAL,
+        IN ULONG CreateFlags,
+        IN SIZE_T ZeroBits OPTIONAL,
+        IN SIZE_T StackSize OPTIONAL,
+        IN SIZE_T MaximumStackSize OPTIONAL,
+        IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL);
 
     static NTSTATUS NTAPI NtCreateThreadEx(
         OUT PHANDLE ThreadHandle,
