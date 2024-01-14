@@ -41,7 +41,7 @@ NTSTATUS NTDLL::Initialize()
         {
             FileSize = StandardInformation.EndOfFile.LowPart;
             Log("[TITANHIDE] FileSize of ntdll.dll is %08X!\r\n", StandardInformation.EndOfFile.LowPart);
-            FileData = (unsigned char*)RtlAllocateMemory(true, FileSize);
+            FileData = (unsigned char*)RtlAllocateMemory(FileSize);
 
             LARGE_INTEGER ByteOffset;
             ByteOffset.LowPart = ByteOffset.HighPart = 0;

@@ -4,7 +4,7 @@
 static HOOK hook_internal(ULONG_PTR addr, void* newfunc)
 {
     //allocate structure
-    HOOK hook = (HOOK)RtlAllocateMemory(true, sizeof(HOOKSTRUCT));
+    HOOK hook = (HOOK)RtlAllocateMemory(sizeof(HOOKSTRUCT));
     //set hooking address
     hook->addr = addr;
     //set hooking opcode

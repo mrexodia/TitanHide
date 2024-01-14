@@ -554,8 +554,6 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
         return NULL;
     }
 
-    memset(pSystemInfoBuffer, 0, SystemInfoBufferSize * 2);
-
     status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
              pSystemInfoBuffer,
              SystemInfoBufferSize * 2,
