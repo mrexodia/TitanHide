@@ -546,15 +546,13 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
         return NULL;
     }
 
-    pSystemInfoBuffer = (PSYSTEM_MODULE_INFORMATION)ExAllocatePoolWithTag(NonPagedPool, SystemInfoBufferSize * 2, GetPoolTag());
+    pSystemInfoBuffer = (PSYSTEM_MODULE_INFORMATION)ExAllocatePoolZero(NonPagedPool, SystemInfoBufferSize * 2, GetPoolTag());
 
     if(!pSystemInfoBuffer)
     {
         Log("[TITANHIDE] ExAllocatePool failed...\r\n");
         return NULL;
     }
-
-    memset(pSystemInfoBuffer, 0, SystemInfoBufferSize * 2);
 
     status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
              pSystemInfoBuffer,

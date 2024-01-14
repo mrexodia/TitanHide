@@ -48,11 +48,9 @@ ULONG GetPoolTag()
     return PoolTags[Index];
 }
 
-void* RtlAllocateMemory(bool InZeroMemory, SIZE_T InSize)
+void* RtlAllocateMemory(SIZE_T InSize)
 {
-    void* Result = ExAllocatePoolWithTag(NonPagedPool, InSize, GetPoolTag());
-    if(InZeroMemory && (Result != NULL))
-        RtlZeroMemory(Result, InSize);
+    void* Result = ExAllocatePoolZero(NonPagedPool, InSize, GetPoolTag());
     return Result;
 }
 

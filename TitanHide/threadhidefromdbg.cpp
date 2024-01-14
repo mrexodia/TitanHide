@@ -21,7 +21,7 @@ NTSTATUS ReferenceProcessByName(_Outptr_ PEPROCESS* Process, _In_ PUNICODE_STRIN
     if(Undocumented::ZwQuerySystemInformation(SystemProcessInformation, nullptr, 0, &Size) != STATUS_INFO_LENGTH_MISMATCH)
         return STATUS_UNSUCCESSFUL;
     const PSYSTEM_PROCESS_INFORMATION SystemProcessInfo =
-        (PSYSTEM_PROCESS_INFORMATION)ExAllocatePoolWithTag(NonPagedPool, 2 * Size, 'croP');
+        (PSYSTEM_PROCESS_INFORMATION)ExAllocatePoolZero(NonPagedPool, 2 * Size, 'croP');
     if(SystemProcessInfo == nullptr)
         return STATUS_NO_MEMORY;
     NTSTATUS Status = Undocumented::ZwQuerySystemInformation(SystemProcessInformation, SystemProcessInfo, 2 * Size, nullptr);
@@ -94,7 +94,7 @@ NTSTATUS FindCrossThreadFlagsOffset(_Out_ PULONG Offset)
     }
 
     // Since the ETHREAD struct is opaque and we don't know its size, allocate for 4K possible offsets
-    const PULONG CandidateOffsets = (PULONG)ExAllocatePoolWithTag(NonPagedPool, PAGE_SIZE * sizeof(ULONG), 'drhT');
+    const PULONG CandidateOffsets = (PULONG)ExAllocatePoolZero(NonPagedPool, PAGE_SIZE * sizeof(ULONG), 'drhT');
     if(CandidateOffsets == nullptr)
         return STATUS_NO_MEMORY;
 
@@ -214,7 +214,7 @@ NTSTATUS UndoHideFromDebuggerInRunningThreads(_In_ ULONG Pid)
     if(Status != STATUS_INFO_LENGTH_MISMATCH)
         goto Exit;
 
-    SystemProcessInfo = (PSYSTEM_PROCESS_INFORMATION)ExAllocatePoolWithTag(NonPagedPool, 2 * Size, 'croP');
+    SystemProcessInfo = (PSYSTEM_PROCESS_INFORMATION)ExAllocatePoolZero(NonPagedPool, 2 * Size, 'croP');
     if(SystemProcessInfo == nullptr)
     {
         Status = STATUS_NO_MEMORY;
