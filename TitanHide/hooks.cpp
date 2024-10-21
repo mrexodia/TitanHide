@@ -464,6 +464,12 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             ProcessInformationLength == sizeof(HANDLE) &&
             Hider::IsHidden(pid, HideProcessDebugObjectHandle))
     {
+
+        NTSTATUS misaligenment_check = Undocumented::NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
+
+        if (misaligenment_check == STATUS_DATATYPE_MISALIGNMENT)
+            return STATUS_DATATYPE_MISALIGNMENT;
+
         PEPROCESS Process;
         NTSTATUS Status = ObReferenceObjectByHandle(ProcessHandle,
                           PROCESS_QUERY_INFORMATION,
