@@ -480,7 +480,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
         __try
         {
-            ProbeForWrite(ProcessInformation, sizeof(HANDLE), 1);
+            ProbeForWrite(ProcessInformation, sizeof(HANDLE), sizeof(HANDLE));
 
             if (ReturnLength != nullptr)
                 ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
