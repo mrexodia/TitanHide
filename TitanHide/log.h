@@ -13,6 +13,7 @@
 #define PRINTF_ATTR(FormatIndex, FirstToCheck)
 #endif
 
+void InitLog(const PUNICODE_STRING DriverName);
 PRINTF_ATTR(1, 2) void Log(const char* format, ...);
 
 #endif

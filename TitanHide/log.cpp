@@ -1,5 +1,18 @@
 #include "log.h"
 
+static UNICODE_STRING LogFilename;
+static wchar_t LogFilenameBuffer[256];
+
+void InitLog(const PUNICODE_STRING DriverName)
+{
+    RtlInitEmptyUnicodeString(&LogFilename, LogFilenameBuffer, sizeof(LogFilenameBuffer));
+    RtlAppendUnicodeToString(&LogFilename, L"\\DosDevices\\C:\\");
+    RtlAppendUnicodeStringToString(&LogFilename, DriverName);
+    RtlAppendUnicodeToString(&LogFilename, L".log");
+    Log("[TITANHIDE] Log file initialized: %.*ws\r\n",
+        LogFilename.Length / sizeof(WCHAR), LogFilename.Buffer);
+}
+
 void Log(const char* format, ...)
 {
     char msg[1024] = "";
@@ -12,10 +25,8 @@ void Log(const char* format, ...)
     DbgPrintEx(DPFLTR_IHVDRIVER_ID, DPFLTR_ERROR_LEVEL, msg);
 #endif
     va_end(format);
-    UNICODE_STRING FileName;
     OBJECT_ATTRIBUTES objAttr;
-    RtlInitUnicodeString(&FileName, L"\\DosDevices\\C:\\TitanHide.log");
-    InitializeObjectAttributes(&objAttr, &FileName,
+    InitializeObjectAttributes(&objAttr, &LogFilename,
                                OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
                                NULL, NULL);
     if(KeGetCurrentIrql() != PASSIVE_LEVEL)

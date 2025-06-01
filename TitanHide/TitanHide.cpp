@@ -7,7 +7,9 @@
 #include "threadhidefromdbg.h"
 
 static UNICODE_STRING DeviceName;
+static wchar_t DeviceNameBuffer[256];
 static UNICODE_STRING Win32Device;
+static wchar_t Win32DeviceBuffer[256];
 
 static void DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
@@ -65,9 +67,44 @@ static NTSTATUS DriverWrite(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
     return RetStatus;
 }
 
-extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING  RegistryPath)
+extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRING RegistryPath)
 {
-    UNREFERENCED_PARAMETER(RegistryPath);
+    // Initialize name buffers
+    RtlInitEmptyUnicodeString(&DeviceName, DeviceNameBuffer, sizeof(DeviceNameBuffer));
+    RtlAppendUnicodeToString(&DeviceName, L"\\Device\\");
+    RtlInitEmptyUnicodeString(&Win32Device, Win32DeviceBuffer, sizeof(Win32DeviceBuffer));
+    RtlAppendUnicodeToString(&Win32Device, L"\\DosDevices\\");
+
+    // Derive the device name and symbolic link from the registry path
+    UNICODE_STRING DriverName = {};
+    if (RegistryPath != NULL && RegistryPath->Buffer != NULL)
+    {
+        for (int i = 0; i < RegistryPath->Length / sizeof(WCHAR); i++)
+        {
+            auto index = RegistryPath->Length / sizeof(WCHAR) - i - 1;
+            if (RegistryPath->Buffer[index] == L'\\')
+            {
+                index++; // skip the backslash
+                DriverName.Buffer = RegistryPath->Buffer + index;
+                DriverName.Length = (USHORT)(RegistryPath->Length - index * sizeof(WCHAR));
+                DriverName.MaximumLength = DriverName.Length;
+                break;
+            }
+        }
+    }
+
+    // Fall back to default driver name
+    if (DriverName.Length == 0)
+    {
+        RtlInitUnicodeString(&DriverName, L"TitanHide");
+    }
+
+    // Use the driver name
+    RtlAppendUnicodeStringToString(&DeviceName, &DriverName);
+    RtlAppendUnicodeStringToString(&Win32Device, &DriverName);
+    InitLog(&DriverName);
+    Log("[TITANHIDE] DriverName: %.*ws\r\n", DriverName.Length / sizeof(WCHAR), DriverName.Buffer);
+
     PDEVICE_OBJECT DeviceObject = NULL;
     NTSTATUS status;
 
@@ -103,8 +140,6 @@ extern "C" NTSTATUS DriverEntry(IN PDRIVER_OBJECT DriverObject, IN PUNICODE_STRI
     }
 
     //create io device
-    RtlInitUnicodeString(&DeviceName, L"\\Device\\TitanHide");
-    RtlInitUnicodeString(&Win32Device, L"\\DosDevices\\TitanHide");
     status = IoCreateDevice(DriverObject,
                             0,
                             &DeviceName,
