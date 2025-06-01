@@ -17,3 +17,4 @@
 #define IDC_CHK_SYSTEMDEBUGGERINFORMATION       1011
 #define IDC_CHK_NTSYSTEMDEBUGCONTROL            1012
 #define IDC_CHK_NTGETCONTEXTTHREAD              1013
+#define IDC_EDT_DRIVER                          40000

@@ -1,25 +1,28 @@
 #include "plugin.h"
 #include <windows.h>
 #include <stdio.h>
+#include <string>
 #include "../TitanHide/TitanHide.h"
 
 static DWORD pid = 0;
 static bool hidden = false;
+static std::string driverName = "TitanHide";
 
 static ULONG GetTitanHideOptions()
 {
     duint options = 0;
-    if(!BridgeSettingGetUint("TitanHide", "Options", &options))
+    if (!BridgeSettingGetUint("TitanHide", "Options", &options))
         options = 0xffffffff;
     return (ULONG)options;
 }
 
 static bool TitanHideCall(HIDE_COMMAND Command)
 {
-    HANDLE hDevice = CreateFileA("\\\\.\\TitanHide", GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
-    if(hDevice == INVALID_HANDLE_VALUE)
+    auto path = "\\\\.\\" + driverName;
+    HANDLE hDevice = CreateFileA(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, 0, OPEN_EXISTING, 0, 0);
+    if (hDevice == INVALID_HANDLE_VALUE)
     {
-        _plugin_logputs("[" PLUGIN_NAME "] Could not open TitanHide handle...");
+        _plugin_logputs("[" PLUGIN_NAME "] Could not open TitanHide handle (wrong driver name?)");
         return false;
     }
     HIDE_INFO HideInfo;
@@ -28,7 +31,7 @@ static bool TitanHideCall(HIDE_COMMAND Command)
     HideInfo.Type = GetTitanHideOptions();
     DWORD written = 0;
     auto result = false;
-    if(WriteFile(hDevice, &HideInfo, sizeof(HIDE_INFO), &written, 0))
+    if (WriteFile(hDevice, &HideInfo, sizeof(HIDE_INFO), &written, 0))
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Process %shidden!\n", Command == UnhidePid ? "un" : "");
         result = true;
@@ -43,10 +46,10 @@ static bool TitanHideCall(HIDE_COMMAND Command)
 
 static bool cbTitanHide(int argc, char* argv[])
 {
-    if(!hidden)
+    if (!hidden)
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Hiding PID %X (%ud)\n", pid, pid);
-        if(TitanHideCall(HidePid))
+        if (TitanHideCall(HidePid))
         {
             DbgCmdExecDirect("hide");
             hidden = true;
@@ -57,10 +60,10 @@ static bool cbTitanHide(int argc, char* argv[])
 
 static bool cbTitanUnhide(int argc, char* argv[])
 {
-    if(hidden)
+    if (hidden)
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Unhiding PID %X (%ud)\n", pid, pid);
-        if(TitanHideCall(UnhidePid))
+        if (TitanHideCall(UnhidePid))
             hidden = false;
     }
     return !hidden;
@@ -68,7 +71,7 @@ static bool cbTitanUnhide(int argc, char* argv[])
 
 static bool cbTitanHideOptions(int argc, char* argv[])
 {
-    if(argc < 2)
+    if (argc < 2)
     {
         _plugin_logprintf("[" PLUGIN_NAME "] Options: 0x%08X\n", GetTitanHideOptions());
     }
@@ -76,9 +79,24 @@ static bool cbTitanHideOptions(int argc, char* argv[])
     {
         duint options = DbgValFromString(argv[1]);
         BridgeSettingSetUint("TitanHide", "Options", options & 0xffffffff);
-        if(hidden)
+        if (hidden)
             TitanHideCall(HidePid);
         _plugin_logprintf("[" PLUGIN_NAME "] New options: 0x%08X\n", GetTitanHideOptions());
+    }
+    return true;
+}
+
+static bool cbTitanHideName(int argc, char* argv[])
+{
+    if (argc < 2)
+    {
+        _plugin_logprintf("[" PLUGIN_NAME "] Current driver name: '%s'\n", argv[0]);
+    }
+    else
+    {
+        driverName = argv[1];
+        BridgeSettingSet("TitanHide", "DriverName", driverName.c_str());
+        _plugin_logprintf("[" PLUGIN_NAME "] New driver name: '%s'\n", driverName.c_str());
     }
     return true;
 }
@@ -107,9 +125,17 @@ PLUG_EXPORT void CBSTOPDEBUG(CBTYPE cbType, PLUG_CB_STOPDEBUG* info)
 
 void TitanHideInit(PLUG_INITSTRUCT* initStruct)
 {
+    char setting[MAX_SETTING_SIZE] = "";
+    BridgeSettingGet("TitanHide", "DriverName", setting);
+    if (setting[0] != '\0')
+    {
+        driverName = setting;
+    }
+
     _plugin_registercommand(pluginHandle, "TitanHide", cbTitanHide, true);
     _plugin_registercommand(pluginHandle, "TitanUnhide", cbTitanUnhide, true);
     _plugin_registercommand(pluginHandle, "TitanHideOptions", cbTitanHideOptions, false);
+    _plugin_registercommand(pluginHandle, "TitanHideName", cbTitanHideName, false);
 }
 
 void TitanHideStop()
