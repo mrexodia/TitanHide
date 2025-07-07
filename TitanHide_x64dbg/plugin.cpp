@@ -90,7 +90,7 @@ static bool cbTitanHideName(int argc, char* argv[])
 {
     if (argc < 2)
     {
-        _plugin_logprintf("[" PLUGIN_NAME "] Current driver name: '%s'\n", argv[0]);
+        _plugin_logprintf("[" PLUGIN_NAME "] Current driver name: '%s'\n", driverName.c_str());
     }
     else
     {
