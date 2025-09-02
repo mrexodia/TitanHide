@@ -58,9 +58,16 @@ bcdedit /set testsigning on
 
 To check if TitanHide is working correctly, use [DebugView](https://technet.microsoft.com/en-us/sysinternals/debugview.aspx) or check `C:\TitanHide.log`.
 
-**Note**: For VMProtect 3.9.4 and above you need to change the service name to something else. For example `sc create NotTitanHide`, which will bypass their latest 'detection'.
+## Hiding
+
+For VMProtect 3.9.4 and above you need to change the service name to something else. For example `sc create NotTitanHide`, which will bypass their latest 'detection'. After changing the service name you will need to configure the plugin with the following command in x64dbg:
+
+```
+TitanHideName NotTitanHide
+```
 
 # Remarks
 
 - When using x64dbg, you can use the TitanHide plugin (available on the download page).
 - **NEVER RUN THIS DRIVER ON A PRODUCTION SYSTEM, ALWAYS USE A VM!**
+
