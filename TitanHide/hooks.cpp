@@ -1,10 +1,11 @@
-#include "hooks.h"
+﻿#include "hooks.h"
 #include "undocumented.h"
 #include "ssdt.h"
 #include "hider.h"
 #include "misc.h"
 #include "log.h"
 
+static HOOK hNtCreateDebugObject = 0;
 static HOOK hNtQueryInformationProcess = 0;
 static HOOK hNtQueryInformationThread = 0;
 static HOOK hNtQueryObject = 0;
@@ -17,6 +18,9 @@ static HOOK hNtSetContextThread = 0;
 static HOOK hNtSystemDebugControl = 0;
 static HOOK hNtCreateThreadEx = 0;
 static KMUTEX gDebugPortMutex;
+static ULONG gDebugObjectPids[256] = {};
+static ULONG gDebugObjectPidCount = 0;
+static KSPIN_LOCK gDebugObjectSpinLock;
 
 //https://forum.tuts4you.com/topic/40011-debugme-vmprotect-312-build-886-anti-debug-method-improved/#comment-192824
 //https://github.com/x64dbg/ScyllaHide/issues/47
@@ -35,6 +39,44 @@ static KMUTEX gDebugPortMutex;
 
 #define OBJ_PROTECT_CLOSE 0x00000001L
 
+static void RegisterDebugObjectPid(ULONG pid)
+{
+    KIRQL irql;
+    KeAcquireSpinLock(&gDebugObjectSpinLock, &irql);
+    if (gDebugObjectPidCount < 256)
+        gDebugObjectPids[gDebugObjectPidCount++] = pid;
+    KeReleaseSpinLock(&gDebugObjectSpinLock, irql);
+}
+
+static bool HasDebugObjectPid(ULONG pid)
+{
+    KIRQL irql;
+    KeAcquireSpinLock(&gDebugObjectSpinLock, &irql);
+    for (ULONG i = 0; i < gDebugObjectPidCount; i++)
+        if (gDebugObjectPids[i] == pid)
+        {
+            KeReleaseSpinLock(&gDebugObjectSpinLock, irql);
+            return true;
+        }
+    KeReleaseSpinLock(&gDebugObjectSpinLock, irql);
+    return false;
+}
+
+static void UnregisterDebugObjectPid(ULONG pid)
+{
+    KIRQL irql;
+    KeAcquireSpinLock(&gDebugObjectSpinLock, &irql);
+    for (ULONG i = 0; i < gDebugObjectPidCount; i++)
+    {
+        if (gDebugObjectPids[i] == pid)
+        {
+            gDebugObjectPids[i] = gDebugObjectPids[--gDebugObjectPidCount];
+            break;
+        }
+    }
+    KeReleaseSpinLock(&gDebugObjectSpinLock, irql);
+}
+
 static NTSTATUS NTAPI HookNtQueryInformationThread(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
@@ -46,12 +88,12 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
     ULONG targetPid = Misc::GetProcessIDFromThreadHandle(ThreadHandle);
 
 #ifdef _WIN64 // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
-    if(ThreadInformationClass == ThreadWow64Context &&
-            ThreadInformation != nullptr &&
-            ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
-            ExGetPreviousMode() != KernelMode &&
-            Hider::IsHidden(pid, HideNtGetContextThread) &&
-            Hider::IsHidden(targetPid, HideNtGetContextThread))
+    if (ThreadInformationClass == ThreadWow64Context &&
+        ThreadInformation != nullptr &&
+        ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
+        ExGetPreviousMode() != KernelMode &&
+        Hider::IsHidden(pid, HideNtGetContextThread) &&
+        Hider::IsHidden(targetPid, HideNtGetContextThread))
     {
         PWOW64_CONTEXT Wow64Context = (PWOW64_CONTEXT)ThreadInformation;
         ULONG OriginalContextFlags = 0;
@@ -66,7 +108,7 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
             Wow64Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
             DebugRegistersRequested = Wow64Context->ContextFlags != OriginalContextFlags;
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             NOTHING;
         }
@@ -79,7 +121,7 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
             Wow64Context->ContextFlags = OriginalContextFlags;
 
             // If debug registers were requested, zero user input
-            if(DebugRegistersRequested)
+            if (DebugRegistersRequested)
             {
                 Wow64Context->Dr0 = 0;
                 Wow64Context->Dr1 = 0;
@@ -89,7 +131,7 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
                 Wow64Context->Dr7 = 0;
             }
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             NOTHING;
         }
@@ -101,10 +143,10 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
     // Call the original function now, since querying ThreadHideFromDebugger may fail with STATUS_INVALID_INFO_CLASS (if we are on XP/2003)
     NTSTATUS Status = Undocumented::NtQueryInformationThread(ThreadHandle, ThreadInformationClass, ThreadInformation, ThreadInformationLength, ReturnLength);
 
-    if(NT_SUCCESS(Status) && ThreadInformationClass == ThreadHideFromDebugger)
+    if (NT_SUCCESS(Status) && ThreadInformationClass == ThreadHideFromDebugger)
     {
-        if(Hider::IsHidden(pid, HideThreadHideFromDebugger) &&
-                Hider::IsHidden(targetPid, HideThreadHideFromDebugger))
+        if (Hider::IsHidden(pid, HideThreadHideFromDebugger) &&
+            Hider::IsHidden(targetPid, HideThreadHideFromDebugger))
         {
             Log("[TITANHIDE] NtQueryInformationThread(ThreadHideFromDebugger) by %d\r\n", pid);
 
@@ -117,7 +159,7 @@ static NTSTATUS NTAPI HookNtQueryInformationThread(
 
                 RESTORE_RETURNLENGTH();
             }
-            __except(EXCEPTION_EXECUTE_HANDLER)
+            __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 Status = GetExceptionCode();
             }
@@ -136,30 +178,30 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
     const ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
 
     //Bug found by Aguila, thanks!
-    if(ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformationLength)
+    if (ThreadInformationClass == ThreadHideFromDebugger && !ThreadInformationLength)
     {
-        if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
+        if (Hider::IsHidden(pid, HideThreadHideFromDebugger))
         {
             Log("[TITANHIDE] NtSetInformationThread(ThreadHideFromDebugger) by %d\r\n", pid);
             PETHREAD Thread;
             NTSTATUS status = ObReferenceObjectByHandle(ThreadHandle,
-                              THREAD_SET_INFORMATION,
-                              *PsThreadType,
-                              ExGetPreviousMode(),
-                              (PVOID*)&Thread,
-                              NULL);
-            if(NT_SUCCESS(status))
+                THREAD_SET_INFORMATION,
+                *PsThreadType,
+                ExGetPreviousMode(),
+                (PVOID*)&Thread,
+                NULL);
+            if (NT_SUCCESS(status))
                 ObDereferenceObject(Thread);
             return status;
         }
     }
     // ThreadWow64Context returns STATUS_INVALID_INFO_CLASS on x86, and STATUS_INVALID_PARAMETER if PreviousMode is kernel
 #ifdef _WIN64
-    else if(ThreadInformationClass == ThreadWow64Context &&
-            ThreadInformation != nullptr &&
-            ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
-            ExGetPreviousMode() != KernelMode &&
-            Hider::IsHidden(pid, HideNtSetContextThread))
+    else if (ThreadInformationClass == ThreadWow64Context &&
+        ThreadInformation != nullptr &&
+        ThreadInformationLength == sizeof(WOW64_CONTEXT) &&
+        ExGetPreviousMode() != KernelMode &&
+        Hider::IsHidden(pid, HideNtSetContextThread))
     {
         PWOW64_CONTEXT Wow64Context = (PWOW64_CONTEXT)ThreadInformation;
         ULONG OriginalContextFlags = 0;
@@ -172,7 +214,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
             OriginalContextFlags = Wow64Context->ContextFlags;
             Wow64Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             NOTHING;
         }
@@ -184,7 +226,7 @@ static NTSTATUS NTAPI HookNtSetInformationThread(
             ProbeForWrite(&Wow64Context->ContextFlags, sizeof(ULONG), 1);
             Wow64Context->ContextFlags = OriginalContextFlags;
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             NOTHING;
         }
@@ -201,43 +243,65 @@ static NTSTATUS NTAPI HookNtClose(
 {
     ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
-    if(Hider::IsHidden(pid, HideNtClose))
+    if (Hider::IsHidden(pid, HideNtClose))
     {
         KeWaitForSingleObject(&gDebugPortMutex, Executive, KernelMode, FALSE, nullptr);
 
-        // Check if this is a valid handle without raising exceptionss
         BOOLEAN AuditOnClose;
         NTSTATUS ObStatus = ObQueryObjectAuditingByHandle(Handle, &AuditOnClose);
 
         NTSTATUS Status;
-        if(ObStatus != STATUS_INVALID_HANDLE)  // Don't change the return path for any status except this one
+        if (ObStatus != STATUS_INVALID_HANDLE)
         {
             BOOLEAN BeingDebugged = PsGetProcessDebugPort(PsGetCurrentProcess()) != nullptr;
             OBJECT_HANDLE_INFORMATION HandleInfo = { 0 };
 
-            if(BeingDebugged)
+            if (BeingDebugged)
             {
-                // Get handle info so we can check if the handle has the ProtectFromClose bit set
                 PVOID Object = nullptr;
                 ObStatus = ObReferenceObjectByHandle(Handle,
-                                                     0,
-                                                     nullptr,
-                                                     PreviousMode,
-                                                     &Object,
-                                                     &HandleInfo);
-                if(Object != nullptr)
+                    0,
+                    nullptr,
+                    PreviousMode,
+                    &Object,
+                    &HandleInfo);
+                if (Object != nullptr)
                     ObDereferenceObject(Object);
             }
 
-            if(BeingDebugged && NT_SUCCESS(ObStatus) &&
-                    (HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE))
+            if (BeingDebugged && NT_SUCCESS(ObStatus) &&
+                (HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE))
             {
-                // Return STATUS_HANDLE_NOT_CLOSABLE instead of raising an exception
                 Log("[TITANHIDE] NtClose(0x%p) (protected handle) by %d\r\n", Handle, pid);
                 Status = STATUS_HANDLE_NOT_CLOSABLE;
             }
             else
             {
+                if (Hider::IsHidden(pid, HideDebugObject) && HasDebugObjectPid(pid))
+                {
+                    UCHAR typeBuf[sizeof(OBJECT_TYPE_INFORMATION) + 32 * sizeof(wchar_t)] = {};
+                    OBJECT_TYPE_INFORMATION* typeInfo = (OBJECT_TYPE_INFORMATION*)typeBuf;
+                    ULONG retLen = 0;
+
+                    NTSTATUS RefStatus = Undocumented::NtQueryObject(
+                        Handle,
+                        ObjectTypeInformation,
+                        typeInfo,
+                        sizeof(typeBuf),
+                        &retLen);
+
+                    if (NT_SUCCESS(RefStatus) && typeInfo->TypeName.Buffer)
+                    {
+                        UNICODE_STRING DebugObjectName;
+                        RtlInitUnicodeString(&DebugObjectName, L"DebugObject");
+                        if (RtlEqualUnicodeString(&typeInfo->TypeName, &DebugObjectName, FALSE))
+                        {
+                            Log("[TITANHIDE] NtClose(DebugObject) by %d\r\n", pid);
+                            UnregisterDebugObjectPid(pid);
+                        }
+                    }
+                }
+
                 Status = ObCloseHandle(Handle, PreviousMode);
             }
         }
@@ -248,7 +312,6 @@ static NTSTATUS NTAPI HookNtClose(
         }
 
         KeReleaseMutex(&gDebugPortMutex, FALSE);
-
         return Status;
     }
     return ObCloseHandle(Handle, PreviousMode);
@@ -265,27 +328,27 @@ static NTSTATUS NTAPI HookNtDuplicateObject(
 {
     ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
-    if(Hider::IsHidden(pid, HideNtClose))
+    if (Hider::IsHidden(pid, HideNtClose))
     {
         BOOLEAN BeingDebugged = PsGetProcessDebugPort(PsGetCurrentProcess()) != nullptr;
-        if(BeingDebugged && (Options & DUPLICATE_CLOSE_SOURCE))
+        if (BeingDebugged && (Options & DUPLICATE_CLOSE_SOURCE))
         {
             // Get handle info so we can check if the handle has the ProtectFromClose bit set
             PVOID Object = nullptr;
             OBJECT_HANDLE_INFORMATION HandleInfo = { 0 };
             NTSTATUS Status = ObReferenceObjectByHandle(SourceHandle,
-                              0,
-                              nullptr,
-                              PreviousMode,
-                              &Object,
-                              &HandleInfo);
+                0,
+                nullptr,
+                PreviousMode,
+                &Object,
+                &HandleInfo);
 
-            if(NT_SUCCESS(Status))
+            if (NT_SUCCESS(Status))
             {
-                if(Object != nullptr)
+                if (Object != nullptr)
                     ObDereferenceObject(Object);
 
-                if(HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE)
+                if (HandleInfo.HandleAttributes & OBJ_PROTECT_CLOSE)
                 {
                     // Prevent a user mode exception from happening when ObDuplicateObject calls NtClose on the source handle.
                     // Why doesn't our NtClose hook catch this? Because the kernel uses its own RVAs instead of going through the SSDT
@@ -305,7 +368,7 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
     OUT PULONG ReturnLength OPTIONAL)
 {
     NTSTATUS ret = Undocumented::NtQuerySystemInformation(SystemInformationClass, SystemInformation, SystemInformationLength, ReturnLength);
-    if(NT_SUCCESS(ret) && SystemInformation)
+    if (NT_SUCCESS(ret) && SystemInformation)
     {
         ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
         switch (SystemInformationClass)
@@ -366,6 +429,86 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
             }
             break;
         }
+        case SystemFirmwareTableInformation:
+        {
+            if (!Hider::IsHidden(pid, HideNtSystemVMInformation))
+                break;
+
+            if (SystemInformationLength < FIELD_OFFSET(SYSTEM_FIRMWARE_TABLE_INFORMATION, TableBuffer))
+                break;
+
+            __try
+            {
+                PSYSTEM_FIRMWARE_TABLE_INFORMATION fti =
+                    (PSYSTEM_FIRMWARE_TABLE_INFORMATION)SystemInformation;
+
+                ProbeForRead(fti,
+                    FIELD_OFFSET(SYSTEM_FIRMWARE_TABLE_INFORMATION, TableBuffer), 1);
+
+                const ULONG bufLen = fti->TableBufferLength;
+                const ULONG headerSize = FIELD_OFFSET(SYSTEM_FIRMWARE_TABLE_INFORMATION, TableBuffer);
+
+                // Данные реально вернулись в буфер?
+                if (bufLen == 0 ||
+                    SystemInformationLength < headerSize + bufLen)
+                    break;
+
+                ProbeForWrite(fti->TableBuffer, bufLen, 1);
+
+                BACKUP_RETURNLENGTH();
+
+                static const struct { const char* str; ULONG len; } vmArtifacts[] = {
+                    { "VMware",      6  },
+                    { "VMWARE",      6  },
+                    { "VirtualBox",  10 },
+                    { "vbox",        4  },
+                    { "VBOX",        4  },
+                    { "innotek",     7  },
+                    { "QEMU",        4  },
+                    { "qemu",        4  },
+                    { "bochs",       5  },
+                    { "BOCHS",       5  },
+                    { "Hyper-V",     7  },
+                    { "VIRT",        4  },
+                    { "Virtual",     7  },
+                    { "VIRTUAL",     7  },
+                    { "KVM",         3  },
+                };
+
+                UCHAR* buf = fti->TableBuffer;
+                bool patched = false;
+
+                for (ULONG i = 0; i < bufLen; i++)
+                {
+                    for (int s = 0; s < ARRAYSIZE(vmArtifacts); s++)
+                    {
+                        const ULONG slen = vmArtifacts[s].len;
+                        if (i + slen > bufLen)
+                            continue;
+
+                        if (RtlCompareMemory(buf + i, vmArtifacts[s].str, slen) == slen)
+                        {
+                            RtlFillMemory(buf + i, slen, '_');
+                            patched = true;
+                        }
+                    }
+                }
+
+                if (patched)
+                {
+                    Log("[TITANHIDE] SystemFirmwareTableInformation patched (provider=%.4s) by %d\r\n",
+                        (char*)&fti->ProviderSignature, pid);
+                }
+
+                RESTORE_RETURNLENGTH();
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                ret = GetExceptionCode();
+            }
+
+            break;
+        }
         default:
             break;
         }
@@ -380,67 +523,82 @@ static NTSTATUS NTAPI HookNtQueryObject(
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL)
 {
-    NTSTATUS ret = Undocumented::NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
-    if(NT_SUCCESS(ret) && ObjectInformation)
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+
+    // Size probe
+    if (ObjectInformationClass == ObjectTypeInformation &&
+        Hider::IsHidden(pid, HideDebugObject) &&
+        (!ObjectInformation || ObjectInformationLength == 0))
     {
-        ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+        constexpr ULONG needed = sizeof(OBJECT_TYPE_INFORMATION) + sizeof(L"DebugObject");
+        __try
+        {
+            if (ReturnLength)
+            {
+                ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
+                *ReturnLength = needed;
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {}
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    NTSTATUS ret = Undocumented::NtQueryObject(Handle, ObjectInformationClass, ObjectInformation, ObjectInformationLength, ReturnLength);
+    if (NT_SUCCESS(ret) && ObjectInformation)
+    {
         UNICODE_STRING DebugObject;
         RtlInitUnicodeString(&DebugObject, L"DebugObject");
-        if(ObjectInformationClass == ObjectTypeInformation && Hider::IsHidden(pid, HideDebugObject))
+
+        if (ObjectInformationClass == ObjectTypeInformation && Hider::IsHidden(pid, HideDebugObject))
         {
             __try
             {
                 BACKUP_RETURNLENGTH();
-
                 OBJECT_TYPE_INFORMATION* type = (OBJECT_TYPE_INFORMATION*)ObjectInformation;
                 ProbeForRead(type->TypeName.Buffer, 1, 1);
-                if(RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE)) //DebugObject
+                if (RtlEqualUnicodeString(&type->TypeName, &DebugObject, FALSE))
                 {
-                    Log("[TITANHIDE] DebugObject by %d\r\n", pid);
-                    type->TotalNumberOfObjects = 0;
-                    type->TotalNumberOfHandles = 0;
+                    Log("[TITANHIDE] DebugObject(TypeInfo) by %d\r\n", pid);
+                    type->TotalNumberOfObjects = 1;
+                    type->TotalNumberOfHandles = 1;
                 }
-
                 RESTORE_RETURNLENGTH();
             }
-            __except(EXCEPTION_EXECUTE_HANDLER)
+            __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 ret = GetExceptionCode();
             }
         }
-        else if(ObjectInformationClass == ObjectTypesInformation && Hider::IsHidden(pid, HideDebugObject))
+        else if (ObjectInformationClass == ObjectTypesInformation && Hider::IsHidden(pid, HideDebugObject))
         {
-            //NCC Group Security Advisory
             __try
             {
                 BACKUP_RETURNLENGTH();
-
                 OBJECT_ALL_INFORMATION* pObjectAllInfo = (OBJECT_ALL_INFORMATION*)ObjectInformation;
                 unsigned char* pObjInfoLocation = (unsigned char*)pObjectAllInfo->ObjectTypeInformation;
                 unsigned int TotalObjects = pObjectAllInfo->NumberOfObjects;
-                for(unsigned int i = 0; i < TotalObjects; i++)
+                for (unsigned int i = 0; i < TotalObjects; i++)
                 {
                     OBJECT_TYPE_INFORMATION* pObjectTypeInfo = (OBJECT_TYPE_INFORMATION*)pObjInfoLocation;
                     ProbeForRead(pObjectTypeInfo, 1, 1);
                     ProbeForRead(pObjectTypeInfo->TypeName.Buffer, 1, 1);
-                    if(RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE)) //DebugObject
+                    if (RtlEqualUnicodeString(&pObjectTypeInfo->TypeName, &DebugObject, FALSE))
                     {
-                        Log("[TITANHIDE] DebugObject by %d\r\n", pid);
-                        pObjectTypeInfo->TotalNumberOfObjects = 0;
-                        //Bug found by Aguila, thanks!
-                        pObjectTypeInfo->TotalNumberOfHandles = 0;
+                        Log("[TITANHIDE] DebugObject(TypesInfo) by %d\r\n", pid);
+                        ULONG count = HasDebugObjectPid(pid) ? 1 : 0;
+                        pObjectTypeInfo->TotalNumberOfObjects = count;
+                        pObjectTypeInfo->TotalNumberOfHandles = count;
                     }
                     pObjInfoLocation = (unsigned char*)pObjectTypeInfo->TypeName.Buffer;
                     pObjInfoLocation += pObjectTypeInfo->TypeName.MaximumLength;
                     ULONG_PTR tmp = ((ULONG_PTR)pObjInfoLocation) & -(LONG_PTR)sizeof(void*);
-                    if((ULONG_PTR)tmp != (ULONG_PTR)pObjInfoLocation)
+                    if ((ULONG_PTR)tmp != (ULONG_PTR)pObjInfoLocation)
                         tmp += sizeof(void*);
                     pObjInfoLocation = ((unsigned char*)tmp);
                 }
-
                 RESTORE_RETURNLENGTH();
             }
-            __except(EXCEPTION_EXECUTE_HANDLER)
+            __except (EXCEPTION_EXECUTE_HANDLER)
             {
                 ret = GetExceptionCode();
             }
@@ -459,24 +617,42 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     ULONG pid = Misc::GetProcessIDFromProcessHandle(ProcessHandle);
 
     // Handle ProcessDebugObjectHandle early
-    if(ProcessInformationClass == ProcessDebugObjectHandle &&
-            ProcessInformation != nullptr &&
-            ProcessInformationLength == sizeof(HANDLE) &&
-            Hider::IsHidden(pid, HideProcessDebugObjectHandle))
+    if (ProcessInformationClass == ProcessDebugObjectHandle &&
+        Hider::IsHidden(pid, HideProcessDebugObjectHandle))
     {
         PEPROCESS Process;
         NTSTATUS Status = ObReferenceObjectByHandle(ProcessHandle,
-                          PROCESS_QUERY_INFORMATION,
-                          *PsProcessType,
-                          ExGetPreviousMode(),
-                          (PVOID*)&Process,
-                          nullptr);
-        if(!NT_SUCCESS(Status))
+            PROCESS_QUERY_INFORMATION,
+            *PsProcessType,
+            ExGetPreviousMode(),
+            (PVOID*)&Process,
+            nullptr);
+        if (!NT_SUCCESS(Status))
             return Status;
 
-        // (The kernel calls DbgkOpenProcessDebugPort here)
-
         ObDereferenceObject(Process);
+
+        // Fix: wrong size → STATUS_INFO_LENGTH_MISMATCH
+        if (ProcessInformationLength != sizeof(HANDLE))
+        {
+            __try
+            {
+                if (ReturnLength != nullptr)
+                {
+                    ProbeForWrite(ReturnLength, sizeof(ULONG), 1);
+                    *ReturnLength = sizeof(HANDLE);
+                }
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                return GetExceptionCode();
+            }
+            return STATUS_INFO_LENGTH_MISMATCH;
+        }
+
+        // Fix: misaligned buffer → STATUS_DATATYPE_MISALIGNMENT
+        if (ProcessInformation == nullptr || ((ULONG_PTR)ProcessInformation & (__alignof(HANDLE) - 1)))
+            return STATUS_DATATYPE_MISALIGNMENT;
 
         __try
         {
@@ -490,7 +666,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
             if (ReturnLength != nullptr)
                 *ReturnLength = sizeof(HANDLE);
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             return GetExceptionCode();
         }
@@ -498,13 +674,13 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
     }
 
     NTSTATUS ret = Undocumented::NtQueryInformationProcess(ProcessHandle, ProcessInformationClass, ProcessInformation, ProcessInformationLength, ReturnLength);
-    if(NT_SUCCESS(ret) &&
-            ProcessInformation &&
-            ProcessInformationClass != ProcessBasicInformation) //prevent stack overflow
+    if (NT_SUCCESS(ret) &&
+        ProcessInformation &&
+        ProcessInformationClass != ProcessBasicInformation) //prevent stack overflow
     {
-        if(ProcessInformationClass == ProcessDebugFlags)
+        if (ProcessInformationClass == ProcessDebugFlags)
         {
-            if(Hider::IsHidden(pid, HideProcessDebugFlags))
+            if (Hider::IsHidden(pid, HideProcessDebugFlags))
             {
                 Log("[TITANHIDE] ProcessDebugFlags by %d\r\n", pid);
                 __try
@@ -515,15 +691,15 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
                     RESTORE_RETURNLENGTH();
                 }
-                __except(EXCEPTION_EXECUTE_HANDLER)
+                __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     ret = GetExceptionCode();
                 }
             }
         }
-        else if(ProcessInformationClass == ProcessDebugPort)
+        else if (ProcessInformationClass == ProcessDebugPort)
         {
-            if(Hider::IsHidden(pid, HideProcessDebugPort))
+            if (Hider::IsHidden(pid, HideProcessDebugPort))
             {
                 Log("[TITANHIDE] ProcessDebugPort by %d\r\n", pid);
                 __try
@@ -534,7 +710,7 @@ static NTSTATUS NTAPI HookNtQueryInformationProcess(
 
                     RESTORE_RETURNLENGTH();
                 }
-                __except(EXCEPTION_EXECUTE_HANDLER)
+                __except (EXCEPTION_EXECUTE_HANDLER)
                 {
                     ret = GetExceptionCode();
                 }
@@ -552,11 +728,11 @@ static NTSTATUS NTAPI HookNtGetContextThread(
     ULONG targetPid = Misc::GetProcessIDFromThreadHandle(ThreadHandle);
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
     bool IsHidden = PreviousMode != KernelMode &&
-                    Hider::IsHidden(pid, HideNtGetContextThread) &&
-                    Hider::IsHidden(targetPid, HideNtGetContextThread);
+        Hider::IsHidden(pid, HideNtGetContextThread) &&
+        Hider::IsHidden(targetPid, HideNtGetContextThread);
     ULONG OriginalContextFlags = 0;
     bool DebugRegistersRequested = false;
-    if(IsHidden)
+    if (IsHidden)
     {
         Log("[TITANHIDE] NtGetContextThread by %d\r\n", pid);
         __try
@@ -566,13 +742,13 @@ static NTSTATUS NTAPI HookNtGetContextThread(
             Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
             DebugRegistersRequested = Context->ContextFlags != OriginalContextFlags;
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             IsHidden = false;
         }
     }
     NTSTATUS ret = Undocumented::NtGetContextThread(ThreadHandle, Context);
-    if(IsHidden)
+    if (IsHidden)
     {
         __try
         {
@@ -580,7 +756,7 @@ static NTSTATUS NTAPI HookNtGetContextThread(
             Context->ContextFlags = OriginalContextFlags;
 
             // If debug registers were requested, zero user input
-            if(DebugRegistersRequested)
+            if (DebugRegistersRequested)
             {
                 Context->Dr0 = 0;
                 Context->Dr1 = 0;
@@ -596,7 +772,7 @@ static NTSTATUS NTAPI HookNtGetContextThread(
 #endif
             }
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
         }
     }
@@ -611,7 +787,7 @@ static NTSTATUS NTAPI HookNtSetContextThread(
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
     bool IsHidden = PreviousMode != KernelMode && Hider::IsHidden(pid, HideNtSetContextThread);
     ULONG OriginalContextFlags = 0;
-    if(IsHidden)
+    if (IsHidden)
     {
         //http://lifeinhex.com/dont-touch-this-writing-good-drivers-is-really-hard
         //http://lifeinhex.com/when-software-is-good-enough
@@ -622,20 +798,20 @@ static NTSTATUS NTAPI HookNtSetContextThread(
             OriginalContextFlags = Context->ContextFlags;
             Context->ContextFlags = OriginalContextFlags & ~0x10; //CONTEXT_DEBUG_REGISTERS ^ CONTEXT_AMD64/CONTEXT_i386
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
             IsHidden = false;
         }
     }
     NTSTATUS ret = Undocumented::NtSetContextThread(ThreadHandle, Context);
-    if(IsHidden)
+    if (IsHidden)
     {
         __try
         {
             ProbeForWrite(&Context->ContextFlags, sizeof(ULONG), 1);
             Context->ContextFlags = OriginalContextFlags;
         }
-        __except(EXCEPTION_EXECUTE_HANDLER)
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
         }
     }
@@ -651,8 +827,8 @@ static NTSTATUS NTAPI HookNtSystemDebugControl(
     OUT PULONG ReturnLength)
 {
     ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
-    if(Command != SysDbgGetTriageDump && Command != SysDbgGetLiveKernelDump &&
-            Hider::IsHidden(pid, HideNtSystemDebugControl))
+    if (Command != SysDbgGetTriageDump && Command != SysDbgGetLiveKernelDump &&
+        Hider::IsHidden(pid, HideNtSystemDebugControl))
     {
         Log("[TITANHIDE] NtSystemDebugControl by %d\r\n", pid);
         return STATUS_DEBUGGER_INACTIVE;
@@ -674,9 +850,9 @@ static NTSTATUS NTAPI HookNtCreateThreadEx(
     IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL)
 {
     const ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
-    if(Hider::IsHidden(pid, HideThreadHideFromDebugger))
+    if (Hider::IsHidden(pid, HideThreadHideFromDebugger))
     {
-        if((CreateFlags & THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER) != 0)
+        if ((CreateFlags & THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER) != 0)
         {
             CreateFlags &= ~THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER;
             Log("[TITANHIDE] NtCreateThreadEx with THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER by %u\r\n", pid);
@@ -685,44 +861,65 @@ static NTSTATUS NTAPI HookNtCreateThreadEx(
     return Undocumented::NtCreateThreadEx(ThreadHandle, DesiredAccess, ObjectAttributes, ProcessHandle, StartRoutine, Argument, CreateFlags, ZeroBits, StackSize, MaximumStackSize, AttributeList);
 }
 
+static NTSTATUS NTAPI HookNtCreateDebugObject(
+    OUT PHANDLE DebugObjectHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes,
+    IN ULONG Flags)
+{
+    ULONG pid = (ULONG)(ULONG_PTR)PsGetCurrentProcessId();
+    NTSTATUS ret = Undocumented::NtCreateDebugObject(
+        DebugObjectHandle, DesiredAccess, ObjectAttributes, Flags);
+    if (NT_SUCCESS(ret) && Hider::IsHidden(pid, HideDebugObject))
+    {
+        Log("[TITANHIDE] NtCreateDebugObject by %d\r\n", pid);
+        RegisterDebugObjectPid(pid);
+    }
+    return ret;
+}
+
 int Hooks::Initialize()
 {
     KeInitializeMutex(&gDebugPortMutex, 0);
+    KeInitializeSpinLock(&gDebugObjectSpinLock);
     int hook_count = 0;
     hNtQueryInformationProcess = SSDT::Hook("NtQueryInformationProcess", (void*)HookNtQueryInformationProcess);
-    if(hNtQueryInformationProcess)
+    if (hNtQueryInformationProcess)
         hook_count++;
     hNtQueryInformationThread = SSDT::Hook("NtQueryInformationThread", (void*)HookNtQueryInformationThread);
-    if(hNtQueryInformationThread)
+    if (hNtQueryInformationThread)
         hook_count++;
     hNtQueryObject = SSDT::Hook("NtQueryObject", (void*)HookNtQueryObject);
-    if(hNtQueryObject)
+    if (hNtQueryObject)
         hook_count++;
     hNtQuerySystemInformation = SSDT::Hook("NtQuerySystemInformation", (void*)HookNtQuerySystemInformation);
-    if(hNtQuerySystemInformation)
+    if (hNtQuerySystemInformation)
         hook_count++;
     hNtSetInformationThread = SSDT::Hook("NtSetInformationThread", (void*)HookNtSetInformationThread);
-    if(hNtSetInformationThread)
+    if (hNtSetInformationThread)
         hook_count++;
     hNtClose = SSDT::Hook("NtClose", (void*)HookNtClose);
-    if(hNtClose)
+    if (hNtClose)
         hook_count++;
     hNtDuplicateObject = SSDT::Hook("NtDuplicateObject", (void*)HookNtDuplicateObject);
-    if(hNtDuplicateObject)
+    if (hNtDuplicateObject)
         hook_count++;
     hNtGetContextThread = SSDT::Hook("NtGetContextThread", (void*)HookNtGetContextThread);
-    if(hNtGetContextThread)
+    if (hNtGetContextThread)
         hook_count++;
     hNtSetContextThread = SSDT::Hook("NtSetContextThread", (void*)HookNtSetContextThread);
-    if(hNtSetContextThread)
+    if (hNtSetContextThread)
         hook_count++;
     hNtSystemDebugControl = SSDT::Hook("NtSystemDebugControl", (void*)HookNtSystemDebugControl);
-    if(hNtSystemDebugControl)
+    if (hNtSystemDebugControl)
         hook_count++;
-    if((NtBuildNumber & 0xFFFF) >= 6000)
+    hNtCreateDebugObject = SSDT::Hook("NtCreateDebugObject", (void*)HookNtCreateDebugObject);
+    if (hNtCreateDebugObject)
+        hook_count++;
+    if ((NtBuildNumber & 0xFFFF) >= 6000)
     {
         hNtCreateThreadEx = SSDT::Hook("NtCreateThreadEx", (void*)HookNtCreateThreadEx);
-        if(hNtCreateThreadEx)
+        if (hNtCreateThreadEx)
             hook_count++;
     }
     return hook_count;
@@ -740,7 +937,8 @@ void Hooks::Deinitialize()
     SSDT::Unhook(hNtGetContextThread, true);
     SSDT::Unhook(hNtSetContextThread, true);
     SSDT::Unhook(hNtSystemDebugControl, true);
-    if((NtBuildNumber & 0xFFFF) >= 6000)
+    SSDT::Unhook(hNtCreateDebugObject, true);
+    if ((NtBuildNumber & 0xFFFF) >= 6000)
     {
         SSDT::Unhook(hNtCreateThreadEx, true);
     }

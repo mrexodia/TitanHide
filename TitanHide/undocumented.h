@@ -9,13 +9,13 @@ typedef struct _OBJECT_TYPE_INFORMATION
     UNICODE_STRING TypeName;
     ULONG TotalNumberOfHandles;
     ULONG TotalNumberOfObjects;
-} OBJECT_TYPE_INFORMATION, *POBJECT_TYPE_INFORMATION;
+} OBJECT_TYPE_INFORMATION, * POBJECT_TYPE_INFORMATION;
 
 typedef struct _OBJECT_ALL_INFORMATION
 {
     ULONG NumberOfObjects;
     OBJECT_TYPE_INFORMATION ObjectTypeInformation[1];
-} OBJECT_ALL_INFORMATION, *POBJECT_ALL_INFORMATION;
+} OBJECT_ALL_INFORMATION, * POBJECT_ALL_INFORMATION;
 
 //enums
 
@@ -26,7 +26,7 @@ typedef enum _SYSDBG_COMMAND
 {
     SysDbgGetTriageDump = 29,
     SysDbgGetLiveKernelDump = 37 // Windows 8.1+
-} SYSDBG_COMMAND, *PSYSDBG_COMMAND;
+} SYSDBG_COMMAND, * PSYSDBG_COMMAND;
 
 // WOW64_CONTEXT is not undocumented, but it's missing from the WDK
 #define WOW64_SIZE_OF_80387_REGISTERS 80
@@ -43,7 +43,7 @@ typedef struct _WOW64_FLOATING_SAVE_AREA
     ULONG DataSelector;
     UCHAR RegisterArea[WOW64_SIZE_OF_80387_REGISTERS];
     ULONG Cr0NpxState;
-} WOW64_FLOATING_SAVE_AREA, *PWOW64_FLOATING_SAVE_AREA;
+} WOW64_FLOATING_SAVE_AREA, * PWOW64_FLOATING_SAVE_AREA;
 
 #pragma pack(push, 4)
 
@@ -301,7 +301,7 @@ typedef struct _SYSTEM_THREAD_INFORMATION
     ULONG ContextSwitches;
     ULONG ThreadState;
     KWAIT_REASON WaitReason;
-} SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
+} SYSTEM_THREAD_INFORMATION, * PSYSTEM_THREAD_INFORMATION;
 
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
@@ -342,7 +342,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     SYSTEM_THREAD_INFORMATION Threads[1]; // SystemProcessInformation
     // SYSTEM_EXTENDED_THREAD_INFORMATION Threads[1]; // SystemExtendedProcessinformation
     // SYSTEM_EXTENDED_THREAD_INFORMATION + SYSTEM_PROCESS_INFORMATION_EXTENSION // SystemFullProcessInformation
-} SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
+} SYSTEM_PROCESS_INFORMATION, * PSYSTEM_PROCESS_INFORMATION;
 
 typedef struct _PS_ATTRIBUTE
 {
@@ -354,17 +354,17 @@ typedef struct _PS_ATTRIBUTE
         PVOID ValuePtr;
     };
     PSIZE_T ReturnLength;
-} PS_ATTRIBUTE, *PPS_ATTRIBUTE;
+} PS_ATTRIBUTE, * PPS_ATTRIBUTE;
 
 typedef struct _PS_ATTRIBUTE_LIST
 {
     SIZE_T TotalLength;
     PS_ATTRIBUTE Attributes[1];
-} PS_ATTRIBUTE_LIST, *PPS_ATTRIBUTE_LIST;
+} PS_ATTRIBUTE_LIST, * PPS_ATTRIBUTE_LIST;
 
 typedef NTSTATUS(NTAPI* PUSER_THREAD_START_ROUTINE)(
     _In_ PVOID ThreadParameter
-);
+    );
 
 #define PROCESS_TERMINATE                           0x0001
 #define PROCESS_CREATE_THREAD                       0x0002
@@ -445,6 +445,12 @@ public:
         OUT PVOID ProcessInformation,
         IN ULONG ProcessInformationLength,
         OUT PULONG ReturnLength OPTIONAL);
+
+    static NTSTATUS NTAPI NtCreateDebugObject(
+        OUT PHANDLE DebugObjectHandle,
+        IN ACCESS_MASK DesiredAccess,
+        IN POBJECT_ATTRIBUTES ObjectAttributes,
+        IN ULONG Flags);
 
     static NTSTATUS NTAPI NtQueryInformationThread(
         IN HANDLE ThreadHandle,

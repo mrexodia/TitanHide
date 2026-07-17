@@ -2,13 +2,20 @@
 #include "ssdt.h"
 #include "log.h"
 
+typedef NTSTATUS(NTAPI* NTCREATEDEBUGOBJECT)(
+    OUT PHANDLE DebugObjectHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes,
+    IN ULONG Flags
+    );
+
 typedef NTSTATUS(NTAPI* ZWQUERYINFORMATIONPROCESS)(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
     OUT PVOID ProcessInformation,
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTQUERYINFORMATIONTHREAD)(
     IN HANDLE ThreadHandle,
@@ -16,7 +23,7 @@ typedef NTSTATUS(NTAPI* NTQUERYINFORMATIONTHREAD)(
     IN OUT PVOID ThreadInformation,
     IN ULONG ThreadInformationLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTQUERYOBJECT)(
     IN HANDLE Handle OPTIONAL,
@@ -24,40 +31,40 @@ typedef NTSTATUS(NTAPI* NTQUERYOBJECT)(
     OUT PVOID ObjectInformation OPTIONAL,
     IN ULONG ObjectInformationLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* ZWQUERYSYSTEMINFORMATION)(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTQUERYSYSTEMINFORMATION)(
     IN SYSTEM_INFORMATION_CLASS SystemInformationClass,
     OUT PVOID SystemInformation,
     IN ULONG SystemInformationLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTCLOSE)(
     IN HANDLE Handle
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTGETCONTEXTTHREAD)(
     IN HANDLE ThreadHandle,
     IN OUT PCONTEXT Context
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTSETCONTEXTTHREAD)(
     IN HANDLE ThreadHandle,
     IN PCONTEXT Context
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTCONTINUE)(
     IN PCONTEXT Context,
     BOOLEAN RaiseAlert
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTDUPLICATEOBJECT)(
     IN HANDLE SourceProcessHandle,
@@ -67,32 +74,32 @@ typedef NTSTATUS(NTAPI* NTDUPLICATEOBJECT)(
     IN ACCESS_MASK DesiredAccess OPTIONAL,
     IN ULONG HandleAttributes,
     IN ULONG Options
-);
+    );
 
 typedef NTSTATUS(NTAPI* KERAISEUSEREXCEPTION)(
     IN NTSTATUS ExceptionCode
-);
+    );
 
 typedef NTSTATUS(NTAPI* ZWSETINFORMATIONTHREAD)(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN PVOID ThreadInformation,
     IN ULONG ThreadInformationLength
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTSETINFORMATIONTHREAD)(
     IN HANDLE ThreadHandle,
     IN THREADINFOCLASS ThreadInformationClass,
     IN PVOID ThreadInformation,
     IN ULONG ThreadInformationLength
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTSETINFORMATIONPROCESS)(
     IN HANDLE ProcessHandle,
     IN PROCESSINFOCLASS ProcessInformationClass,
     IN PVOID ProcessInformation,
     IN ULONG ProcessInformationLength
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTQUERYINFORMATIONPROCESS)(
     IN HANDLE ProcessHandle,
@@ -100,7 +107,7 @@ typedef NTSTATUS(NTAPI* NTQUERYINFORMATIONPROCESS)(
     OUT PVOID ProcessInformation,
     IN ULONG ProcessInformationLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTSYSTEMDEBUGCONTROL)(
     IN SYSDBG_COMMAND Command,
@@ -109,7 +116,7 @@ typedef NTSTATUS(NTAPI* NTSYSTEMDEBUGCONTROL)(
     OUT PVOID OutputBuffer OPTIONAL,
     IN ULONG OutputBufferLength,
     OUT PULONG ReturnLength OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* ZWCREATETHREADEX)(
     OUT PHANDLE ThreadHandle,
@@ -123,7 +130,7 @@ typedef NTSTATUS(NTAPI* ZWCREATETHREADEX)(
     IN SIZE_T StackSize OPTIONAL,
     IN SIZE_T MaximumStackSize OPTIONAL,
     IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTCREATETHREADEX)(
     OUT PHANDLE ThreadHandle,
@@ -137,18 +144,19 @@ typedef NTSTATUS(NTAPI* NTCREATETHREADEX)(
     IN SIZE_T StackSize OPTIONAL,
     IN SIZE_T MaximumStackSize OPTIONAL,
     IN PPS_ATTRIBUTE_LIST AttributeList OPTIONAL
-);
+    );
 
 typedef NTSTATUS(NTAPI* ZWTERMINATETHREAD)(
     IN HANDLE ThreadHandle OPTIONAL,
     IN NTSTATUS ExitStatus
-);
+    );
 
 typedef NTSTATUS(NTAPI* NTTERMINATETHREAD)(
     IN HANDLE ThreadHandle OPTIONAL,
     IN NTSTATUS ExitStatus
-);
+    );
 
+static NTCREATEDEBUGOBJECT NtCrDbgObj = 0;
 static ZWQUERYINFORMATIONPROCESS ZwQIP = 0;
 static NTQUERYINFORMATIONTHREAD NtQIT = 0;
 static NTQUERYOBJECT NtQO = 0;
@@ -169,6 +177,15 @@ static ZWCREATETHREADEX ZwCrThrEx = 0;
 static NTCREATETHREADEX NtCrThrEx = 0;
 static ZWTERMINATETHREAD ZwTermThr = 0;
 static NTTERMINATETHREAD NtTermThr = 0;
+
+NTSTATUS NTAPI Undocumented::NtCreateDebugObject(
+    OUT PHANDLE DebugObjectHandle,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes,
+    IN ULONG Flags)
+{
+    return NtCrDbgObj(DebugObjectHandle, DesiredAccess, ObjectAttributes, Flags);
+}
 
 NTSTATUS NTAPI Undocumented::ZwQueryInformationProcess(
     IN HANDLE ProcessHandle,
@@ -360,147 +377,153 @@ NTSTATUS NTAPI Undocumented::NtTerminateThread(
 bool Undocumented::UndocumentedInit()
 {
     //Exported kernel functions after this
-    if(!ZwQIP)
+    if (!ZwQIP)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"ZwQueryInformationProcess");
         ZwQIP = (ZWQUERYINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwQIP)
+        if (!ZwQIP)
             return false;
     }
-    if(!NtQIT)
+    if (!NtQIT)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtQueryInformationThread");
         NtQIT = (NTQUERYINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
-        if(!NtQIT)
+        if (!NtQIT)
             return false;
     }
-    if(!ZwQSI)
+    if (!ZwQSI)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"ZwQuerySystemInformation");
         ZwQSI = (ZWQUERYSYSTEMINFORMATION)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwQSI)
+        if (!ZwQSI)
             return false;
     }
-    if(!NtQSI)
+    if (!NtQSI)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtQuerySystemInformation");
         NtQSI = (NTQUERYSYSTEMINFORMATION)MmGetSystemRoutineAddress(&routineName);
-        if(!NtQSI)
+        if (!NtQSI)
             return false;
     }
-    if(!NtClo)
+    if (!NtClo)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtClose");
         NtClo = (NTCLOSE)MmGetSystemRoutineAddress(&routineName);
-        if(!NtClo)
+        if (!NtClo)
             return false;
     }
-    if(!NtDO)
+    if (!NtDO)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtDuplicateObject");
         NtDO = (NTDUPLICATEOBJECT)MmGetSystemRoutineAddress(&routineName);
-        if(!NtDO)
+        if (!NtDO)
             return false;
     }
-    if(!KeRUE)
+    if (!KeRUE)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"KeRaiseUserException");
         KeRUE = (KERAISEUSEREXCEPTION)MmGetSystemRoutineAddress(&routineName);
-        if(!KeRUE)
+        if (!KeRUE)
             return false;
     }
-    if(!ZwSIT)
+    if (!ZwSIT)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"ZwSetInformationThread");
         ZwSIT = (ZWSETINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
-        if(!ZwSIT)
+        if (!ZwSIT)
             return false;
     }
-    if(!NtSIT)
+    if (!NtSIT)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtSetInformationThread");
         NtSIT = (NTSETINFORMATIONTHREAD)MmGetSystemRoutineAddress(&routineName);
-        if(!NtSIT)
+        if (!NtSIT)
             return false;
     }
-    if(!NtSIP)
+    if (!NtSIP)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtSetInformationProcess");
         NtSIP = (NTSETINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
-        if(!NtSIP)
+        if (!NtSIP)
             return false;
     }
-    if(!NtQIP)
+    if (!NtQIP)
     {
         UNICODE_STRING routineName;
         RtlInitUnicodeString(&routineName, L"NtQueryInformationProcess");
         NtQIP = (NTQUERYINFORMATIONPROCESS)MmGetSystemRoutineAddress(&routineName);
-        if(!NtQIP)
+        if (!NtQIP)
             return false;
     }
     //SSDT-only functions after this
-    if(!NtQO)
+    if (!NtQO)
     {
         NtQO = (NTQUERYOBJECT)SSDT::GetFunctionAddress("NtQueryObject");
-        if(!NtQO)
+        if (!NtQO)
             return false;
     }
-    if(!NtGCT)
+    if (!NtGCT)
     {
         NtGCT = (NTGETCONTEXTTHREAD)SSDT::GetFunctionAddress("NtGetContextThread");
-        if(!NtGCT)
+        if (!NtGCT)
             return false;
     }
-    if(!NtSCT)
+    if (!NtSCT)
     {
         NtSCT = (NTSETCONTEXTTHREAD)SSDT::GetFunctionAddress("NtSetContextThread");
-        if(!NtSCT)
+        if (!NtSCT)
             return false;
     }
-    if(!NtCon)
+    if (!NtCon)
     {
         NtCon = (NTCONTINUE)SSDT::GetFunctionAddress("NtContinue");
-        if(!NtCon)
+        if (!NtCon)
             return false;
     }
-    if(!NtSDBC)
+    if (!NtSDBC)
     {
         NtSDBC = (NTSYSTEMDEBUGCONTROL)SSDT::GetFunctionAddress("NtSystemDebugControl");
-        if(!NtSDBC)
+        if (!NtSDBC)
             return false;
     }
-    if((NtBuildNumber & 0xFFFF) >= 6000 && !ZwCrThrEx) // only exists on >= Vista
+    if ((NtBuildNumber & 0xFFFF) >= 6000 && !ZwCrThrEx) // only exists on >= Vista
     {
         ZwCrThrEx = (ZWCREATETHREADEX)SSDT::GetFunctionAddress("ZwCreateThreadEx");
-        if(!ZwCrThrEx)
+        if (!ZwCrThrEx)
             return false;
     }
-    if((NtBuildNumber & 0xFFFF) >= 6000 && !NtCrThrEx) // only exists on >= Vista
+    if ((NtBuildNumber & 0xFFFF) >= 6000 && !NtCrThrEx) // only exists on >= Vista
     {
         NtCrThrEx = (NTCREATETHREADEX)SSDT::GetFunctionAddress("NtCreateThreadEx");
-        if(!NtCrThrEx)
+        if (!NtCrThrEx)
             return false;
     }
-    if(!ZwTermThr)
+    if (!ZwTermThr)
     {
         ZwTermThr = (ZWTERMINATETHREAD)SSDT::GetFunctionAddress("ZwTerminateThread");
-        if(!ZwTermThr)
+        if (!ZwTermThr)
             return false;
     }
-    if(!NtTermThr)
+    if (!NtTermThr)
     {
         NtTermThr = (NTTERMINATETHREAD)SSDT::GetFunctionAddress("NtTerminateThread");
-        if(!NtTermThr)
+        if (!NtTermThr)
+            return false;
+    }
+    if (!NtCrDbgObj)
+    {
+        NtCrDbgObj = (NTCREATEDEBUGOBJECT)SSDT::GetFunctionAddress("NtCreateDebugObject");
+        if (!NtCrDbgObj)
             return false;
     }
     return true;
@@ -521,14 +544,14 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
         USHORT LoadCount;
         USHORT OffsetToFileName;
         UCHAR FullPathName[256];
-    } SYSTEM_MODULE_ENTRY, *PSYSTEM_MODULE_ENTRY;
+    } SYSTEM_MODULE_ENTRY, * PSYSTEM_MODULE_ENTRY;
 
 #pragma warning(disable:4200)
     typedef struct _SYSTEM_MODULE_INFORMATION
     {
         ULONG Count;
         SYSTEM_MODULE_ENTRY Module[0];
-    } SYSTEM_MODULE_INFORMATION, *PSYSTEM_MODULE_INFORMATION;
+    } SYSTEM_MODULE_INFORMATION, * PSYSTEM_MODULE_INFORMATION;
 
     PVOID pModuleBase = NULL;
     PSYSTEM_MODULE_INFORMATION pSystemInfoBuffer = NULL;
@@ -536,11 +559,11 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
     ULONG SystemInfoBufferSize = 0;
 
     NTSTATUS status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
-                      &SystemInfoBufferSize,
-                      0,
-                      &SystemInfoBufferSize);
+        &SystemInfoBufferSize,
+        0,
+        &SystemInfoBufferSize);
 
-    if(!SystemInfoBufferSize)
+    if (!SystemInfoBufferSize)
     {
         Log("[TITANHIDE] ZwQuerySystemInformation (1) failed...\r\n");
         return NULL;
@@ -548,7 +571,7 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
 
     pSystemInfoBuffer = (PSYSTEM_MODULE_INFORMATION)ExAllocatePoolWithTag(NonPagedPool, SystemInfoBufferSize * 2, GetPoolTag());
 
-    if(!pSystemInfoBuffer)
+    if (!pSystemInfoBuffer)
     {
         Log("[TITANHIDE] ExAllocatePool failed...\r\n");
         return NULL;
@@ -557,14 +580,14 @@ PVOID Undocumented::GetKernelBase(PULONG pImageSize)
     memset(pSystemInfoBuffer, 0, SystemInfoBufferSize * 2);
 
     status = Undocumented::ZwQuerySystemInformation(SystemModuleInformation,
-             pSystemInfoBuffer,
-             SystemInfoBufferSize * 2,
-             &SystemInfoBufferSize);
+        pSystemInfoBuffer,
+        SystemInfoBufferSize * 2,
+        &SystemInfoBufferSize);
 
-    if(NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
         pModuleBase = pSystemInfoBuffer->Module[0].ImageBase;
-        if(pImageSize)
+        if (pImageSize)
             *pImageSize = pSystemInfoBuffer->Module[0].ImageSize;
     }
     else

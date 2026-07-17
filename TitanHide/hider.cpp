@@ -16,7 +16,7 @@ static LONG TotalHideEntries = 0;
 //entry management
 static void EntryAdd(HIDE_ENTRY* NewEntry)
 {
-    if(TotalHideEntries >= MAX_HIDE_ENTRIES)
+    if (TotalHideEntries >= MAX_HIDE_ENTRIES)
         return;
     RtlCopyMemory(&HideEntries[TotalHideEntries], &NewEntry[0], sizeof(HIDE_ENTRY));
     int NewTotalHideEntries = TotalHideEntries + 1;
@@ -30,19 +30,19 @@ static void EntryClear()
 
 static void EntryDel(int EntryIndex)
 {
-    if(EntryIndex < TotalHideEntries)
+    if (EntryIndex < TotalHideEntries)
     {
         int NewTotalHideEntries = TotalHideEntries - 1;
-        if(!NewTotalHideEntries)  //nothing left
+        if (!NewTotalHideEntries)  //nothing left
         {
             EntryClear();
             return;
         }
-        if(!EntryIndex)
+        if (!EntryIndex)
             RtlCopyMemory(&HideEntries[0], &HideEntries[1], NewTotalHideEntries * sizeof(HIDE_ENTRY));
         else
         {
-            RtlCopyMemory(&HideEntries[EntryIndex], &HideEntries[EntryIndex + 1], (NewTotalHideEntries - EntryIndex)*sizeof(HIDE_ENTRY));
+            RtlCopyMemory(&HideEntries[EntryIndex], &HideEntries[EntryIndex + 1], (NewTotalHideEntries - EntryIndex) * sizeof(HIDE_ENTRY));
         }
         InterlockedExchange(&TotalHideEntries, NewTotalHideEntries);
     }
@@ -50,9 +50,9 @@ static void EntryDel(int EntryIndex)
 
 static int EntryFind(ULONG Pid)
 {
-    for(int i = 0; i < TotalHideEntries; i++)
+    for (int i = 0; i < TotalHideEntries; i++)
     {
-        if(HideEntries[i].Pid == Pid)
+        if (HideEntries[i].Pid == Pid)
         {
             return i;
         }
@@ -63,7 +63,7 @@ static int EntryFind(ULONG Pid)
 static ULONG EntryGet(int EntryIndex)
 {
     ULONG Type = 0;
-    if(EntryIndex < TotalHideEntries)
+    if (EntryIndex < TotalHideEntries)
     {
         Type = HideEntries[EntryIndex].Type;
     }
@@ -72,7 +72,7 @@ static ULONG EntryGet(int EntryIndex)
 
 static void EntrySet(int EntryIndex, ULONG Type)
 {
-    if(EntryIndex < TotalHideEntries)
+    if (EntryIndex < TotalHideEntries)
     {
         HideEntries[EntryIndex].Type |= Type;
     }
@@ -80,7 +80,7 @@ static void EntrySet(int EntryIndex, ULONG Type)
 
 static void EntryUnset(int EntryIndex, ULONG Type)
 {
-    if(EntryIndex < TotalHideEntries)
+    if (EntryIndex < TotalHideEntries)
     {
         HideEntries[EntryIndex].Type &= ~Type;
     }
@@ -89,18 +89,18 @@ static void EntryUnset(int EntryIndex, ULONG Type)
 //usable functions
 bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 {
-    if(Size % sizeof(HIDE_INFO))
+    if (Size % sizeof(HIDE_INFO))
         return false;
     size_t HideInfoCount = Size / sizeof(HIDE_INFO);
     HIDE_INFO* HideInfo = (HIDE_INFO*)Buffer;
-    for(size_t i = 0; i < HideInfoCount; i++)
+    for (size_t i = 0; i < HideInfoCount; i++)
     {
-        switch(HideInfo[i].Command)
+        switch (HideInfo[i].Command)
         {
         case HidePid:
         {
             int FoundEntry = EntryFind(HideInfo[i].Pid);
-            if(FoundEntry == -1)
+            if (FoundEntry == -1)
             {
                 HIDE_ENTRY HideEntry;
                 HideEntry.Pid = HideInfo[i].Pid;
@@ -112,11 +112,13 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
                 EntrySet(FoundEntry, HideInfo[i].Type);
             }
 
+            SharedUserData->KdDebuggerEnabled = 0;
+
             // Use DKOM to disable HideThreadHideFromDebugger in any threads in the target process that already have this flag set
-            if((HideInfo[i].Type & (ULONG)HideThreadHideFromDebugger) != 0 && CrossThreadFlagsOffset != 0)
+            if ((HideInfo[i].Type & (ULONG)HideThreadHideFromDebugger) != 0 && CrossThreadFlagsOffset != 0)
             {
                 const NTSTATUS Status = UndoHideFromDebuggerInRunningThreads(HideInfo[i].Pid);
-                if(!NT_SUCCESS(Status))
+                if (!NT_SUCCESS(Status))
                 {
                     Log("[TITANHIDE] Failed to undo HideThreadHideFromDebugger in running threads! Status = 0x%08lX\n", Status);
                 }
@@ -127,10 +129,10 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
         case UnhidePid:
         {
             int FoundEntry = EntryFind(HideInfo[i].Pid);
-            if(FoundEntry != -1)
+            if (FoundEntry != -1)
             {
                 EntryUnset(FoundEntry, HideInfo[i].Type);
-                if(!EntryGet(FoundEntry))  //nothing left to hide for PID
+                if (!EntryGet(FoundEntry))  //nothing left to hide for PID
                     EntryDel(FoundEntry);
             }
         }
@@ -149,10 +151,10 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 bool Hider::IsHidden(ULONG Pid, HIDE_TYPE Type)
 {
     int FoundEntry = EntryFind(Pid);
-    if(FoundEntry == -1)
+    if (FoundEntry == -1)
         return false;
     ULONG uType = (ULONG)Type;
-    if((EntryGet(FoundEntry)&uType) == uType)
+    if ((EntryGet(FoundEntry) & uType) == uType)
         return true;
     return false;
 }
