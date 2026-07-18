@@ -1,6 +1,7 @@
 #include "hider.h"
 #include "log.h"
 #include "threadhidefromdbg.h"
+#include "hooks.h"
 
 struct HIDE_ENTRY
 {
@@ -12,6 +13,7 @@ struct HIDE_ENTRY
 
 static HIDE_ENTRY HideEntries[MAX_HIDE_ENTRIES];
 static LONG TotalHideEntries = 0;
+static KSPIN_LOCK HideEntriesLock;
 
 //entry management
 static void EntryAdd(HIDE_ENTRY* NewEntry)
@@ -38,12 +40,9 @@ static void EntryDel(int EntryIndex)
             EntryClear();
             return;
         }
-        if(!EntryIndex)
-            RtlCopyMemory(&HideEntries[0], &HideEntries[1], NewTotalHideEntries * sizeof(HIDE_ENTRY));
-        else
-        {
-            RtlCopyMemory(&HideEntries[EntryIndex], &HideEntries[EntryIndex + 1], (NewTotalHideEntries - EntryIndex)*sizeof(HIDE_ENTRY));
-        }
+        // Entry order is irrelevant; replace the removed slot with the last
+        // entry so updates remain bounded while the spin lock is held.
+        HideEntries[EntryIndex] = HideEntries[NewTotalHideEntries];
         InterlockedExchange(&TotalHideEntries, NewTotalHideEntries);
     }
 }
@@ -87,6 +86,12 @@ static void EntryUnset(int EntryIndex, ULONG Type)
 }
 
 //usable functions
+void Hider::Initialize()
+{
+    KeInitializeSpinLock(&HideEntriesLock);
+    TotalHideEntries = 0;
+}
+
 bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 {
     if(Size % sizeof(HIDE_INFO))
@@ -99,6 +104,8 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
         {
         case HidePid:
         {
+            KIRQL Irql;
+            KeAcquireSpinLock(&HideEntriesLock, &Irql);
             int FoundEntry = EntryFind(HideInfo[i].Pid);
             if(FoundEntry == -1)
             {
@@ -111,6 +118,7 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
             {
                 EntrySet(FoundEntry, HideInfo[i].Type);
             }
+            KeReleaseSpinLock(&HideEntriesLock, Irql);
 
             // Use DKOM to disable HideThreadHideFromDebugger in any threads in the target process that already have this flag set
             if((HideInfo[i].Type & (ULONG)HideThreadHideFromDebugger) != 0 && CrossThreadFlagsOffset != 0)
@@ -126,6 +134,8 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 
         case UnhidePid:
         {
+            KIRQL Irql;
+            KeAcquireSpinLock(&HideEntriesLock, &Irql);
             int FoundEntry = EntryFind(HideInfo[i].Pid);
             if(FoundEntry != -1)
             {
@@ -133,12 +143,19 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
                 if(!EntryGet(FoundEntry))  //nothing left to hide for PID
                     EntryDel(FoundEntry);
             }
+            KeReleaseSpinLock(&HideEntriesLock, Irql);
+            if((HideInfo[i].Type & (ULONG)HideThreadHideFromDebugger) != 0)
+                Hooks::ClearVirtualThreadHides(HideInfo[i].Pid, false);
         }
         break;
 
         case UnhideAll:
         {
+            KIRQL Irql;
+            KeAcquireSpinLock(&HideEntriesLock, &Irql);
             EntryClear();
+            KeReleaseSpinLock(&HideEntriesLock, Irql);
+            Hooks::ClearVirtualThreadHides(0, true);
         }
         break;
         }
@@ -148,11 +165,15 @@ bool Hider::ProcessData(PVOID Buffer, ULONG Size)
 
 bool Hider::IsHidden(ULONG Pid, HIDE_TYPE Type)
 {
+    bool Hidden = false;
+    KIRQL Irql;
+    KeAcquireSpinLock(&HideEntriesLock, &Irql);
     int FoundEntry = EntryFind(Pid);
-    if(FoundEntry == -1)
-        return false;
-    ULONG uType = (ULONG)Type;
-    if((EntryGet(FoundEntry)&uType) == uType)
-        return true;
-    return false;
+    if(FoundEntry != -1)
+    {
+        ULONG uType = (ULONG)Type;
+        Hidden = (EntryGet(FoundEntry) & uType) == uType;
+    }
+    KeReleaseSpinLock(&HideEntriesLock, Irql);
+    return Hidden;
 }

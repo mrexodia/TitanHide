@@ -7,6 +7,7 @@
 class Hider
 {
 public:
+    static void Initialize();
     static bool ProcessData(PVOID Buffer, ULONG Size);
     static bool IsHidden(ULONG Pid, HIDE_TYPE Type);
 };

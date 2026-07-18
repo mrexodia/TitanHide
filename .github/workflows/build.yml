@@ -22,6 +22,11 @@ jobs:
         msbuild.exe ${{ github.event.repository.name }}.sln /m /verbosity:minimal "/t:TitanHideGUI:Rebuild;TitanHideTest:Rebuild;TitanHide_x64dbg:Rebuild;TitanHide_TitanEngine:Rebuild" /p:Configuration=Release /p:Platform=x64
         msbuild.exe ${{ github.event.repository.name }}.sln /m /verbosity:minimal "/t:TitanHideGUI:Rebuild;TitanHideTest:Rebuild;TitanHide_x64dbg:Rebuild;TitanHide_OllyDbg:Rebuild;TitanHide_TitanEngine:Rebuild" /p:Configuration=Release /p:Platform=Win32
 
+    - name: Verify native anti-debug contracts
+      run: |
+        .\Release\TitanHideTest.exe --native-contracts
+        .\x64\Release\TitanHideTest.exe --native-contracts
+
     - name: Install Visual Studio 2019 Build Tools
       shell: pwsh
       run: |

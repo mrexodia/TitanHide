@@ -1,5 +1,6 @@
 #include "threadhidefromdbg.h"
 #include "undocumented.h"
+#include "hooks.h"
 #include "log.h"
 
 // Exclude false positive matches in the KTHREAD/Tcb header
@@ -192,9 +193,19 @@ Exit:
     return Status;
 }
 
-// The NtQueryInformationThread hook prevents a process from enabling ThreadHideFromDebugger on
-// new threads, but there is no kernel API to disable this flag on threads that already have it.
-// This function uses DKOM to strip the HideFromDebugger flag from all threads in a process.
+// Reapply a preexisting flag only as immediate rollback when a DKOM clear
+// cannot be virtualized. Intercepted set/create requests never call this.
+VOID RestoreHideFromDebugger(_In_ PETHREAD Thread)
+{
+    if(CrossThreadFlagsOffset != 0)
+    {
+        LONG* CrossThreadFlagsAddress = (LONG*)((ULONG_PTR)Thread + CrossThreadFlagsOffset);
+        InterlockedOr(CrossThreadFlagsAddress, PS_CROSS_THREAD_FLAGS_HIDEFROMDBG);
+    }
+}
+
+// There is no kernel API to clear HideFromDebugger on threads that already
+// have it, so use DKOM and preserve its observable query state virtually.
 NTSTATUS UndoHideFromDebuggerInRunningThreads(_In_ ULONG Pid)
 {
     PSYSTEM_PROCESS_INFORMATION SystemProcessInfo = nullptr, Entry;
@@ -240,9 +251,18 @@ NTSTATUS UndoHideFromDebuggerInRunningThreads(_In_ ULONG Pid)
                     LONG* CrossThreadFlagsAddress = (LONG*)((ULONG_PTR)Thread + CrossThreadFlagsOffset);
                     if((InterlockedAnd(CrossThreadFlagsAddress, ~PS_CROSS_THREAD_FLAGS_HIDEFROMDBG) & PS_CROSS_THREAD_FLAGS_HIDEFROMDBG) != 0)
                     {
-                        NumThreadFlagsStripped++;
-                        Log("[TITANHIDE] Stripped ThreadHideFromDebugger flag from PID %u, TID %u!\r\n",
-                            Pid, (ULONG)(ULONG_PTR)Entry->Threads[i].ClientId.UniqueThread);
+                        if(Hooks::RegisterVirtualThreadHide(Thread))
+                        {
+                            NumThreadFlagsStripped++;
+                            Log("[TITANHIDE] Stripped ThreadHideFromDebugger flag from PID %u, TID %u!\r\n",
+                                Pid, (ULONG)(ULONG_PTR)Entry->Threads[i].ClientId.UniqueThread);
+                        }
+                        else
+                        {
+                            // Keep native observable state if virtualization could
+                            // not be registered.
+                            RestoreHideFromDebugger(Thread);
+                        }
                     }
                     ObDereferenceObject(Thread);
                 }
