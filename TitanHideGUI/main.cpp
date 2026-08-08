@@ -15,6 +15,7 @@ static std::pair<int, HIDE_TYPE> gOptions[] =
     { IDC_CHK_PROCESSDEBUGOBJECTHANDLE, HideProcessDebugObjectHandle },
     { IDC_CHK_DEBUGOBJECT, HideDebugObject },
     { IDC_CHK_SYSTEMDEBUGGERINFORMATION, HideSystemDebuggerInformation },
+    { IDC_CHK_SYSTEMDEBUGGERINFORMATION, HideCodeIntegrityInformation }, //
     { IDC_CHK_NTCLOSE, HideNtClose },
     { IDC_CHK_THREADHIDEFROMDEBUGGER, HideThreadHideFromDebugger },
     { IDC_CHK_NTGETCONTEXTTHREAD, HideNtGetContextThread },

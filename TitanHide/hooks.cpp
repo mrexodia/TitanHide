@@ -386,6 +386,43 @@ static NTSTATUS NTAPI HookNtQuerySystemInformation(
             }
             break;
         }
+        case SystemCodeIntegrityInformation:
+        {
+            if(Hider::IsHidden(pid, HideCodeIntegrityInformation))
+            {
+                Log("[TITANHIDE] SystemCodeIntegrityInformation by %d\r\n", pid);
+                typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
+                {
+                    ULONG Length;
+                    ULONG CodeIntegrityOptions;
+                } SYSTEM_CODEINTEGRITY_INFORMATION, *PSYSTEM_CODEINTEGRITY_INFORMATION;
+
+                // Flags to clear:
+                // 0x02  = CODEINTEGRITY_OPTION_TESTSIGN              (test-signing mode)
+                // 0x80  = CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED     (kernel debugger present)
+                // 0x200 = CODEINTEGRITY_OPTION_FLIGHTING_ENABLED     (insider/flight build)
+                //
+                // Suuurellyyy this would work???
+                if(SystemInformationLength >= sizeof(SYSTEM_CODEINTEGRITY_INFORMATION))
+                {
+                    __try
+                    {
+                        BACKUP_RETURNLENGTH();
+
+                        PSYSTEM_CODEINTEGRITY_INFORMATION sci = (PSYSTEM_CODEINTEGRITY_INFORMATION)SystemInformation;
+                        ProbeForWrite(sci, sizeof(SYSTEM_CODEINTEGRITY_INFORMATION), 1);
+                        sci->CodeIntegrityOptions &= ~(0x02 | 0x80 | 0x200);
+
+                        RESTORE_RETURNLENGTH();
+                    }
+                    __except(EXCEPTION_EXECUTE_HANDLER)
+                    {
+                        ret = GetExceptionCode();
+                    }
+                }
+            }
+            break;
+        }
         default:
             break;
         }
